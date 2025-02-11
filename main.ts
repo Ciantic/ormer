@@ -14,8 +14,6 @@ type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 // OmitProperties<string, { a: string, b: number }> => { b: number }
 type OmitProperties<T, O> = { [K in keyof O as O[K] extends T ? never : K]: O[K] };
 
-// TODO: Split to PrimaryKey, AutoIncrement, RowVersion, CreatedAt, UpdatedAt, ForeignKey types
-
 type ColumnKind =
     | ""
     | "primaryKey"
@@ -26,10 +24,10 @@ type ColumnKind =
     | "foreignKey";
 
 type ColumnType<
-    Select extends ValibotSchema,
+    Kind extends ColumnKind = "",
+    Select extends ValibotSchema = ValibotSchema,
     Insert extends ValibotSchema = Select,
-    Update extends ValibotSchema = Insert,
-    Kind extends ColumnKind = ""
+    Update extends ValibotSchema = Insert
 > = {
     readonly kind: Kind;
     readonly insert: Insert;
@@ -49,28 +47,19 @@ type ColumnType<
     readonly foreignKeyColumn?: Kind extends "foreignKey" ? string : never;
 };
 
-type RecordOfColumnTypes = Record<
-    string,
-    ColumnType<ValibotSchema, ValibotSchema, ValibotSchema, any>
->;
+type RecordOfColumnTypes = Record<string, ColumnType<any>>;
 
 export interface Table<TableName extends string, Columns extends RecordOfColumnTypes> {
     table: StringLiteral<TableName>;
     columns: Columns;
 }
 
-type InferKyselyColumns<T extends Record<string, ColumnType<ValibotSchema>>> = {
+type InferKyselyColumns<T extends Record<string, ColumnType>> = {
     [K in keyof T]: T[K]["__kysely__"];
 };
 
-type InferKyselyTable<
-    T extends Table<
-        // deno-lint-ignore no-explicit-any
-        any,
-        // deno-lint-ignore no-explicit-any
-        Record<string, ColumnType<ValibotSchema, ValibotSchema, ValibotSchema, any>>
-    >
-> = {
+// deno-lint-ignore no-explicit-any
+type InferKyselyTable<T extends Table<any, RecordOfColumnTypes>> = {
     [K in T["table"]]: FinalType<InferKyselyColumns<T["columns"]>>;
 };
 
@@ -84,7 +73,6 @@ export function navigation<T>(fn: () => T) {
         kind: "navigation",
         navigationFn: fn,
     };
-    
 }
 
 /**
@@ -93,7 +81,7 @@ export function navigation<T>(fn: () => T) {
  * @param schema
  * @returns
  */
-export function col<Schema extends ValibotSchema>(schema: Schema): ColumnType<Schema> {
+export function col<Schema extends ValibotSchema>(schema: Schema): ColumnType<"", Schema> {
     return {
         select: schema,
         insert: schema,
@@ -114,8 +102,8 @@ export function col3<
     insert: Insert,
     update: Update,
     kind: Kind = "" as Kind,
-    props: Partial<ColumnType<Select, Insert, Update, Kind>>
-): ColumnType<Select, Insert, Update, Kind> {
+    props: Partial<ColumnType<Kind, Select, Insert, Update>>
+): ColumnType<Kind, Select, Insert, Update> {
     return {
         select,
         insert,
@@ -128,10 +116,10 @@ export function col3<
 }
 
 export function pkAutoInc(): ColumnType<
+    "primaryKey",
     v.NumberSchema<undefined>,
     v.NeverSchema<undefined>,
-    v.NeverSchema<undefined>,
-    "primaryKey"
+    v.NeverSchema<undefined>
 > {
     return {
         ...col3(v.number(), v.never(), v.never(), "", {}),
@@ -144,8 +132,8 @@ export function pk<
     Insert extends ValibotSchema,
     Update extends ValibotSchema
 >(
-    column: ColumnType<Select, Insert, Update, "">
-): ColumnType<Select, Insert, Update, "primaryKey"> {
+    column: ColumnType<"", Select, Insert, Update>
+): ColumnType<"primaryKey", Select, Insert, Update> {
     return {
         ...column,
         kind: "primaryKey",
@@ -153,10 +141,10 @@ export function pk<
 }
 
 export function rowVersion(): ColumnType<
+    "rowVersion",
     v.NumberSchema<undefined>,
     v.NeverSchema<undefined>,
-    v.NeverSchema<undefined>,
-    "rowVersion"
+    v.NeverSchema<undefined>
 > {
     /*
     TODO for SQLITE:
@@ -174,10 +162,10 @@ export function rowVersion(): ColumnType<
 }
 
 export function createdAt(): ColumnType<
+    "createdAt",
     v.DateSchema<undefined>,
     v.NeverSchema<undefined>,
-    v.NeverSchema<undefined>,
-    "createdAt"
+    v.NeverSchema<undefined>
 > {
     return {
         ...col3(v.date(), v.never(), v.never(), "", {}),
@@ -185,10 +173,10 @@ export function createdAt(): ColumnType<
     };
 }
 export function updatedAt(): ColumnType<
+    "updatedAt",
     v.DateSchema<undefined>,
     v.NeverSchema<undefined>,
-    v.NeverSchema<undefined>,
-    "updatedAt"
+    v.NeverSchema<undefined>
 > {
     return {
         ...col3(v.date(), v.never(), v.never(), "", {}),
@@ -203,7 +191,7 @@ export function foreignKey<
 >(
     table: Table<TableName, Columns>,
     column: K
-): ColumnType<Columns[K]["select"], Columns[K]["select"], Columns[K]["select"], "foreignKey"> {
+): ColumnType<"foreignKey", Columns[K]["select"], Columns[K]["select"], Columns[K]["select"]> {
     // Foreign key points to a primary key of another table, primary keys are
     // not insertable or updateable, but foreignkey must be insertable and
     // updateable
@@ -219,10 +207,10 @@ export function foreignKey<
     };
 }
 export function foreignKeyUntyped<Select extends ValibotSchema>(
-    column: ColumnType<Select>,
+    column: ColumnType<"", Select>,
     foreignKeyTable: string,
     foreignKeyColumn: string
-): ColumnType<Select, Select, Select, "foreignKey"> {
+): ColumnType<"foreignKey", Select, Select, Select> {
     return {
         ...column,
         kind: "foreignKey",
@@ -245,7 +233,7 @@ export function getPrimaryKeySchema<TableName extends string, Columns extends Re
     table: Table<TableName, Columns>
 ): v.ObjectSchema<
     FinalType<{
-        [K in keyof Columns as Columns[K] extends ColumnType<any, any, any, "primaryKey">
+        [K in keyof Columns as Columns[K] extends ColumnType<"primaryKey">
             ? K
             : never]: Columns[K]["select"];
     }>,
@@ -272,8 +260,8 @@ export function getUpdateKeySchema<TableName extends string, Columns extends Rec
 ): v.ObjectSchema<
     FinalType<{
         [K in keyof Columns as Columns[K] extends
-            | ColumnType<any, any, any, "primaryKey">
-            | ColumnType<any, any, any, "rowVersion">
+            | ColumnType<"primaryKey">
+            | ColumnType<"rowVersion">
             ? K
             : never]: Columns[K]["select"];
     }>,
@@ -359,7 +347,10 @@ export function getInsertSchema<TableName extends string, Columns extends Record
     ) as any;
 }
 
-export function getUpdateFieldsSchema<TableName extends string, Columns extends RecordOfColumnTypes>(
+export function getUpdateFieldsSchema<
+    TableName extends string,
+    Columns extends RecordOfColumnTypes
+>(
     table: Table<TableName, Columns>
 ): v.ObjectSchema<
     FinalType<
@@ -435,8 +426,9 @@ export function getPatchFieldsSchema<TableName extends string, Columns extends R
 // Some type assertions
 
 // Test cols
-export const TEST_COL: ColumnType<v.NumberSchema<undefined>> = col(v.number());
+export const TEST_COL: ColumnType<"", v.NumberSchema<undefined>> = col(v.number());
 export const TEST_JSON_COL: ColumnType<
+    "",
     v.ObjectSchema<
         {
             readonly foo: v.NumberSchema<undefined>;
@@ -454,29 +446,29 @@ export const TEST_JSON_COL: ColumnType<
 // Test column wrappers
 // export const TEST_IS_GENERATED: ColumnType<v.NumberSchema<undefined>> = generated(col(v.number()));
 export const TEST_IS_GENERATED2: ColumnType<
+    "primaryKey",
     v.NumberSchema<undefined>,
     v.NeverSchema<undefined>,
-    v.NeverSchema<undefined>,
-    "primaryKey"
+    v.NeverSchema<undefined>
 > = pkAutoInc();
 export const TEST_PK: ColumnType<
+    "primaryKey",
     v.StringSchema<undefined>,
     v.StringSchema<undefined>,
-    v.StringSchema<undefined>,
-    "primaryKey"
+    v.StringSchema<undefined>
 > = pk(col(v.string()));
 
 export const TEST_CREATED_AT: ColumnType<
+    "createdAt",
     v.DateSchema<undefined>,
     v.NeverSchema<undefined>,
-    v.NeverSchema<undefined>,
-    "createdAt"
+    v.NeverSchema<undefined>
 > = createdAt();
 export const TEST_UPDATED_AT: ColumnType<
+    "updatedAt",
     v.DateSchema<undefined>,
     v.NeverSchema<undefined>,
-    v.NeverSchema<undefined>,
-    "updatedAt"
+    v.NeverSchema<undefined>
 > = updatedAt();
 
 // Test table inference
@@ -484,12 +476,12 @@ export const TEST_TABLE: Table<
     "some_table",
     {
         id: ColumnType<
+            "primaryKey",
             v.NumberSchema<undefined>,
             v.NeverSchema<undefined>,
-            v.NeverSchema<undefined>,
-            "primaryKey"
+            v.NeverSchema<undefined>
         >;
-        someCol: ColumnType<v.StringSchema<undefined>>;
+        someCol: ColumnType<"", v.StringSchema<undefined>>;
     }
 > = table("some_table", {
     id: pkAutoInc(),
@@ -512,7 +504,7 @@ const invoiceTable = table("invoice", {
     }),
 });
 
-invoiceTable.columns.invoice_rows.navigationFn()
+invoiceTable.columns.invoice_rows.navigationFn();
 
 const invoiceRowTable = table("invoice_row", {
     id: pkAutoInc(),
