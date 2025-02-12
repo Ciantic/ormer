@@ -63,17 +63,17 @@ type InferKyselyTable<T extends Table<any, RecordOfColumnTypes>> = {
     [K in T["table"]]: FinalType<InferKyselyColumns<T["columns"]>>;
 };
 
-export function navigation<T>(fn: () => T) {
-    return {
-        select: v.never(),
-        insert: v.never(),
-        update: v.never(),
-        // deno-lint-ignore no-explicit-any
-        __kysely__: null as any,
-        kind: "navigation",
-        navigationFn: fn,
-    };
-}
+// export function navigation<T>(fn: () => T) {
+//     return {
+//         select: v.never(),
+//         insert: v.never(),
+//         update: v.never(),
+//         // deno-lint-ignore no-explicit-any
+//         __kysely__: null as any,
+//         kind: "navigation",
+//         navigationFn: fn,
+//     };
+// }
 
 /**
  * Column with a same schema for selecting, inserting and updating
@@ -499,12 +499,7 @@ const invoiceTable = table("invoice", {
     rowversion: rowVersion(),
     created_at: createdAt(),
     updated_at: updatedAt(),
-    invoice_rows: navigation(() => {
-        return 5;
-    }),
 });
-
-invoiceTable.columns.invoice_rows.navigationFn();
 
 const invoiceRowTable = table("invoice_row", {
     id: pkAutoInc(),
