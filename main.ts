@@ -422,7 +422,6 @@ export function getPatchFieldsSchema<TableName extends string, Columns extends R
     ) as any;
 }
 
-
 function createDbFactory<T extends readonly Table<any, RecordOfColumnTypes>[]>(
     ...tables: T
 ): {
@@ -539,6 +538,14 @@ const personTable = table("person", {
     id: pkAutoInc(),
     first_name: col(v.string()),
     last_name: col(v.optional(v.string())),
+    email: col(
+        v.pipe(
+            v.string(),
+            v.nonEmpty("Please enter your email."),
+            v.email("The email is badly formatted."),
+            v.maxLength(30, "Your email is too long.")
+        )
+    ),
     // Self referencing foreign key, requires untyped `foreignKeyUntyped`
     supervisor_id: foreignKeyUntyped(col(v.number()), "person", "id"),
     created_at: createdAt(),
@@ -563,6 +570,9 @@ const invoiceUpdateSchema = getUpdateFieldsSchema(invoiceTable);
 const patchUpdateSchema = getPatchFieldsSchema(invoiceTable);
 const updateKeySchema = getUpdateKeySchema(invoiceTable);
 const update = v.intersect([updateKeySchema, patchUpdateSchema]);
+
+const insertPersonSchema = getInsertSchema(personTable);
+type InsertPerson = v.InferInput<typeof insertPersonSchema>;
 
 type UpdateWithPatch = v.InferInput<typeof update>;
 
