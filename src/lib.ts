@@ -92,16 +92,15 @@ export function col<Schema extends ValibotSchema>(schema: Schema): ColumnType<""
 }
 
 export function col3<
-    Select extends ValibotSchema,
-    Insert extends ValibotSchema,
-    Update extends ValibotSchema,
-    Kind extends ColumnKind = ""
+    Kind extends ColumnKind = "",
+    Select extends ValibotSchema = ValibotSchema,
+    Insert extends ValibotSchema = Select,
+    Update extends ValibotSchema = Insert
 >(
+    kind: Kind = "" as Kind,
     select: Select,
     insert: Insert,
-    update: Update,
-    kind: Kind = "" as Kind,
-    props: Partial<ColumnType<Kind, Select, Insert, Update>>
+    update: Update
 ): ColumnType<Kind, Select, Insert, Update> {
     return {
         select,
@@ -110,7 +109,6 @@ export function col3<
         // deno-lint-ignore no-explicit-any
         __kysely__: null as any,
         kind,
-        ...props,
     };
 }
 
@@ -121,7 +119,7 @@ export function pkAutoInc(): ColumnType<
     v.NeverSchema<undefined>
 > {
     return {
-        ...col3(v.number(), v.never(), v.never(), "", {}),
+        ...col3("", v.number(), v.never(), v.never()),
         kind: "primaryKey",
     };
 }
@@ -155,7 +153,7 @@ export function rowVersion(): ColumnType<
     */
 
     return {
-        ...col3(v.number(), v.never(), v.never(), "rowVersion", {}),
+        ...col3("rowVersion", v.number(), v.never(), v.never()),
         defaultValue: 0,
     };
 }
@@ -167,7 +165,7 @@ export function createdAt(): ColumnType<
     v.NeverSchema<undefined>
 > {
     return {
-        ...col3(v.date(), v.never(), v.never(), "", {}),
+        ...col3("", v.date(), v.never(), v.never()),
         kind: "createdAt",
     };
 }
@@ -178,7 +176,7 @@ export function updatedAt(): ColumnType<
     v.NeverSchema<undefined>
 > {
     return {
-        ...col3(v.date(), v.never(), v.never(), "", {}),
+        ...col3("", v.date(), v.never(), v.never()),
         kind: "updatedAt",
     };
 }
@@ -201,8 +199,7 @@ export function foreignKey<
         __kysely__: table.columns[column].__kysely__,
         kind: "foreignKey",
         foreignKeyTable: table.table,
-        // deno-lint-ignore no-explicit-any
-        foreignKeyColumn: column as any,
+        foreignKeyColumn: column as string,
     };
 }
 export function foreignKeyUntyped<Select extends ValibotSchema>(
@@ -444,4 +441,3 @@ export function createDbFactory<T extends readonly Table<any, RecordOfColumnType
         },
     };
 }
-

@@ -1,7 +1,23 @@
 import * as v from "npm:valibot";
 import { assertEquals } from "jsr:@std/assert";
 
-import { ColumnType, Table, col, pk, pkAutoInc, createdAt, updatedAt, table } from "./lib.ts";
+import {
+    ColumnType,
+    Table,
+    col,
+    pk,
+    pkAutoInc,
+    createdAt,
+    updatedAt,
+    table,
+    getPrimaryKeySchema,
+    rowVersion,
+    getUpdateKeySchema,
+    getSelectSchema,
+    getInsertSchema,
+    getUpdateFieldsSchema,
+    getPatchFieldsSchema,
+} from "./lib.ts";
 
 // ----------------------------------------------------------------------
 // Some type assertions
@@ -69,13 +85,89 @@ export const TEST_TABLE: Table<
     someCol: col(v.string()),
 });
 
-
 // ----------------------------------------------------------------------
 // Some tests
 
 // import { add } from "./main.ts";
 
-Deno.test(function addTest() {
-  assertEquals("1", "1");
+Deno.test(function testGetPrimaryKeySchema() {
+    const schema = getPrimaryKeySchema(
+        table("some_table", {
+            id: pkAutoInc(),
+            rowversion: rowVersion(),
+            someCol: col(v.string()),
+        })
+    );
+    assertEquals(schema.type, "object");
+    assertEquals(Object.keys(schema.entries).length, 1);
+    assertEquals(schema.entries.id.type, "number");
 });
 
+Deno.test(function testGetUpdateKeySchema() {
+    const schema = getUpdateKeySchema(
+        table("some_table", {
+            id: pkAutoInc(),
+            rowversion: rowVersion(),
+            someCol: col(v.string()),
+        })
+    );
+    assertEquals(schema.type, "object");
+    assertEquals(Object.keys(schema.entries).length, 2);
+    assertEquals(schema.entries.id.type, "number");
+    assertEquals(schema.entries.rowversion.type, "number");
+});
+
+Deno.test(function testGetSelectSchema() {
+    const schema = getSelectSchema(
+        table("some_table", {
+            id: pkAutoInc(),
+            rowversion: rowVersion(),
+            someCol: col(v.string()),
+        })
+    );
+    assertEquals(schema.type, "object");
+    assertEquals(Object.keys(schema.entries).length, 3);
+    assertEquals(schema.entries.id.type, "number");
+    assertEquals(schema.entries.rowversion.type, "number");
+    assertEquals(schema.entries.someCol.type, "string");
+});
+
+Deno.test(function testGetInsertSchema() {
+    const schema = getInsertSchema(
+        table("some_table", {
+            id: pkAutoInc(),
+            rowversion: rowVersion(),
+            someCol: col(v.string()),
+        })
+    );
+    assertEquals(schema.type, "object");
+    assertEquals(Object.keys(schema.entries).length, 1);
+    assertEquals(schema.entries.someCol.type, "string");
+});
+
+Deno.test(function testGetUpdateFieldsSchema() {
+    const schema = getUpdateFieldsSchema(
+        table("some_table", {
+            id: pkAutoInc(),
+            rowversion: rowVersion(),
+            someCol: col(v.string()),
+        })
+    );
+    assertEquals(schema.type, "object");
+    assertEquals(Object.keys(schema.entries).length, 1);
+    assertEquals(schema.entries.someCol.type, "string");
+});
+
+Deno.test(function testGetPatchFieldsSchema() {
+    const schema = getPatchFieldsSchema(
+        table("some_table", {
+            id: pkAutoInc(),
+            rowversion: rowVersion(),
+            someCol: col(v.string()),
+        })
+    );
+    assertEquals(schema.type, "object");
+    assertEquals(Object.keys(schema.entries).length, 1);
+    assertEquals(schema.entries.someCol.type, "optional");
+    assertEquals(schema.entries.someCol.wrapped.type, "string");
+});
