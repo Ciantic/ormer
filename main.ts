@@ -422,6 +422,31 @@ export function getPatchFieldsSchema<TableName extends string, Columns extends R
     ) as any;
 }
 
+
+function createDbFactory<T extends readonly Table<any, RecordOfColumnTypes>[]>(
+    ...tables: T
+): {
+    // tables: T,
+    tables: {
+        [K in T[number]["table"]]: Extract<T[number], Table<K, RecordOfColumnTypes>>;
+    };
+    createKyselyDb(args: k.KyselyConfig): k.Kysely<{
+        [K in T[number]["table"]]: FinalType<
+            InferKyselyColumns<Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"]>
+        >;
+    }>;
+} {
+    return {
+        tables: tables.reduce((acc, table) => {
+            acc[table.table] = table;
+            return acc;
+        }, {} as any),
+        createKyselyDb(args: k.KyselyConfig) {
+            return new k.Kysely(args);
+        },
+    };
+}
+
 // ----------------------------------------------------------------------
 // Some type assertions
 
@@ -523,17 +548,36 @@ const personTable = table("person", {
 // Alternative you can use mutational syntax, which is typed
 personTable.columns.supervisor_id = foreignKey(personTable, "id");
 
+const dbFactory = createDbFactory(invoiceTable, invoiceRowTable, personTable);
+const dbSqlite = dbFactory.createKyselyDb({ dialect: "sqlite" } as any);
+type Database = typeof dbSqlite;
+
+// Alternate way of creating Kysely database table types
+type InvoiceTable = InferKyselyTable<typeof invoiceTable>;
+type InvoiceRowTable = InferKyselyTable<typeof invoiceRowTable>;
+type PersonTable = InferKyselyTable<typeof personTable>;
+
+// Creating valibot schemas for the tables
 const invoiceInsertSchema = getInsertSchema(invoiceTable);
 const invoiceUpdateSchema = getUpdateFieldsSchema(invoiceTable);
 const patchUpdateSchema = getPatchFieldsSchema(invoiceTable);
 const updateKeySchema = getUpdateKeySchema(invoiceTable);
-const update = v.intersect([patchUpdateSchema, updateKeySchema]);
-type Foo = v.InferInput<typeof update>;
+const update = v.intersect([updateKeySchema, patchUpdateSchema]);
 
-type InvoiceTable = InferKyselyTable<typeof invoiceTable>;
-type InvoiceRowTable = InferKyselyTable<typeof invoiceRowTable>;
-type PersonTable = InferKyselyTable<typeof personTable>;
-type Database = k.Kysely<InvoiceTable & InvoiceRowTable & PersonTable>;
+type UpdateWithPatch = v.InferInput<typeof update>;
+
+/* UpdateWithPatch is inferred as :
+{
+    id: number;                         // required, because it's a primary key
+    rowversion: number;                 // required for updating, because it's a row version
+} & {
+    title?: string | undefined;         // optional new field to update
+    description?: string | undefined;   // optional new field to update
+    due_date?: Date | undefined;        // optional new field to update
+}
+*/
+
+// Some test queries
 
 export function test(db: Database) {
     return db
@@ -573,7 +617,7 @@ export function insertInvoice(db: Database, invoice: v.InferOutput<typeof invoic
     }
 }
 
-await insertInvoice(null as any, {
+await insertInvoice(dbSqlite, {
     due_date: new Date(),
     title: "foo",
     description: "bar",
