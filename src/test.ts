@@ -1,7 +1,7 @@
 import * as v from "npm:valibot";
 import { assertEquals } from "jsr:@std/assert";
 
-import { ColumnType, Table, col, pk, pkAutoInc, createdAt, updatedAt, table } from "../main.ts";
+import { ColumnType, Table, col, pk, pkAutoInc, createdAt, updatedAt, table } from "./lib.ts";
 
 // ----------------------------------------------------------------------
 // Some type assertions

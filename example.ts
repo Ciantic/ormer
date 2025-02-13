@@ -16,7 +16,7 @@ import {
     rowVersion,
     createdAt,
     updatedAt,
-} from "./main.ts";
+} from "./src/lib.ts";
 
 const invoiceTable = table("invoice", {
     id: pkAutoInc(),
