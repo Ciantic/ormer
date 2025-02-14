@@ -31,11 +31,7 @@ export type ColumnType<
     readonly insert: Insert;
     readonly select: Select;
     readonly update: Update;
-    readonly __kysely__: k.ColumnType<
-        v.InferOutput<Select>,
-        v.InferOutput<Insert>,
-        v.InferOutput<Update>
-    >;
+    readonly columnName?: string;
     readonly defaultValue?: v.InferOutput<Select>;
     readonly autoIncrement?: true;
 
@@ -44,7 +40,54 @@ export type ColumnType<
     // too complex to look at in the editor
     readonly foreignKeyTable?: Kind extends "foreignKey" ? string : never;
     readonly foreignKeyColumn?: Kind extends "foreignKey" ? string : never;
+    readonly __kysely__: k.ColumnType<
+        v.InferOutput<Select>,
+        v.InferOutput<Insert>,
+        v.InferOutput<Update>
+    >;
 };
+
+export function colopt<
+    Kind extends ColumnKind = "",
+    Select extends ValibotSchema = ValibotSchema,
+    Insert extends ValibotSchema = Select,
+    Update extends ValibotSchema = Insert
+>(
+    kind: Kind = "" as Kind,
+    opts: {
+        select: Select;
+        insert: Insert;
+        update: Update;
+        defaultValue?: v.InferOutput<Select>;
+        foreignKeyTable?: Kind extends "foreignKey" ? string : never;
+        foreignKeyColumn?: Kind extends "foreignKey" ? string : never;
+        autoIncrement?: true;
+    }
+): ColumnType<Kind, Select, Insert, Update> {
+    return {
+        kind,
+        select: opts.select,
+        insert: opts.insert,
+        update: opts.update,
+        defaultValue: opts.defaultValue,
+        foreignKeyTable: opts.foreignKeyTable,
+        foreignKeyColumn: opts.foreignKeyColumn,
+        autoIncrement: opts.autoIncrement,
+        // deno-lint-ignore no-explicit-any
+        __kysely__: null as any,
+    };
+}
+
+export function col<Schema extends ValibotSchema>(schema: Schema): ColumnType<"", Schema> {
+    return {
+        select: schema,
+        insert: schema,
+        update: schema,
+        // deno-lint-ignore no-explicit-any
+        __kysely__: null as any,
+        kind: "",
+    };
+}
 
 type RecordOfColumnTypes = Record<string, ColumnType<any>>;
 
@@ -62,188 +105,22 @@ export type InferKyselyTable<T extends Table<any, RecordOfColumnTypes>> = {
     [K in T["table"]]: FinalType<InferKyselyColumns<T["columns"]>>;
 };
 
-// export function navigation<T>(fn: () => T) {
-//     return {
-//         select: v.never(),
-//         insert: v.never(),
-//         update: v.never(),
-//         // deno-lint-ignore no-explicit-any
-//         __kysely__: null as any,
-//         kind: "navigation",
-//         navigationFn: fn,
-//     };
-// }
-
-/**
- * Column with a same schema for selecting, inserting and updating
- *
- * @param schema
- * @returns
- */
-export function col<Schema extends ValibotSchema>(schema: Schema): ColumnType<"", Schema> {
-    return {
-        select: schema,
-        insert: schema,
-        update: schema,
-        // deno-lint-ignore no-explicit-any
-        __kysely__: null as any,
-        kind: "",
-    };
-}
-
-export function col3<
-    Kind extends ColumnKind = "",
-    Select extends ValibotSchema = ValibotSchema,
-    Insert extends ValibotSchema = Select,
-    Update extends ValibotSchema = Insert
->(
-    kind: Kind = "" as Kind,
-    select: Select,
-    insert: Insert,
-    update: Update
-): ColumnType<Kind, Select, Insert, Update> {
-    return {
-        select,
-        insert,
-        update,
-        // deno-lint-ignore no-explicit-any
-        __kysely__: null as any,
-        kind,
-    };
-}
-
-export function pkAutoInc(): ColumnType<
-    "primaryKey",
-    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
-    v.NeverSchema<undefined>,
-    v.NeverSchema<undefined>
-> {
-    return {
-        ...col3("", v.pipe(v.number(), v.integer()), v.never(), v.never()),
-        kind: "primaryKey",
-        autoIncrement: true,
-    };
-}
-
-export function pk<
-    Select extends ValibotSchema,
-    Insert extends ValibotSchema,
-    Update extends ValibotSchema
->(
-    column: ColumnType<"", Select, Insert, Update>
-): ColumnType<"primaryKey", Select, Insert, Update> {
-    return {
-        ...column,
-        kind: "primaryKey",
-    };
-}
-
-export function rowVersion(): ColumnType<
-    "rowVersion",
-    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
-    v.NeverSchema<undefined>,
-    v.NeverSchema<undefined>
-> {
-    /*
-    TODO for SQLITE:
-    CREATE TRIGGER update_row_version_on_update
-    AFTER UPDATE ON your_table
-    BEGIN
-    UPDATE your_table SET row_version = row_version + 1 WHERE id = NEW.id;
-    END;
-    */
-
-    return {
-        ...col3("rowVersion", v.pipe(v.number(), v.integer()), v.never(), v.never()),
-        defaultValue: 0,
-    };
-}
-
-export function createdAt(): ColumnType<
-    "createdAt",
-    v.DateSchema<undefined>,
-    v.NeverSchema<undefined>,
-    v.NeverSchema<undefined>
-> {
-    return {
-        ...col3("", v.date(), v.never(), v.never()),
-        kind: "createdAt",
-    };
-}
-export function updatedAt(): ColumnType<
-    "updatedAt",
-    v.DateSchema<undefined>,
-    v.NeverSchema<undefined>,
-    v.NeverSchema<undefined>
-> {
-    return {
-        ...col3("", v.date(), v.never(), v.never()),
-        kind: "updatedAt",
-    };
-}
-
-export function nullable<
-    Kind extends ColumnKind,
-    Select extends ValibotSchema,
-    Insert extends ValibotSchema,
-    Update extends ValibotSchema
->(
-    column: ColumnType<Kind, Select, Insert, Update>
-): ColumnType<
-    Kind,
-    v.NullableSchema<Select, undefined>,
-    v.NullableSchema<Insert, undefined>,
-    v.NullableSchema<Update, undefined>
-> {
-    return {
-        ...column,
-        select: v.nullable(column.select),
-        insert: v.nullable(column.insert),
-        update: v.nullable(column.update),
-    };
-}
-
-export function foreignKey<
-    TableName extends string,
-    Columns extends RecordOfColumnTypes,
-    K extends keyof Columns
->(
-    table: Table<TableName, Columns>,
-    column: K
-): ColumnType<"foreignKey", Columns[K]["select"], Columns[K]["select"], Columns[K]["select"]> {
-    // Foreign key points to a primary key of another table, primary keys are
-    // not insertable or updateable, but foreignkey must be insertable and
-    // updateable
-    return {
-        select: table.columns[column].select,
-        insert: table.columns[column].select, // intended
-        update: table.columns[column].select, // intended
-        __kysely__: table.columns[column].__kysely__,
-        kind: "foreignKey",
-        foreignKeyTable: table.table,
-        foreignKeyColumn: column as string,
-    };
-}
-export function foreignKeyUntyped<Select extends ValibotSchema>(
-    column: ColumnType<"", Select>,
-    foreignKeyTable: string,
-    foreignKeyColumn: string
-): ColumnType<"foreignKey", Select, Select, Select> {
-    return {
-        ...column,
-        kind: "foreignKey",
-        foreignKeyTable,
-        foreignKeyColumn,
-    };
-}
-
 export function table<TableName extends string, Columns extends RecordOfColumnTypes>(
     table: StringLiteral<TableName>,
     columns: Columns
 ): Table<TableName, Columns> {
+    // Assign column names
+    const new_columns = Object.entries(columns).reduce((acc, [key, column]) => {
+        acc[key] = {
+            ...column,
+            columnName: key,
+        };
+        return acc;
+    }, {} as any);
+
     return {
         table,
-        columns,
+        columns: new_columns,
     };
 }
 
@@ -462,6 +339,112 @@ export function createDbFactory<T extends readonly Table<any, RecordOfColumnType
             return new k.Kysely(args);
         },
     };
+}
+
+export function pk<
+    Select extends ValibotSchema,
+    Insert extends ValibotSchema,
+    Update extends ValibotSchema
+>(
+    column: ColumnType<"", Select, Insert, Update>
+): ColumnType<"primaryKey", Select, Insert, Update> {
+    return colopt("primaryKey", {
+        ...column,
+    });
+}
+
+export function nullable<
+    Kind extends ColumnKind,
+    Select extends ValibotSchema,
+    Insert extends ValibotSchema,
+    Update extends ValibotSchema
+>(
+    column: ColumnType<Kind, Select, Insert, Update>
+): ColumnType<
+    Kind,
+    v.NullableSchema<Select, undefined>,
+    v.NullableSchema<Insert, undefined>,
+    v.NullableSchema<Update, undefined>
+> {
+    return {
+        ...column,
+        select: v.nullable(column.select),
+        insert: v.nullable(column.insert),
+        update: v.nullable(column.update),
+    };
+}
+
+export function foreignKey<
+    TableName extends string,
+    Columns extends RecordOfColumnTypes,
+    K extends keyof Columns
+>(
+    table: Table<TableName, Columns>,
+    column: K
+): ColumnType<"foreignKey", Columns[K]["select"], Columns[K]["select"], Columns[K]["select"]> {
+    // Foreign key points to a primary key of another table, primary keys are
+    // not insertable or updateable, but foreignkey must be insertable and
+    // updateable
+    return {
+        select: table.columns[column].select,
+        insert: table.columns[column].select, // intended
+        update: table.columns[column].select, // intended
+        __kysely__: table.columns[column].__kysely__,
+        kind: "foreignKey",
+        foreignKeyTable: table.table,
+        foreignKeyColumn: column as string,
+    };
+}
+export function foreignKeyUntyped<Select extends ValibotSchema>(
+    column: ColumnType<"", Select>,
+    foreignKeyTable: string,
+    foreignKeyColumn: string
+): ColumnType<"foreignKey", Select, Select, Select> {
+    return {
+        ...column,
+        kind: "foreignKey",
+        foreignKeyTable,
+        foreignKeyColumn,
+    };
+}
+
+export function pkAutoInc() {
+    return colopt("primaryKey", {
+        select: v.pipe(v.number(), v.integer()),
+        insert: v.never(),
+        update: v.never(),
+        autoIncrement: true,
+    });
+}
+
+export function rowVersion() {
+    return colopt("rowVersion", {
+        select: v.pipe(v.number(), v.integer()),
+        insert: v.never(),
+        update: v.never(),
+        defaultValue: 0,
+    });
+}
+
+export function createdAt() {
+    return colopt("createdAt", {
+        select: v.date(),
+        insert: v.never(),
+        update: v.never(),
+    });
+}
+
+export function updatedAt() {
+    return colopt("updatedAt", {
+        select: v.date(),
+        insert: v.never(),
+        update: v.never(),
+    });
+}
+
+export function uuid() {
+    // TODO: UUID implies indexing
+    return col(v.pipe(v.string(), v.uuid()));
 }
 
 export function datetime() {

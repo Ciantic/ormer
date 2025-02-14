@@ -8,6 +8,7 @@ import * as o from "./lib.ts";
 
 // Test cols
 export const TEST_COL: o.ColumnType<"", v.NumberSchema<undefined>> = o.col(v.number());
+
 export const TEST_JSON_COL: o.ColumnType<
     "",
     v.ObjectSchema<
@@ -17,15 +18,17 @@ export const TEST_JSON_COL: o.ColumnType<
         },
         undefined
     >
-> = o.col(
-    v.object({
-        foo: v.number(),
-        bar: v.string(),
-    })
-);
+> = o.json({
+    foo: v.number(),
+    bar: v.string(),
+});
+
+export const TEST_ARRAY_COL: o.ColumnType<
+    "",
+    v.ArraySchema<v.StringSchema<undefined>, undefined>
+> = o.array(v.string());
 
 // Test column wrappers
-
 export const TEST_AUTOINC: o.ColumnType<
     "primaryKey",
     v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
@@ -82,6 +85,19 @@ export const TEST_TABLE: o.Table<
 // Some tests
 
 // import { add } from "./main.ts";
+
+Deno.test(function testTableCreation() {
+    const table = o.table("some_table", {
+        id: o.pkAutoInc(),
+        rowversion: o.rowVersion(),
+        someCol: o.col(v.string()),
+    });
+    assertEquals(table.table, "some_table");
+    assertEquals(Object.keys(table.columns).length, 3);
+    assertEquals(table.columns.id.columnName, "id");
+    assertEquals(table.columns.rowversion.columnName, "rowversion");
+    assertEquals(table.columns.someCol.columnName, "someCol");
+});
 
 Deno.test(function testGetPrimaryKeySchema() {
     const schema = o.getPrimaryKeySchema(

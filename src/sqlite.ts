@@ -18,7 +18,7 @@ function buildSqliteCreateTable<T extends Record<string, ColumnType<ColumnKind>>
 }
 
 function buildSqliteColumn([name, column]: [string, ColumnType<ColumnKind>]) {
-    return `"${name}" ${buildSqliteColumnTypeStr(column, name)}`;
+    return `"${name}" ${buildSqliteColumnTypeStr(column)}`;
 }
 
 // https://www.sqlite.org/stricttables.html
@@ -38,11 +38,11 @@ const COLUMN_TYPE_MAP = {
 
 function buildSqliteColumnTypeStrSchema(
     column: ColumnType<ColumnKind>,
-    name: string,
     schema: v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>,
     extra: { isOptional?: boolean; isNullable?: boolean } = {}
 ) {
     const { isOptional, isNullable } = extra;
+    const name = column.columnName;
     let type = schema.expects as keyof typeof COLUMN_TYPE_MAP;
     let constraints = "";
     if (schema.type === "optional") {
@@ -59,7 +59,7 @@ function buildSqliteColumnTypeStrSchema(
     if (schema.type === "nullable") {
         const nullschema = schema as v.NullableSchema<v.AnySchema, undefined>;
         type = nullschema.wrapped.expects as keyof typeof COLUMN_TYPE_MAP;
-        return buildSqliteColumnTypeStrSchema(column, name, nullschema.wrapped, {
+        return buildSqliteColumnTypeStrSchema(column, nullschema.wrapped, {
             isNullable: true,
         });
     }
@@ -102,6 +102,15 @@ function buildSqliteColumnTypeStrSchema(
         .join(" ");
 }
 
-function buildSqliteColumnTypeStr(column: ColumnType<ColumnKind>, name: string) {
-    return buildSqliteColumnTypeStrSchema(column, name, column.select, {});
+function buildSqliteColumnTypeStr(column: ColumnType<ColumnKind>) {
+    return buildSqliteColumnTypeStrSchema(column, column.select, {});
 }
+
+/*
+    TODO for SQLITE:
+    CREATE TRIGGER update_row_version_on_update
+    AFTER UPDATE ON your_table
+    BEGIN
+    UPDATE your_table SET row_version = row_version + 1 WHERE id = NEW.id;
+    END;
+    */
