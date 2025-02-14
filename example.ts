@@ -16,6 +16,8 @@ import {
     rowVersion,
     createdAt,
     updatedAt,
+    integer,
+    nullable,
 } from "./src/lib.ts";
 
 const invoiceTable = table("invoice", {
@@ -50,13 +52,13 @@ const personTable = table("person", {
         )
     ),
     // Self referencing foreign key, requires untyped `foreignKeyUntyped`
-    supervisor_id: foreignKeyUntyped(col(v.number()), "person", "id"),
+    supervisor_id: foreignKeyUntyped(nullable(integer()), "person", "id"),
     created_at: createdAt(),
     updated_at: updatedAt(),
 });
 
 // Alternative you can use mutational syntax, which is typed
-personTable.columns.supervisor_id = foreignKey(personTable, "id");
+personTable.columns.supervisor_id = nullable(foreignKey(personTable, "id"));
 
 const dbFactory = createDbFactory(invoiceTable, invoiceRowTable, personTable);
 const dbSqlite = dbFactory.createKyselyDb({ dialect: "sqlite" } as any);

@@ -44,10 +44,11 @@ export const TEST_JSON_COL: ColumnType<
 // export const TEST_IS_GENERATED: ColumnType<v.NumberSchema<undefined>> = generated(col(v.number()));
 export const TEST_IS_GENERATED2: ColumnType<
     "primaryKey",
-    v.NumberSchema<undefined>,
+    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
     v.NeverSchema<undefined>,
     v.NeverSchema<undefined>
 > = pkAutoInc();
+
 export const TEST_PK: ColumnType<
     "primaryKey",
     v.StringSchema<undefined>,
@@ -55,12 +56,20 @@ export const TEST_PK: ColumnType<
     v.StringSchema<undefined>
 > = pk(col(v.string()));
 
+export const TEST_ROWVERSION: ColumnType<
+    "rowVersion",
+    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
+    v.NeverSchema<undefined>,
+    v.NeverSchema<undefined>
+> = rowVersion();
+
 export const TEST_CREATED_AT: ColumnType<
     "createdAt",
     v.DateSchema<undefined>,
     v.NeverSchema<undefined>,
     v.NeverSchema<undefined>
 > = createdAt();
+
 export const TEST_UPDATED_AT: ColumnType<
     "updatedAt",
     v.DateSchema<undefined>,
@@ -74,7 +83,7 @@ export const TEST_TABLE: Table<
     {
         id: ColumnType<
             "primaryKey",
-            v.NumberSchema<undefined>,
+            v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
             v.NeverSchema<undefined>,
             v.NeverSchema<undefined>
         >;
@@ -142,6 +151,20 @@ Deno.test(function testGetInsertSchema() {
     );
     assertEquals(schema.type, "object");
     assertEquals(Object.keys(schema.entries).length, 1);
+    assertEquals(schema.entries.someCol.type, "string");
+});
+
+Deno.test(function testGetInsertSchemaWithPk() {
+    const schema = getInsertSchema(
+        table("some_table", {
+            code: pk(col(v.string())),
+            rowversion: rowVersion(),
+            someCol: col(v.string()),
+        })
+    );
+    assertEquals(schema.type, "object");
+    assertEquals(Object.keys(schema.entries).length, 2);
+    assertEquals(schema.entries.code.type, "string");
     assertEquals(schema.entries.someCol.type, "string");
 });
 

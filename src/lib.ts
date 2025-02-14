@@ -16,7 +16,6 @@ type OmitProperties<T, O> = { [K in keyof O as O[K] extends T ? never : K]: O[K]
 export type ColumnKind =
     | ""
     | "primaryKey"
-    | "autoIncrement"
     | "rowVersion"
     | "createdAt"
     | "updatedAt"
@@ -38,6 +37,7 @@ export type ColumnType<
         v.InferOutput<Update>
     >;
     readonly defaultValue?: v.InferOutput<Select>;
+    readonly autoIncrement?: true;
 
     // I wanted to use `& Kind extends "foreignKey" ? { foreignKeyTable: string;
     // foreignKeyColumn: string } : {}` But it made the hover types of tables
@@ -114,13 +114,14 @@ export function col3<
 
 export function pkAutoInc(): ColumnType<
     "primaryKey",
-    v.NumberSchema<undefined>,
+    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
     v.NeverSchema<undefined>,
     v.NeverSchema<undefined>
 > {
     return {
-        ...col3("", v.number(), v.never(), v.never()),
+        ...col3("", v.pipe(v.number(), v.integer()), v.never(), v.never()),
         kind: "primaryKey",
+        autoIncrement: true,
     };
 }
 
@@ -139,7 +140,7 @@ export function pk<
 
 export function rowVersion(): ColumnType<
     "rowVersion",
-    v.NumberSchema<undefined>,
+    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
     v.NeverSchema<undefined>,
     v.NeverSchema<undefined>
 > {
@@ -153,7 +154,7 @@ export function rowVersion(): ColumnType<
     */
 
     return {
-        ...col3("rowVersion", v.number(), v.never(), v.never()),
+        ...col3("rowVersion", v.pipe(v.number(), v.integer()), v.never(), v.never()),
         defaultValue: 0,
     };
 }
@@ -179,6 +180,35 @@ export function updatedAt(): ColumnType<
         ...col3("", v.date(), v.never(), v.never()),
         kind: "updatedAt",
     };
+}
+
+export function nullable<
+    Kind extends ColumnKind,
+    Select extends ValibotSchema,
+    Insert extends ValibotSchema,
+    Update extends ValibotSchema
+>(
+    column: ColumnType<Kind, Select, Insert, Update>
+): ColumnType<
+    Kind,
+    v.NullableSchema<Select, undefined>,
+    v.NullableSchema<Insert, undefined>,
+    v.NullableSchema<Update, undefined>
+> {
+    return {
+        ...column,
+        select: v.nullable(column.select),
+        insert: v.nullable(column.insert),
+        update: v.nullable(column.update),
+    };
+}
+
+export function integer() {
+    return col(v.pipe(v.number(), v.integer()));
+}
+
+export function decimal() {
+    return col(v.pipe(v.string(), v.decimal()));
 }
 
 export function foreignKey<
