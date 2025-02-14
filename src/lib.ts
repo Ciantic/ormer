@@ -203,12 +203,28 @@ export function nullable<
     };
 }
 
+export function string() {
+    return col(v.pipe(v.string(), v.trim()));
+}
+
+export function varchar(length: number) {
+    return col(v.pipe(v.string(), v.trim(), v.maxLength(length)));
+}
+
+export function float() {
+    return col(v.number());
+}
+
 export function integer() {
     return col(v.pipe(v.number(), v.integer()));
 }
 
 export function decimal() {
     return col(v.pipe(v.string(), v.decimal()));
+}
+
+export function bigint() {
+    return col(v.bigint());
 }
 
 export function foreignKey<
