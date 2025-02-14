@@ -203,30 +203,6 @@ export function nullable<
     };
 }
 
-export function string() {
-    return col(v.pipe(v.string(), v.trim()));
-}
-
-export function varchar(length: number) {
-    return col(v.pipe(v.string(), v.trim(), v.maxLength(length)));
-}
-
-export function float() {
-    return col(v.number());
-}
-
-export function integer() {
-    return col(v.pipe(v.number(), v.integer()));
-}
-
-export function decimal() {
-    return col(v.pipe(v.string(), v.decimal()));
-}
-
-export function bigint() {
-    return col(v.bigint());
-}
-
 export function foreignKey<
     TableName extends string,
     Columns extends RecordOfColumnTypes,
@@ -486,4 +462,42 @@ export function createDbFactory<T extends readonly Table<any, RecordOfColumnType
             return new k.Kysely(args);
         },
     };
+}
+
+export function datetime() {
+    return col(v.date());
+}
+
+export function string() {
+    return col(v.pipe(v.string(), v.trim()));
+}
+
+export function varchar(length: number) {
+    return col(v.pipe(v.string(), v.trim(), v.maxLength(length)));
+}
+
+export function float() {
+    return col(v.number());
+}
+
+export function integer() {
+    return col(v.pipe(v.number(), v.integer()));
+}
+
+export function decimal() {
+    return col(v.pipe(v.string(), v.decimal()));
+}
+
+export function bigint() {
+    return col(v.bigint());
+}
+
+export function json<const TEntries extends v.ObjectEntries>(entries: TEntries) {
+    return col(v.object(entries));
+}
+
+export function array<const TItem extends v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>>(
+    item: TItem
+) {
+    return col(v.array(item));
 }

@@ -1,50 +1,32 @@
 import * as k from "npm:kysely";
 import { jsonArrayFrom } from "npm:kysely/helpers/sqlite";
 import * as v from "npm:valibot";
+import * as o from "./src/lib.ts";
 
-import {
-    createDbFactory,
-    InferKyselyTable,
-    getInsertSchema,
-    getUpdateFieldsSchema,
-    getPatchFieldsSchema,
-    getUpdateKeySchema,
-    pkAutoInc,
-    col,
-    foreignKey,
-    foreignKeyUntyped,
-    table,
-    rowVersion,
-    createdAt,
-    updatedAt,
-    integer,
-    nullable,
-} from "./src/lib.ts";
-
-const invoiceTable = table("invoice", {
-    id: pkAutoInc(),
-    title: col(v.string()),
-    description: nullable(col(v.string())),
-    due_date: col(v.date()),
-    rowversion: rowVersion(),
-    created_at: createdAt(),
-    updated_at: updatedAt(),
+const invoiceTable = o.table("invoice", {
+    id: o.pkAutoInc(),
+    title: o.string(),
+    description: o.nullable(o.string()),
+    due_date: o.datetime(),
+    rowversion: o.rowVersion(),
+    created_at: o.createdAt(),
+    updated_at: o.updatedAt(),
 });
 
-const invoiceRowTable = table("invoice_row", {
-    id: pkAutoInc(),
-    title: col(v.string()),
-    price: col(v.number()),
-    tax_percentage: col(v.number()),
-    quantity: col(v.number()),
-    invoice_id: foreignKey(invoiceTable, "id"),
+const invoiceRowTable = o.table("invoice_row", {
+    id: o.pkAutoInc(),
+    title: o.string(),
+    price: o.float(),
+    tax_percentage: o.float(),
+    quantity: o.float(),
+    invoice_id: o.foreignKey(invoiceTable, "id"),
 });
 
-const personTable = table("person", {
-    id: pkAutoInc(),
-    first_name: col(v.string()),
-    last_name: col(v.optional(v.string())),
-    email: col(
+const personTable = o.table("person", {
+    id: o.pkAutoInc(),
+    first_name: o.string(),
+    last_name: o.nullable(o.string()),
+    email: o.col(
         v.pipe(
             v.string(),
             v.nonEmpty("Please enter your email."),
@@ -53,31 +35,31 @@ const personTable = table("person", {
         )
     ),
     // Self referencing foreign key, requires untyped `foreignKeyUntyped`
-    supervisor_id: foreignKeyUntyped(nullable(integer()), "person", "id"),
-    created_at: createdAt(),
-    updated_at: updatedAt(),
+    supervisor_id: o.nullable(o.foreignKeyUntyped(o.integer(), "person", "id")),
+    created_at: o.createdAt(),
+    updated_at: o.updatedAt(),
 });
 
 // Alternative you can use mutational syntax, which is typed
-personTable.columns.supervisor_id = nullable(foreignKey(personTable, "id"));
+personTable.columns.supervisor_id = o.nullable(o.foreignKey(personTable, "id"));
 
-const dbFactory = createDbFactory(invoiceTable, invoiceRowTable, personTable);
+const dbFactory = o.createDbFactory(invoiceTable, invoiceRowTable, personTable);
 const dbSqlite = dbFactory.createKyselyDb({ dialect: "sqlite" } as any);
 type Database = typeof dbSqlite;
 
 // Alternate way of creating Kysely database table types
-type InvoiceTable = InferKyselyTable<typeof invoiceTable>;
-type InvoiceRowTable = InferKyselyTable<typeof invoiceRowTable>;
-type PersonTable = InferKyselyTable<typeof personTable>;
+type InvoiceTable = o.InferKyselyTable<typeof invoiceTable>;
+type InvoiceRowTable = o.InferKyselyTable<typeof invoiceRowTable>;
+type PersonTable = o.InferKyselyTable<typeof personTable>;
 
 // Creating valibot schemas for the tables
-const invoiceInsertSchema = getInsertSchema(invoiceTable);
-const invoiceUpdateSchema = getUpdateFieldsSchema(invoiceTable);
-const patchUpdateSchema = getPatchFieldsSchema(invoiceTable);
-const updateKeySchema = getUpdateKeySchema(invoiceTable);
+const invoiceInsertSchema = o.getInsertSchema(invoiceTable);
+const invoiceUpdateSchema = o.getUpdateFieldsSchema(invoiceTable);
+const patchUpdateSchema = o.getPatchFieldsSchema(invoiceTable);
+const updateKeySchema = o.getUpdateKeySchema(invoiceTable);
 const update = v.intersect([updateKeySchema, patchUpdateSchema]);
 
-const insertPersonSchema = getInsertSchema(personTable);
+const insertPersonSchema = o.getInsertSchema(personTable);
 type InsertPerson = v.InferInput<typeof insertPersonSchema>;
 
 type UpdateWithPatch = v.InferInput<typeof update>;

@@ -142,13 +142,11 @@ Deno.test("sqliteCreateTables", () => {
         some_nullable_integer: o.nullable(o.integer()),
 
         // JSON types
-        some_json_col: o.col(
-            v.object({
-                foo: v.string(),
-                bar: v.number(),
-            })
-        ),
-        some_json_array_col: o.col(v.array(v.string())),
+        some_json_col: o.json({
+            foo: v.string(),
+            bar: v.number(),
+        }),
+        some_json_array_col: o.array(v.string()),
 
         // Auto populated timestamps
         some_created_at: o.createdAt(),
