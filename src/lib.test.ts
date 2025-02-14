@@ -64,6 +64,20 @@ export const TEST_UPDATED_AT: o.ColumnType<
     v.NeverSchema<undefined>
 > = o.updatedAt();
 
+export const TEST_FOREIGN_KEY: o.ColumnType<
+    "foreignKey",
+    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
+    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
+    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>
+> = o.foreignKeyUntyped(o.integer(), "person", "id");
+
+export const TEST_NULLABLE: o.ColumnType<
+    "",
+    v.NullableSchema<v.StringSchema<undefined>, undefined>,
+    v.OptionalSchema<v.NullableSchema<v.StringSchema<undefined>, undefined>, undefined>,
+    v.OptionalSchema<v.NullableSchema<v.StringSchema<undefined>, undefined>, undefined>
+> = o.nullable(o.string());
+
 // Test table inference
 export const TEST_TABLE: o.Table<
     "some_table",

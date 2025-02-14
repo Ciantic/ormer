@@ -345,9 +345,7 @@ export function pk<
     Select extends ValibotSchema,
     Insert extends ValibotSchema,
     Update extends ValibotSchema
->(
-    column: ColumnType<"", Select, Insert, Update>
-): ColumnType<"primaryKey", Select, Insert, Update> {
+>(column: ColumnType<"", Select, Insert, Update>) {
     return colopt("primaryKey", {
         ...column,
     });
@@ -358,54 +356,48 @@ export function nullable<
     Select extends ValibotSchema,
     Insert extends ValibotSchema,
     Update extends ValibotSchema
->(
-    column: ColumnType<Kind, Select, Insert, Update>
-): ColumnType<
-    Kind,
-    v.NullableSchema<Select, undefined>,
-    v.NullableSchema<Insert, undefined>,
-    v.NullableSchema<Update, undefined>
-> {
-    return {
+>(column: ColumnType<Kind, Select, Insert, Update>) {
+    return colopt(column.kind, {
         ...column,
         select: v.nullable(column.select),
-        insert: v.nullable(column.insert),
-        update: v.nullable(column.update),
-    };
+        insert: v.optional(v.nullable(column.insert)),
+        update: v.optional(v.nullable(column.update)),
+    });
 }
 
 export function foreignKey<
     TableName extends string,
     Columns extends RecordOfColumnTypes,
     K extends keyof Columns
->(
-    table: Table<TableName, Columns>,
-    column: K
-): ColumnType<"foreignKey", Columns[K]["select"], Columns[K]["select"], Columns[K]["select"]> {
+>(table: Table<TableName, Columns>, column: K) {
     // Foreign key points to a primary key of another table, primary keys are
     // not insertable or updateable, but foreignkey must be insertable and
     // updateable
-    return {
+    return colopt("foreignKey", {
         select: table.columns[column].select,
         insert: table.columns[column].select, // intended
         update: table.columns[column].select, // intended
-        __kysely__: table.columns[column].__kysely__,
-        kind: "foreignKey",
         foreignKeyTable: table.table,
         foreignKeyColumn: column as string,
-    };
+    });
 }
-export function foreignKeyUntyped<Select extends ValibotSchema>(
-    column: ColumnType<"", Select>,
+
+export function foreignKeyUntyped<
+    Select extends ValibotSchema = ValibotSchema,
+    Insert extends ValibotSchema = Select,
+    Update extends ValibotSchema = Insert
+>(
+    column: ColumnType<"", Select, Insert, Update>,
     foreignKeyTable: string,
     foreignKeyColumn: string
-): ColumnType<"foreignKey", Select, Select, Select> {
-    return {
-        ...column,
-        kind: "foreignKey",
+) {
+    return colopt("foreignKey", {
+        select: column.select,
+        insert: column.select,
+        update: column.select,
         foreignKeyTable,
         foreignKeyColumn,
-    };
+    });
 }
 
 export function pkAutoInc() {
