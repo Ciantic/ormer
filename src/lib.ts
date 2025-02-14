@@ -341,6 +341,8 @@ export function createDbFactory<T extends readonly Table<any, RecordOfColumnType
     };
 }
 
+// Field types ----------------------------------------------------------------
+
 export function pk<
     Select extends ValibotSchema,
     Insert extends ValibotSchema,
@@ -373,11 +375,12 @@ export function foreignKey<
     // Foreign key points to a primary key of another table, primary keys are
     // not insertable or updateable, but foreignkey must be insertable and
     // updateable
+    const schema: Columns[K]["select"] = table.columns[column].select;
     return colopt("foreignKey", {
-        select: table.columns[column].select,
-        insert: table.columns[column].select, // intended
-        update: table.columns[column].select, // intended
-        foreignKeyTable: table.table,
+        select: schema,
+        insert: schema, // intended
+        update: schema, // intended
+        foreignKeyTable: table.table as string,
         foreignKeyColumn: column as string,
     });
 }

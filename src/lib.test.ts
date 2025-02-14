@@ -95,6 +95,13 @@ export const TEST_TABLE: o.Table<
     someCol: o.col(v.string()),
 });
 
+export const TEST_FOREIGN_KEY_ON_TABLE: o.ColumnType<
+    "foreignKey",
+    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
+    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
+    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>
+> = o.foreignKey(TEST_TABLE, "id");
+
 // ----------------------------------------------------------------------
 // Some tests
 
