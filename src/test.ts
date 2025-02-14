@@ -1,30 +1,14 @@
 import * as v from "npm:valibot";
 import { assertEquals } from "jsr:@std/assert";
 
-import {
-    ColumnType,
-    Table,
-    col,
-    pk,
-    pkAutoInc,
-    createdAt,
-    updatedAt,
-    table,
-    getPrimaryKeySchema,
-    rowVersion,
-    getUpdateKeySchema,
-    getSelectSchema,
-    getInsertSchema,
-    getUpdateFieldsSchema,
-    getPatchFieldsSchema,
-} from "./lib.ts";
+import * as o from "./lib.ts";
 
 // ----------------------------------------------------------------------
 // Some type assertions
 
 // Test cols
-export const TEST_COL: ColumnType<"", v.NumberSchema<undefined>> = col(v.number());
-export const TEST_JSON_COL: ColumnType<
+export const TEST_COL: o.ColumnType<"", v.NumberSchema<undefined>> = o.col(v.number());
+export const TEST_JSON_COL: o.ColumnType<
     "",
     v.ObjectSchema<
         {
@@ -33,7 +17,7 @@ export const TEST_JSON_COL: ColumnType<
         },
         undefined
     >
-> = col(
+> = o.col(
     v.object({
         foo: v.number(),
         bar: v.string(),
@@ -41,57 +25,57 @@ export const TEST_JSON_COL: ColumnType<
 );
 
 // Test column wrappers
-// export const TEST_IS_GENERATED: ColumnType<v.NumberSchema<undefined>> = generated(col(v.number()));
-export const TEST_IS_GENERATED2: ColumnType<
+
+export const TEST_AUTOINC: o.ColumnType<
     "primaryKey",
     v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
     v.NeverSchema<undefined>,
     v.NeverSchema<undefined>
-> = pkAutoInc();
+> = o.pkAutoInc();
 
-export const TEST_PK: ColumnType<
+export const TEST_PK: o.ColumnType<
     "primaryKey",
     v.StringSchema<undefined>,
     v.StringSchema<undefined>,
     v.StringSchema<undefined>
-> = pk(col(v.string()));
+> = o.pk(o.string());
 
-export const TEST_ROWVERSION: ColumnType<
+export const TEST_ROWVERSION: o.ColumnType<
     "rowVersion",
     v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
     v.NeverSchema<undefined>,
     v.NeverSchema<undefined>
-> = rowVersion();
+> = o.rowVersion();
 
-export const TEST_CREATED_AT: ColumnType<
+export const TEST_CREATED_AT: o.ColumnType<
     "createdAt",
     v.DateSchema<undefined>,
     v.NeverSchema<undefined>,
     v.NeverSchema<undefined>
-> = createdAt();
+> = o.createdAt();
 
-export const TEST_UPDATED_AT: ColumnType<
+export const TEST_UPDATED_AT: o.ColumnType<
     "updatedAt",
     v.DateSchema<undefined>,
     v.NeverSchema<undefined>,
     v.NeverSchema<undefined>
-> = updatedAt();
+> = o.updatedAt();
 
 // Test table inference
-export const TEST_TABLE: Table<
+export const TEST_TABLE: o.Table<
     "some_table",
     {
-        id: ColumnType<
+        id: o.ColumnType<
             "primaryKey",
             v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
             v.NeverSchema<undefined>,
             v.NeverSchema<undefined>
         >;
-        someCol: ColumnType<"", v.StringSchema<undefined>>;
+        someCol: o.ColumnType<"", v.StringSchema<undefined>>;
     }
-> = table("some_table", {
-    id: pkAutoInc(),
-    someCol: col(v.string()),
+> = o.table("some_table", {
+    id: o.pkAutoInc(),
+    someCol: o.col(v.string()),
 });
 
 // ----------------------------------------------------------------------
@@ -100,11 +84,11 @@ export const TEST_TABLE: Table<
 // import { add } from "./main.ts";
 
 Deno.test(function testGetPrimaryKeySchema() {
-    const schema = getPrimaryKeySchema(
-        table("some_table", {
-            id: pkAutoInc(),
-            rowversion: rowVersion(),
-            someCol: col(v.string()),
+    const schema = o.getPrimaryKeySchema(
+        o.table("some_table", {
+            id: o.pkAutoInc(),
+            rowversion: o.rowVersion(),
+            someCol: o.col(v.string()),
         })
     );
     assertEquals(schema.type, "object");
@@ -113,11 +97,11 @@ Deno.test(function testGetPrimaryKeySchema() {
 });
 
 Deno.test(function testGetUpdateKeySchema() {
-    const schema = getUpdateKeySchema(
-        table("some_table", {
-            id: pkAutoInc(),
-            rowversion: rowVersion(),
-            someCol: col(v.string()),
+    const schema = o.getUpdateKeySchema(
+        o.table("some_table", {
+            id: o.pkAutoInc(),
+            rowversion: o.rowVersion(),
+            someCol: o.col(v.string()),
         })
     );
     assertEquals(schema.type, "object");
@@ -127,11 +111,11 @@ Deno.test(function testGetUpdateKeySchema() {
 });
 
 Deno.test(function testGetSelectSchema() {
-    const schema = getSelectSchema(
-        table("some_table", {
-            id: pkAutoInc(),
-            rowversion: rowVersion(),
-            someCol: col(v.string()),
+    const schema = o.getSelectSchema(
+        o.table("some_table", {
+            id: o.pkAutoInc(),
+            rowversion: o.rowVersion(),
+            someCol: o.col(v.string()),
         })
     );
     assertEquals(schema.type, "object");
@@ -142,11 +126,11 @@ Deno.test(function testGetSelectSchema() {
 });
 
 Deno.test(function testGetInsertSchema() {
-    const schema = getInsertSchema(
-        table("some_table", {
-            id: pkAutoInc(),
-            rowversion: rowVersion(),
-            someCol: col(v.string()),
+    const schema = o.getInsertSchema(
+        o.table("some_table", {
+            id: o.pkAutoInc(),
+            rowversion: o.rowVersion(),
+            someCol: o.col(v.string()),
         })
     );
     assertEquals(schema.type, "object");
@@ -155,11 +139,11 @@ Deno.test(function testGetInsertSchema() {
 });
 
 Deno.test(function testGetInsertSchemaWithPk() {
-    const schema = getInsertSchema(
-        table("some_table", {
-            code: pk(col(v.string())),
-            rowversion: rowVersion(),
-            someCol: col(v.string()),
+    const schema = o.getInsertSchema(
+        o.table("some_table", {
+            code: o.pk(o.col(v.string())),
+            rowversion: o.rowVersion(),
+            someCol: o.col(v.string()),
         })
     );
     assertEquals(schema.type, "object");
@@ -169,11 +153,11 @@ Deno.test(function testGetInsertSchemaWithPk() {
 });
 
 Deno.test(function testGetUpdateFieldsSchema() {
-    const schema = getUpdateFieldsSchema(
-        table("some_table", {
-            id: pkAutoInc(),
-            rowversion: rowVersion(),
-            someCol: col(v.string()),
+    const schema = o.getUpdateFieldsSchema(
+        o.table("some_table", {
+            id: o.pkAutoInc(),
+            rowversion: o.rowVersion(),
+            someCol: o.col(v.string()),
         })
     );
     assertEquals(schema.type, "object");
@@ -182,11 +166,11 @@ Deno.test(function testGetUpdateFieldsSchema() {
 });
 
 Deno.test(function testGetPatchFieldsSchema() {
-    const schema = getPatchFieldsSchema(
-        table("some_table", {
-            id: pkAutoInc(),
-            rowversion: rowVersion(),
-            someCol: col(v.string()),
+    const schema = o.getPatchFieldsSchema(
+        o.table("some_table", {
+            id: o.pkAutoInc(),
+            rowversion: o.rowVersion(),
+            someCol: o.col(v.string()),
         })
     );
     assertEquals(schema.type, "object");
