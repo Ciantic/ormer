@@ -1,7 +1,7 @@
 import * as k from "npm:kysely";
 import { jsonArrayFrom } from "npm:kysely/helpers/sqlite";
 import * as v from "npm:valibot";
-import * as o from "./src/lib.ts";
+import * as o from "../src/lib.ts";
 
 const invoiceTable = o.table("invoice", {
     id: o.pkAutoInc(),
