@@ -1,3 +1,4 @@
+import * as k from "npm:kysely";
 import { jsonArrayFrom } from "npm:kysely/helpers/sqlite";
 import * as v from "npm:valibot";
 
@@ -23,7 +24,7 @@ import {
 const invoiceTable = table("invoice", {
     id: pkAutoInc(),
     title: col(v.string()),
-    description: col(v.optional(v.string())),
+    description: nullable(col(v.string())),
     due_date: col(v.date()),
     rowversion: rowVersion(),
     created_at: createdAt(),
