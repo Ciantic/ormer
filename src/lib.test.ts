@@ -1,3 +1,4 @@
+import * as k from "npm:kysely";
 import * as v from "npm:valibot";
 import { assertEquals } from "jsr:@std/assert";
 
@@ -7,9 +8,12 @@ import * as o from "./lib.ts";
 // Some type assertions
 
 // Test cols
-export const TEST_COL: o.ColumnType<"", v.NumberSchema<undefined>> = o.col(v.number());
+o.float() as o.ColumnType<"", v.NumberSchema<undefined>>;
 
-export const TEST_JSON_COL: o.ColumnType<
+o.json({
+    foo: v.number(),
+    bar: v.string(),
+}) as o.ColumnType<
     "",
     v.ObjectSchema<
         {
@@ -18,89 +22,90 @@ export const TEST_JSON_COL: o.ColumnType<
         },
         undefined
     >
-> = o.json({
-    foo: v.number(),
-    bar: v.string(),
-});
+>;
 
-export const TEST_ARRAY_COL: o.ColumnType<
-    "",
-    v.ArraySchema<v.StringSchema<undefined>, undefined>
-> = o.array(v.string());
+o.array(v.string()) as o.ColumnType<"", v.ArraySchema<v.StringSchema<undefined>, undefined>>;
 
 // Test column wrappers
-export const TEST_AUTOINC: o.ColumnType<
+o.pkAutoInc() as o.ColumnType<
     "primaryKey",
     v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
-    v.NeverSchema<undefined>,
-    v.NeverSchema<undefined>
-> = o.pkAutoInc();
+    "no",
+    "no"
+>;
 
-export const TEST_PK: o.ColumnType<
-    "primaryKey",
-    v.StringSchema<undefined>,
-    v.StringSchema<undefined>,
-    v.StringSchema<undefined>
-> = o.pk(o.string());
+o.pk(o.string()) as o.ColumnType<"primaryKey", v.StringSchema<undefined>, "yes", "yes">;
 
-export const TEST_ROWVERSION: o.ColumnType<
+o.rowVersion() as o.ColumnType<
     "rowVersion",
     v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
-    v.NeverSchema<undefined>,
-    v.NeverSchema<undefined>
-> = o.rowVersion();
+    "no",
+    "no"
+>;
 
-export const TEST_CREATED_AT: o.ColumnType<
-    "createdAt",
-    v.DateSchema<undefined>,
-    v.NeverSchema<undefined>,
-    v.NeverSchema<undefined>
-> = o.createdAt();
+o.createdAt() as o.ColumnType<"createdAt", v.DateSchema<undefined>, "no", "no">;
 
-export const TEST_UPDATED_AT: o.ColumnType<
-    "updatedAt",
-    v.DateSchema<undefined>,
-    v.NeverSchema<undefined>,
-    v.NeverSchema<undefined>
-> = o.updatedAt();
+o.updatedAt() as o.ColumnType<"updatedAt", v.DateSchema<undefined>, "no", "no">;
 
-export const TEST_FOREIGN_KEY: o.ColumnType<
-    "foreignKey",
-    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
-    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
-    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>
-> = o.foreignKeyUntyped(o.integer(), "person", "id");
+o.foreignKeyUntyped(
+    o.col("", v.number(), {
+        insertable: "no",
+    }),
+    "person",
+    "id"
+) as o.ColumnType<"foreignKey", v.NumberSchema<undefined>, "no", "yes">;
 
-export const TEST_NULLABLE: o.ColumnType<
+o.nullable(o.string()) as o.ColumnType<
     "",
     v.NullableSchema<v.StringSchema<undefined>, undefined>,
-    v.OptionalSchema<v.NullableSchema<v.StringSchema<undefined>, undefined>, undefined>,
-    v.OptionalSchema<v.NullableSchema<v.StringSchema<undefined>, undefined>, undefined>
-> = o.nullable(o.string());
+    "optional",
+    "yes"
+>;
 
 // Test table inference
-export const TEST_TABLE: o.Table<
+const TEST_TABLE = o.table("some_table", {
+    id: o.pkAutoInc(),
+    someCol: o.string(),
+}) as o.Table<
     "some_table",
     {
         id: o.ColumnType<
             "primaryKey",
             v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
-            v.NeverSchema<undefined>,
-            v.NeverSchema<undefined>
+            "no",
+            "no"
         >;
-        someCol: o.ColumnType<"", v.StringSchema<undefined>>;
+        someCol: o.ColumnType<"", v.StringSchema<undefined>, "yes", "yes">;
     }
-> = o.table("some_table", {
-    id: o.pkAutoInc(),
-    someCol: o.col(v.string()),
-});
+>;
 
-export const TEST_FOREIGN_KEY_ON_TABLE: o.ColumnType<
+o.foreignKey(TEST_TABLE, "id") as o.ColumnType<
     "foreignKey",
     v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
-    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>,
-    v.SchemaWithPipe<[v.NumberSchema<undefined>, v.IntegerAction<number, undefined>]>
-> = o.foreignKey(TEST_TABLE, "id");
+    "yes",
+    "yes"
+>;
+
+const SOME_TABLE = o.table("some_table", {
+    id: o.pkAutoInc(),
+    someCol: o.string(),
+    someOtherCol: o.integer(),
+    someNullableCol: o.nullable(o.string()),
+    createdAt: o.createdAt(),
+    updatedAt: o.updatedAt(),
+});
+
+// Test table inference
+export const TEST_INFERENCE: {
+    some_table: {
+        id: k.ColumnType<number, never, never>;
+        someCol: k.ColumnType<string, string, string>;
+        someOtherCol: k.ColumnType<number, number, number>;
+        someNullableCol: k.ColumnType<string | null, string | null | undefined, string | null>;
+        createdAt: k.ColumnType<Date, never, never>;
+        updatedAt: k.ColumnType<Date, never, never>;
+    };
+} = null as any as o.InferKyselyTable<typeof SOME_TABLE>;
 
 // ----------------------------------------------------------------------
 // Some tests
@@ -111,7 +116,7 @@ Deno.test(function testTableCreation() {
     const table = o.table("some_table", {
         id: o.pkAutoInc(),
         rowversion: o.rowVersion(),
-        someCol: o.col(v.string()),
+        someCol: o.string(),
     });
     assertEquals(table.table, "some_table");
     assertEquals(Object.keys(table.columns).length, 3);
@@ -125,7 +130,7 @@ Deno.test(function testGetPrimaryKeySchema() {
         o.table("some_table", {
             id: o.pkAutoInc(),
             rowversion: o.rowVersion(),
-            someCol: o.col(v.string()),
+            someCol: o.string(),
         })
     );
     assertEquals(schema.type, "object");
@@ -138,7 +143,7 @@ Deno.test(function testGetUpdateKeySchema() {
         o.table("some_table", {
             id: o.pkAutoInc(),
             rowversion: o.rowVersion(),
-            someCol: o.col(v.string()),
+            someCol: o.string(),
         })
     );
     assertEquals(schema.type, "object");
@@ -152,35 +157,42 @@ Deno.test(function testGetSelectSchema() {
         o.table("some_table", {
             id: o.pkAutoInc(),
             rowversion: o.rowVersion(),
-            someCol: o.col(v.string()),
+            someCol: o.string(),
+            someNullableCol: o.nullable(o.string()),
         })
     );
     assertEquals(schema.type, "object");
-    assertEquals(Object.keys(schema.entries).length, 3);
+    assertEquals(Object.keys(schema.entries).length, 4);
     assertEquals(schema.entries.id.type, "number");
     assertEquals(schema.entries.rowversion.type, "number");
     assertEquals(schema.entries.someCol.type, "string");
+    assertEquals(schema.entries.someNullableCol.expects, "(string | null)");
 });
 
 Deno.test(function testGetInsertSchema() {
     const schema = o.getInsertSchema(
         o.table("some_table", {
-            id: o.pkAutoInc(),
-            rowversion: o.rowVersion(),
-            someCol: o.col(v.string()),
+            id: o.pkAutoInc(), // Omitted
+            rowversion: o.rowVersion(), // Omitted
+            someCol: o.string(), // Required
+            someNullableCol: o.nullable(o.string()), // Optional
         })
     );
     assertEquals(schema.type, "object");
-    assertEquals(Object.keys(schema.entries).length, 1);
+    assertEquals(Object.keys(schema.entries).length, 2);
     assertEquals(schema.entries.someCol.type, "string");
+
+    // Converts nullable to optional, because nullable columns have implicit default values
+    assertEquals(schema.entries.someNullableCol.type, "optional");
+    assertEquals(schema.entries.someNullableCol.expects, "((string | null) | undefined)");
 });
 
 Deno.test(function testGetInsertSchemaWithPk() {
     const schema = o.getInsertSchema(
         o.table("some_table", {
-            code: o.pk(o.col(v.string())),
+            code: o.pk(o.string()),
             rowversion: o.rowVersion(),
-            someCol: o.col(v.string()),
+            someCol: o.string(),
         })
     );
     assertEquals(schema.type, "object");
@@ -194,7 +206,7 @@ Deno.test(function testGetUpdateFieldsSchema() {
         o.table("some_table", {
             id: o.pkAutoInc(),
             rowversion: o.rowVersion(),
-            someCol: o.col(v.string()),
+            someCol: o.string(),
         })
     );
     assertEquals(schema.type, "object");
@@ -207,7 +219,7 @@ Deno.test(function testGetPatchFieldsSchema() {
         o.table("some_table", {
             id: o.pkAutoInc(),
             rowversion: o.rowVersion(),
-            someCol: o.col(v.string()),
+            someCol: o.string(),
         })
     );
     assertEquals(schema.type, "object");

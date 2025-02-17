@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 import * as v from "npm:valibot";
 import * as k from "npm:kysely";
 
@@ -7,6 +8,8 @@ type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+
+type MaybeValue = "yes" | "no" | "optional";
 
 // Omit properties of type T from object O,
 //
@@ -22,17 +25,17 @@ export type ColumnKind =
     | "foreignKey";
 
 export type ColumnType<
-    Kind extends ColumnKind = "",
-    Select extends ValibotSchema = ValibotSchema,
-    Insert extends ValibotSchema = Select,
-    Update extends ValibotSchema = Insert
+    Kind extends ColumnKind,
+    Schema extends ValibotSchema,
+    Insertable extends MaybeValue,
+    Updateable extends MaybeValue
 > = {
     readonly kind: Kind;
-    readonly insert: Insert;
-    readonly select: Select;
-    readonly update: Update;
+    readonly schema: Schema;
+    readonly insertable: Insertable;
+    readonly updateable: Updateable;
     readonly columnName?: string;
-    readonly defaultValue?: v.InferOutput<Select>;
+    readonly defaultValue?: v.InferOutput<Schema>;
     readonly autoIncrement?: true;
 
     // I wanted to use `& Kind extends "foreignKey" ? { foreignKeyTable: string;
@@ -40,67 +43,61 @@ export type ColumnType<
     // too complex to look at in the editor
     readonly foreignKeyTable?: Kind extends "foreignKey" ? string : never;
     readonly foreignKeyColumn?: Kind extends "foreignKey" ? string : never;
-    readonly __kysely__: k.ColumnType<
-        v.InferOutput<Select>,
-        v.InferOutput<Insert>,
-        v.InferOutput<Update>
-    >;
 };
 
-export function colopt<
+export function col<
+    Schema extends ValibotSchema,
     Kind extends ColumnKind = "",
-    Select extends ValibotSchema = ValibotSchema,
-    Insert extends ValibotSchema = Select,
-    Update extends ValibotSchema = Insert
+    Insertable extends MaybeValue = "yes",
+    Updateable extends MaybeValue = "yes"
 >(
-    kind: Kind = "" as Kind,
-    opts: {
-        select: Select;
-        insert: Insert;
-        update: Update;
-        defaultValue?: v.InferOutput<Select>;
+    schema: Schema,
+    opts?: {
+        kind?: Kind;
+        insertable?: Insertable;
+        updateable?: Updateable;
+        defaultValue?: v.InferOutput<Schema>;
         foreignKeyTable?: Kind extends "foreignKey" ? string : never;
         foreignKeyColumn?: Kind extends "foreignKey" ? string : never;
         autoIncrement?: true;
     }
-): ColumnType<Kind, Select, Insert, Update> {
+): ColumnType<Kind, Schema, Insertable, Updateable> {
+    const opts_ = opts || {};
+
     return {
-        kind,
-        select: opts.select,
-        insert: opts.insert,
-        update: opts.update,
-        defaultValue: opts.defaultValue,
-        foreignKeyTable: opts.foreignKeyTable,
-        foreignKeyColumn: opts.foreignKeyColumn,
-        autoIncrement: opts.autoIncrement,
-        // deno-lint-ignore no-explicit-any
-        __kysely__: null as any,
+        schema,
+        kind: opts_.kind ?? ("" as Kind),
+        insertable: opts_.insertable ?? ("yes" as Insertable),
+        updateable: opts_.updateable ?? ("yes" as Updateable),
+        defaultValue: opts_.defaultValue,
+        foreignKeyTable: opts_.foreignKeyTable,
+        foreignKeyColumn: opts_.foreignKeyColumn,
+        autoIncrement: opts_.autoIncrement,
     };
 }
-
-export function col<Schema extends ValibotSchema>(schema: Schema): ColumnType<"", Schema> {
-    return {
-        select: schema,
-        insert: schema,
-        update: schema,
-        // deno-lint-ignore no-explicit-any
-        __kysely__: null as any,
-        kind: "",
-    };
-}
-
-type RecordOfColumnTypes = Record<string, ColumnType<any>>;
+type RecordOfColumnTypes = Record<string, ColumnType<any, any, any, any>>;
 
 export interface Table<TableName extends string, Columns extends RecordOfColumnTypes> {
     table: StringLiteral<TableName>;
     columns: Columns;
 }
 
-type InferKyselyColumns<T extends Record<string, ColumnType>> = {
-    [K in keyof T]: T[K]["__kysely__"];
+type InferKyselyColumns<T extends Record<string, ColumnType<any, any, any, any>>> = {
+    [K in keyof T]: k.ColumnType<
+        v.InferOutput<T[K]["schema"]>,
+        T[K]["insertable"] extends "yes"
+            ? v.InferOutput<T[K]["schema"]>
+            : T[K]["insertable"] extends "optional"
+            ? v.InferOutput<T[K]["schema"]> | undefined
+            : never,
+        T[K]["updateable"] extends "yes"
+            ? v.InferOutput<T[K]["schema"]>
+            : T[K]["updateable"] extends "optional"
+            ? v.InferOutput<T[K]["schema"]> | undefined
+            : never
+    >;
 };
 
-// deno-lint-ignore no-explicit-any
 export type InferKyselyTable<T extends Table<any, RecordOfColumnTypes>> = {
     [K in T["table"]]: FinalType<InferKyselyColumns<T["columns"]>>;
 };
@@ -128,16 +125,16 @@ export function getPrimaryKeySchema<TableName extends string, Columns extends Re
     table: Table<TableName, Columns>
 ): v.ObjectSchema<
     FinalType<{
-        [K in keyof Columns as Columns[K] extends ColumnType<"primaryKey">
+        [K in keyof Columns as Columns[K] extends ColumnType<"primaryKey", any, any, any>
             ? K
-            : never]: Columns[K]["select"];
+            : never]: Columns[K]["schema"];
     }>,
     undefined
 > {
     return v.object(
         Object.keys(table.columns).reduce((acc, key) => {
             const c = table.columns[key];
-            const s = c.select;
+            const s = c.schema;
 
             // Only primary keys
             if (c.kind !== "primaryKey") {
@@ -155,17 +152,17 @@ export function getUpdateKeySchema<TableName extends string, Columns extends Rec
 ): v.ObjectSchema<
     FinalType<{
         [K in keyof Columns as Columns[K] extends
-            | ColumnType<"primaryKey">
-            | ColumnType<"rowVersion">
+            | ColumnType<"primaryKey", any, any, any>
+            | ColumnType<"rowVersion", any, any, any>
             ? K
-            : never]: Columns[K]["select"];
+            : never]: Columns[K]["schema"];
     }>,
     undefined
 > {
     return v.object(
         Object.keys(table.columns).reduce((acc, key) => {
             const c = table.columns[key];
-            const s = c.select;
+            const s = c.schema;
 
             // Only primary keys and row versions can be used as update keys
             if (c.kind !== "primaryKey" && c.kind !== "rowVersion") {
@@ -187,7 +184,7 @@ export function getSelectSchema<TableName extends string, Columns extends Record
             | v.UndefinedSchema<undefined>
             | v.OptionalSchema<v.NeverSchema<undefined>, undefined>,
             {
-                [K in keyof Columns]: Columns[K]["select"];
+                [K in keyof Columns]: Columns[K]["schema"];
             }
         >
     >,
@@ -195,7 +192,7 @@ export function getSelectSchema<TableName extends string, Columns extends Record
 > {
     return v.object(
         Object.keys(table.columns).reduce((acc, key) => {
-            const v = table.columns[key].select;
+            const v = table.columns[key].schema;
             // Remove never and empty validators
             if (
                 v.expects === "never" ||
@@ -213,30 +210,30 @@ export function getSelectSchema<TableName extends string, Columns extends Record
 export function getInsertSchema<TableName extends string, Columns extends RecordOfColumnTypes>(
     table: Table<TableName, Columns>
 ): v.ObjectSchema<
-    FinalType<
-        OmitProperties<
-            | v.NeverSchema<undefined>
-            | v.UndefinedSchema<undefined>
-            | v.OptionalSchema<v.NeverSchema<undefined>, undefined>,
-            {
-                [K in keyof Columns]: Columns[K]["insert"];
-            }
-        >
-    >,
+    FinalType<{
+        [K in keyof Columns as Columns[K] extends ColumnType<any, any, "no", any>
+            ? never
+            : K]: Columns[K]["schema"] extends v.NullableSchema<any, any>
+            ? v.OptionalSchema<Columns[K]["schema"], undefined>
+            : Columns[K]["schema"];
+    }>,
     undefined
 > {
     return v.object(
         Object.keys(table.columns).reduce((acc, key) => {
-            const v = table.columns[key].insert;
-            // Remove never and empty validators
-            if (
-                v.expects === "never" ||
-                v.expects === "undefined" ||
-                v.expects === "(never | undefined)"
-            ) {
+            if (table.columns[key].insertable === "no") {
                 return acc;
             }
-            acc[key] = v;
+            // Wrap optional insertables in optional, these are most likely
+            // columns with default values or nullable
+            if (
+                table.columns[key].insertable === "optional" &&
+                table.columns[key].schema.type !== "optional"
+            ) {
+                acc[key] = v.optional(table.columns[key].schema);
+            } else {
+                acc[key] = table.columns[key].schema;
+            }
             return acc;
         }, {} as Record<string, ValibotSchema>)
     ) as any;
@@ -248,30 +245,20 @@ export function getUpdateFieldsSchema<
 >(
     table: Table<TableName, Columns>
 ): v.ObjectSchema<
-    FinalType<
-        OmitProperties<
-            | v.NeverSchema<undefined>
-            | v.UndefinedSchema<undefined>
-            | v.OptionalSchema<v.NeverSchema<undefined>, undefined>,
-            {
-                [K in keyof Columns]: Columns[K]["update"];
-            }
-        >
-    >,
+    FinalType<{
+        [K in keyof Columns as Columns[K] extends ColumnType<any, any, any, "no">
+            ? never
+            : K]: Columns[K]["schema"];
+    }>,
     undefined
 > {
     return v.object(
         Object.keys(table.columns).reduce((acc, key) => {
-            const v = table.columns[key].update;
-            // Remove never and empty validators
-            if (
-                v.expects === "never" ||
-                v.expects === "undefined" ||
-                v.expects === "(never | undefined)"
-            ) {
+            if (table.columns[key].updateable === "no") {
                 return acc;
             }
-            acc[key] = v;
+
+            acc[key] = table.columns[key].schema;
             return acc;
         }, {} as Record<string, ValibotSchema>)
     ) as any;
@@ -280,38 +267,24 @@ export function getUpdateFieldsSchema<
 export function getPatchFieldsSchema<TableName extends string, Columns extends RecordOfColumnTypes>(
     table: Table<TableName, Columns>
 ): v.ObjectSchema<
-    FinalType<
-        OmitProperties<
-            | v.NeverSchema<undefined>
-            | v.UndefinedSchema<undefined>
-            | v.OptionalSchema<v.NeverSchema<undefined>, undefined>,
-            {
-                [K in keyof Columns]: Columns[K]["update"] extends v.OptionalSchema<
-                    ValibotSchema,
-                    unknown
-                >
-                    ? Columns[K]["update"]
-                    : v.OptionalSchema<Columns[K]["update"], undefined>;
-            }
-        >
-    >,
+    FinalType<{
+        [K in keyof Columns as Columns[K] extends ColumnType<any, any, any, "no">
+            ? never
+            : K]: v.OptionalSchema<Columns[K]["schema"], undefined>;
+    }>,
     undefined
 > {
     return v.object(
         Object.keys(table.columns).reduce((acc, key) => {
-            let s = table.columns[key].update;
-            if (s.type !== "optional") {
-                s = v.optional(s);
-            }
-            // Remove never and empty validators
-            if (
-                s.expects === "never" ||
-                s.expects === "undefined" ||
-                s.expects === "(never | undefined)"
-            ) {
+            if (table.columns[key].updateable === "no") {
                 return acc;
             }
-            acc[key] = s;
+
+            let schema = table.columns[key].schema;
+            if (schema.type !== "optional") {
+                schema = v.optional(schema);
+            }
+            acc[key] = schema;
             return acc;
         }, {} as Record<string, ValibotSchema>)
     ) as any;
@@ -344,26 +317,26 @@ export function createDbFactory<T extends readonly Table<any, RecordOfColumnType
 // Field types ----------------------------------------------------------------
 
 export function pk<
-    Select extends ValibotSchema,
-    Insert extends ValibotSchema,
-    Update extends ValibotSchema
->(column: ColumnType<"", Select, Insert, Update>) {
-    return colopt("primaryKey", {
+    Schema extends ValibotSchema,
+    Insertable extends MaybeValue,
+    Updateable extends MaybeValue
+>(column: ColumnType<"", Schema, Insertable, Updateable>) {
+    return col(column.schema, {
         ...column,
+        kind: "primaryKey",
     });
 }
 
 export function nullable<
     Kind extends ColumnKind,
-    Select extends ValibotSchema,
-    Insert extends ValibotSchema,
-    Update extends ValibotSchema
->(column: ColumnType<Kind, Select, Insert, Update>) {
-    return colopt(column.kind, {
+    Schema extends ValibotSchema,
+    Insertable extends MaybeValue,
+    Updateable extends MaybeValue
+>(column: ColumnType<Kind, Schema, Insertable, Updateable>) {
+    return col(v.nullable(column.schema), {
         ...column,
-        select: v.nullable(column.select),
-        insert: v.optional(v.nullable(column.insert)),
-        update: v.optional(v.nullable(column.update)),
+        insertable: "optional",
+        defaultValue: null,
     });
 }
 
@@ -375,65 +348,62 @@ export function foreignKey<
     // Foreign key points to a primary key of another table, primary keys are
     // not insertable or updateable, but foreignkey must be insertable and
     // updateable
-    const schema: Columns[K]["select"] = table.columns[column].select;
-    return colopt("foreignKey", {
-        select: schema,
-        insert: schema, // intended
-        update: schema, // intended
+    const schema: Columns[K]["schema"] = table.columns[column].schema;
+    return col(schema, {
+        kind: "foreignKey",
         foreignKeyTable: table.table as string,
         foreignKeyColumn: column as string,
     });
 }
 
 export function foreignKeyUntyped<
-    Select extends ValibotSchema = ValibotSchema,
-    Insert extends ValibotSchema = Select,
-    Update extends ValibotSchema = Insert
+    Schema extends ValibotSchema,
+    Insertable extends MaybeValue,
+    Updateable extends MaybeValue
 >(
-    column: ColumnType<"", Select, Insert, Update>,
+    column: ColumnType<"primaryKey" | "", Schema, Insertable, Updateable>,
     foreignKeyTable: string,
     foreignKeyColumn: string
 ) {
-    return colopt("foreignKey", {
-        select: column.select,
-        insert: column.select,
-        update: column.select,
+    return col(column.schema, {
+        ...column,
+        kind: "foreignKey",
         foreignKeyTable,
         foreignKeyColumn,
     });
 }
 
 export function pkAutoInc() {
-    return colopt("primaryKey", {
-        select: v.pipe(v.number(), v.integer()),
-        insert: v.never(),
-        update: v.never(),
+    return col(v.pipe(v.number(), v.integer()), {
+        kind: "primaryKey",
+        insertable: "no",
+        updateable: "no",
         autoIncrement: true,
     });
 }
 
 export function rowVersion() {
-    return colopt("rowVersion", {
-        select: v.pipe(v.number(), v.integer()),
-        insert: v.never(),
-        update: v.never(),
+    return col(v.pipe(v.number(), v.integer()), {
+        kind: "rowVersion",
+        insertable: "no",
+        updateable: "no",
         defaultValue: 0,
     });
 }
 
 export function createdAt() {
-    return colopt("createdAt", {
-        select: v.date(),
-        insert: v.never(),
-        update: v.never(),
+    return col(v.date(), {
+        kind: "createdAt",
+        insertable: "no",
+        updateable: "no",
     });
 }
 
 export function updatedAt() {
-    return colopt("updatedAt", {
-        select: v.date(),
-        insert: v.never(),
-        update: v.never(),
+    return col(v.date(), {
+        kind: "updatedAt",
+        insertable: "no",
+        updateable: "no",
     });
 }
 
@@ -468,6 +438,10 @@ export function decimal() {
 
 export function bigint() {
     return col(v.bigint());
+}
+
+export function email() {
+    return col(v.pipe(v.string(), v.email(), v.maxLength(320)));
 }
 
 export function json<const TEntries extends v.ObjectEntries>(entries: TEntries) {

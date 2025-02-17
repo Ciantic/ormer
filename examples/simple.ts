@@ -26,14 +26,7 @@ const personTable = o.table("person", {
     id: o.pkAutoInc(),
     first_name: o.string(),
     last_name: o.nullable(o.string()),
-    email: o.col(
-        v.pipe(
-            v.string(),
-            v.nonEmpty("Please enter your email."),
-            v.email("The email is badly formatted."),
-            v.maxLength(30, "Your email is too long.")
-        )
-    ),
+    email: o.email(),
     // Self referencing foreign key, requires untyped `foreignKeyUntyped`
     supervisor_id: o.nullable(o.foreignKeyUntyped(o.integer(), "person", "id")),
     created_at: o.createdAt(),
