@@ -8,7 +8,7 @@ import * as o from "./lib.ts";
 // Some type assertions
 
 // Test cols
-o.float() as o.ColumnType<"", v.NumberSchema<undefined>>;
+o.float() as o.ColumnType<"", v.NumberSchema<undefined>, "yes", "yes">;
 
 o.json({
     foo: v.number(),
@@ -21,10 +21,17 @@ o.json({
             readonly bar: v.StringSchema<undefined>;
         },
         undefined
-    >
+    >,
+    "yes",
+    "yes"
 >;
 
-o.array(v.string()) as o.ColumnType<"", v.ArraySchema<v.StringSchema<undefined>, undefined>>;
+o.array(v.string()) as o.ColumnType<
+    "",
+    v.ArraySchema<v.StringSchema<undefined>, undefined>,
+    "yes",
+    "yes"
+>;
 
 // Test column wrappers
 o.pkAutoInc() as o.ColumnType<
@@ -48,7 +55,7 @@ o.createdAt() as o.ColumnType<"createdAt", v.DateSchema<undefined>, "no", "no">;
 o.updatedAt() as o.ColumnType<"updatedAt", v.DateSchema<undefined>, "no", "no">;
 
 o.foreignKeyUntyped(
-    o.col("", v.number(), {
+    o.col(v.number(), {
         insertable: "no",
     }),
     "person",
