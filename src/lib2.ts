@@ -57,6 +57,11 @@ export function decimal<T extends DecimalCol>(params: R<T, DecimalCol>): ColumnT
     };
 }
 
+/**
+ * Primary key column with auto increment
+ *
+ * BIGSERIAL or PRIMARY KEY AUTOINCREMENT
+ */
 export function pkAutoInc(): ColumnType<
     "pkAutoInc",
     {
@@ -65,26 +70,27 @@ export function pkAutoInc(): ColumnType<
         notUpdatable: true;
     }
 >;
-export function pkAutoInc<
-    T extends Params<{
-        primaryKey: true;
-        notInsertable: true;
-        notUpdatable: true;
-    }>
->(params: R<T, Params>): ColumnType<"pkAutoInc", T>;
+export function pkAutoInc<T extends Params>(params: R<T, Params>): ColumnType<"pkAutoInc", T>;
 export function pkAutoInc(params?: unknown) {
     return {
         type: "pkAutoInc",
-        params: {
+        params: params ?? {
             primaryKey: true,
             notInsertable: true,
             notUpdatable: true,
-            ...(params as any),
         },
     };
 }
 
 type UserStringCol = Params<{ minLength?: number; maxLength: number }>;
+
+/**
+ * User input string, typically used for names, addresses, etc.
+ *
+ * This is automatically trimmed and validated for length
+ *
+ * @param params
+ */
 export function userstring<T extends UserStringCol>(
     params: R<T, UserStringCol>
 ): ColumnType<"userstring", T> {

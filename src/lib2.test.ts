@@ -7,6 +7,7 @@ type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ?
     ? true
     : false;
 
+// deno-lint-ignore no-unused-vars
 function humbug(): o.ColumnType<"humbug", undefined> {
     return {
         type: "humbug",
@@ -46,14 +47,18 @@ const PERSON_TABLE = o.table("person", {
 });
 
 Deno.test("integer signature", () => {
-    // INFERENCE TEST!
-
     const TEST_INTEGER1 = o.integer({ primaryKey: true });
     const TEST_INTEGER2 = o.integer();
+
+    // Pure type level test for inference
     type Test3 = Expect<Equal<typeof TEST_INTEGER1, o.ColumnType<"integer", { primaryKey: true }>>>;
     type Test4 = Expect<Equal<typeof TEST_INTEGER2, o.ColumnType<"integer", undefined>>>;
     true satisfies Test3;
     true satisfies Test4;
+
+    // Runtime test
+    assertEquals(TEST_INTEGER1, { type: "integer", params: { primaryKey: true } });
+    assertEquals(TEST_INTEGER2, { type: "integer", params: undefined });
 
     // Always test these manually when changing the code!
     //
@@ -64,6 +69,45 @@ Deno.test("integer signature", () => {
     // const fofofo = o.integer({
     //     /* CURSOR HERE */
     // });
+});
+
+Deno.test("pkAutoInc signature", () => {
+    // INFERENCE TEST!
+
+    const TEST_INTEGER1 = o.pkAutoInc();
+    const TEST_INTEGER2 = o.pkAutoInc({
+        primaryKey: false,
+    });
+
+    type Test3 = Expect<
+        Equal<
+            typeof TEST_INTEGER1,
+            o.ColumnType<"pkAutoInc", { primaryKey: true; notInsertable: true; notUpdatable: true }>
+        >
+    >;
+    true satisfies Test3;
+
+    type Test4 = Expect<
+        Equal<
+            typeof TEST_INTEGER2,
+            o.ColumnType<
+                "pkAutoInc",
+                {
+                    primaryKey: false;
+                }
+            >
+        >
+    >;
+    true satisfies Test4;
+
+    assertEquals(TEST_INTEGER1, {
+        type: "pkAutoInc",
+        params: { primaryKey: true, notInsertable: true, notUpdatable: true },
+    });
+    assertEquals(TEST_INTEGER2, {
+        type: "pkAutoInc",
+        params: { primaryKey: false },
+    });
 });
 
 Deno.test("getPrimaryKeyColumns", () => {
