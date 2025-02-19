@@ -10,13 +10,13 @@ type R<T, B> = {
     [K in keyof T]: K extends keyof B ? T[K] : never;
 };
 
-type ColumnType<Type extends string, Params> = {
+export type ColumnType<Type extends string, Params> = {
     readonly type: Type;
     readonly params: Params;
 };
 
 // deno-lint-ignore ban-types
-type Params<ExtraProps = {}> = FinalType<
+export type Params<ExtraProps = {}> = FinalType<
     Readonly<
         {
             primaryKey?: boolean;
@@ -25,59 +25,17 @@ type Params<ExtraProps = {}> = FinalType<
             notUpdatable?: boolean;
             nullable?: boolean;
             default?: unknown;
-            columnName?: string;
+            columnName?: string; // Automatically assigned by table()
         } & ExtraProps
     >
 >;
 
-// function col<Type>(type: StringLiteral<Type>): ColumnType<Type, never>;
-
-// function col<Type, Default, ExtraProps, Params extends ColParams<Default, ExtraProps> = any>(
-//     type: StringLiteral<Type>,
-//     params: Params
-// ): ColumnType<Type, Params>;
-
-// function col(type: string, params?: unknown) {
-//     return { type, params: params };
-// }
-
-// const TEST_COL1 = col("integer", { primaryKey: true });
-// const TEST_COL2 = col("integer");
-// type Test1 = Expect<Equal<typeof TEST_COL1, ColumnType<"integer", { primaryKey: true }>>>;
-// type Test2 = Expect<Equal<typeof TEST_COL2, ColumnType<"integer", never>>>;
-
-// --------------------------------
-// INFERENCE TEST!
-type Expect<T extends true> = T;
-type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
-    ? true
-    : false;
-
-const TEST_INTEGER1 = integer({ primaryKey: true });
-const TEST_INTEGER2 = integer();
-type Test3 = Expect<Equal<typeof TEST_INTEGER1, ColumnType<"integer", { primaryKey: true }>>>;
-type Test4 = Expect<Equal<typeof TEST_INTEGER2, ColumnType<"integer", undefined>>>;
-export const Test3 = true satisfies Test3;
-export const Test4 = true satisfies Test4;
-
-// This must give error, because foo is not there!
-// const zozooz = integer({ primaryKey: true, foo: 5 });
-
-// This must have autocompletion!
-// const fofofo = integer({
-//     /* CURSOR HERE */
-// });
-
-type EmptyObject = Record<string, never>;
-
-// --------------------------------
-
-export function humbug(): ColumnType<"humbug", undefined> {
-    return {
-        type: "humbug",
-        params: undefined,
-    };
+export interface Table<TableName extends string, Columns extends Record<string, unknown>> {
+    table: StringLiteral<TableName>;
+    columns: Columns;
 }
+
+// --------------------------------
 
 type IntCol = Params<{ min?: number; max?: number }>;
 
@@ -99,12 +57,30 @@ export function decimal<T extends DecimalCol>(params: R<T, DecimalCol>): ColumnT
     };
 }
 
-export function bigserial(): ColumnType<"bigserial", undefined>;
-export function bigserial<T extends Params>(params: R<T, Params>): ColumnType<"bigserial", T>;
-export function bigserial(params?: unknown) {
+export function pkAutoInc(): ColumnType<
+    "pkAutoInc",
+    {
+        primaryKey: true;
+        notInsertable: true;
+        notUpdatable: true;
+    }
+>;
+export function pkAutoInc<
+    T extends Params<{
+        primaryKey: true;
+        notInsertable: true;
+        notUpdatable: true;
+    }>
+>(params: R<T, Params>): ColumnType<"pkAutoInc", T>;
+export function pkAutoInc(params?: unknown) {
     return {
-        type: "bigserial",
-        params: params,
+        type: "pkAutoInc",
+        params: {
+            primaryKey: true,
+            notInsertable: true,
+            notUpdatable: true,
+            ...(params as any),
+        },
     };
 }
 
@@ -129,10 +105,23 @@ export function boolean(params?: unknown) {
     };
 }
 
-export function createdAt(): ColumnType<"createdAt", undefined> {
+export function updatedAt(): ColumnType<"updatedAt", { notInsertable: true; notUpdatable: true }> {
+    return {
+        type: "updatedAt",
+        params: {
+            notInsertable: true,
+            notUpdatable: true,
+        },
+    };
+}
+
+export function createdAt(): ColumnType<"createdAt", { notInsertable: true; notUpdatable: true }> {
     return {
         type: "createdAt",
-        params: undefined,
+        params: {
+            notInsertable: true,
+            notUpdatable: true,
+        },
     };
 }
 
@@ -172,13 +161,6 @@ export function concurrencyStamp(): ColumnType<
             notInsertable: true,
             notUpdatable: true,
         },
-    };
-}
-
-export function updatedAt(): ColumnType<"updatedAt", undefined> {
-    return {
-        type: "updatedAt",
-        params: undefined,
     };
 }
 
@@ -227,11 +209,6 @@ export function json(schema: object, params?: object) {
     } satisfies ColumnType<"json", Params<{ schema: object }>>;
 }
 
-export interface Table<TableName extends string, Columns extends Record<string, unknown>> {
-    table: StringLiteral<TableName>;
-    columns: Columns;
-}
-
 /**
  * Create a database table definition
  *
@@ -264,16 +241,18 @@ export function table<TableName extends string, Columns extends Record<string, u
  * @param table
  * @returns
  */
-function getPrimaryKeyColumns<Columns extends Record<string, ColumnType<string, any>>>(
+export function getPrimaryKeyColumns<Columns extends Record<string, ColumnType<string, any>>>(
     table: Table<any, Columns>
 ): {
     [K in keyof Columns as Columns[K]["params"]["primaryKey"] extends true ? K : never]: Columns[K];
 } {
-    return null as any;
-    // return Object.keys(table.columns).find((key) => {
-    //     const column = table.columns[key];
-    //     return column.params.primaryKey === true;
-    // }) as any;
+    return Object.keys(table.columns).reduce((acc, key) => {
+        const column = table.columns[key];
+        if (column.params?.primaryKey === true) {
+            acc[key] = column;
+        }
+        return acc;
+    }, {} as any);
 }
 
 /**
@@ -284,7 +263,7 @@ function getPrimaryKeyColumns<Columns extends Record<string, ColumnType<string, 
  * @param table
  * @returns
  */
-function getUpdateKeyColumns<Columns extends Record<string, ColumnType<string, any>>>(
+export function getUpdateKeyColumns<Columns extends Record<string, ColumnType<string, any>>>(
     table: Table<any, Columns>
 ): FinalType<
     {
@@ -297,11 +276,17 @@ function getUpdateKeyColumns<Columns extends Record<string, ColumnType<string, a
             : never]: Columns[K];
     }
 > {
-    return null as any;
-    // return Object.keys(table.columns).find((key) => {
-    //     const column = table.columns[key];
-    //     return column.params.primaryKey === true;
-    // }) as any;
+    return Object.keys(table.columns).reduce((acc, key) => {
+        const column = table.columns[key];
+        if (
+            column.params?.primaryKey === true ||
+            column.type === "rowVersion" ||
+            column.type === "concurrencyStamp"
+        ) {
+            acc[key] = column;
+        }
+        return acc;
+    }, {} as any);
 }
 
 /**
@@ -310,20 +295,41 @@ function getUpdateKeyColumns<Columns extends Record<string, ColumnType<string, a
  * @param table
  * @returns
  */
-function getPatchColumns<Columns extends Record<string, ColumnType<string, any>>>(
+export function getPatchColumns<Columns extends Record<string, ColumnType<string, any>>>(
     table: Table<any, Columns>
 ): {
-    [K in keyof Columns as Columns[K]["params"]["primaryKey"] extends true
-        ? never
-        : Columns[K]["params"]["notUpdatable"] extends true
+    [K in keyof Columns as Columns[K]["params"]["notUpdatable"] extends true
         ? never
         : K]: Columns[K];
 } {
-    return null as any;
-    // return Object.keys(table.columns).find((key) => {
-    //     const column = table.columns[key];
-    //     return column.params.primaryKey === true;
-    // }) as any;
+    return Object.keys(table.columns).reduce((acc, key) => {
+        const column = table.columns[key];
+        if (column.params?.notUpdatable !== true) {
+            acc[key] = column;
+        }
+        return acc;
+    }, {} as any);
+}
+
+/**
+ * Get Valibot schema for the columns
+ *
+ * @param columns Columns property of the table
+ * @returns A record of schemas mapped to the column's keys
+ */
+export function getSchemasFromColumns<Columns extends Record<string, ColumnType<Types, any>>>(
+    columns: Columns
+): {
+    [K in keyof Columns as Columns[K]["type"] extends Types ? K : never]: ReturnType<
+        (typeof TYPES_TO_SCHEMAS)[Columns[K]["type"]]
+    >;
+} {
+    return Object.keys(columns).reduce((acc, key) => {
+        const column = columns[key];
+        const schema = (TYPES_TO_SCHEMAS as any)[column.type](column.params ?? {});
+        acc[key] = schema;
+        return acc;
+    }, {} as any);
 }
 
 export const TYPES_TO_SCHEMAS = {
@@ -353,7 +359,7 @@ export const TYPES_TO_SCHEMAS = {
     concurrencyStamp() {
         return v.pipe(v.string(), v.uuid());
     },
-    bigserial() {
+    pkAutoInc() {
         return v.pipe(v.number(), v.integer());
     },
     boolean() {
@@ -379,62 +385,6 @@ export const TYPES_TO_SCHEMAS = {
     },
 };
 
+TYPES_TO_SCHEMAS satisfies Record<Types, (params?: any) => ValibotSchema>;
+
 type Types = keyof typeof TYPES_TO_SCHEMAS;
-
-function getSchemasFromColumns<Columns extends Record<string, ColumnType<Types, any>>>(
-    columns: Columns
-): {
-    [K in keyof Columns as Columns[K]["type"] extends Types ? K : never]: ReturnType<
-        (typeof TYPES_TO_SCHEMAS)[Columns[K]["type"]]
-    >;
-} {
-    const schemas = {} as any;
-    for (const key in columns) {
-        const column = columns[key];
-        const schema = (TYPES_TO_SCHEMAS as any)[column.type](column.params ?? {});
-        schemas[key] = schema;
-    }
-    return schemas;
-}
-
-const PERSON_TABLE = table("person", {
-    // humbug: humbug(),
-    id: bigserial({ default: 1n, primaryKey: true }),
-    name: userstring({ maxLength: 300, default: "Alice" as const }),
-    email: email(),
-    age: integer(),
-    price: decimal({ precision: 10, scale: 2 }),
-    createdAt: createdAt(),
-    updatedAt: updatedAt(),
-    billingAddress: jsonb(
-        v.object({
-            street: v.string(),
-            city: v.string(),
-            postcode: v.string(),
-        })
-    ),
-    deliveryAddress: json(
-        v.object({
-            street: v.string(),
-            city: v.string(),
-            postcode: v.string(),
-        }),
-        {
-            nullable: true,
-        }
-    ),
-    stamp: concurrencyStamp(),
-    version: rowVersion(),
-    isActive: boolean(),
-});
-const foo = getPrimaryKeyColumns(PERSON_TABLE);
-const zoo = getUpdateKeyColumns(PERSON_TABLE);
-const goo = getPatchColumns(PERSON_TABLE);
-
-const fofo = getSchemasFromColumns(PERSON_TABLE.columns);
-fofo.createdAt;
-
-// const ExampleTable = {
-//     table: "person" as const,
-//     columns: ,
-// };
