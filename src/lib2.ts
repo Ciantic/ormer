@@ -10,13 +10,13 @@ type R<T, B> = {
     [K in keyof T]: K extends keyof B ? T[K] : never;
 };
 
-type ColumnType<Type, Params> = {
-    readonly type: StringLiteral<Type>;
+type ColumnType<Type extends string, Params> = {
+    readonly type: Type;
     readonly params: Params;
 };
 
 // deno-lint-ignore ban-types
-type Params<Default, ExtraProps = {}> = FinalType<
+type Params<ExtraProps = {}> = FinalType<
     Readonly<
         {
             primaryKey?: boolean;
@@ -24,13 +24,11 @@ type Params<Default, ExtraProps = {}> = FinalType<
             notInsertable?: boolean;
             notUpdatable?: boolean;
             nullable?: boolean;
-            default?: Default;
+            default?: unknown;
             columnName?: string;
         } & ExtraProps
     >
 >;
-
-type DefaultKeys = keyof Params<unknown>;
 
 // function col<Type>(type: StringLiteral<Type>): ColumnType<Type, never>;
 
@@ -59,6 +57,8 @@ const TEST_INTEGER1 = integer({ primaryKey: true });
 const TEST_INTEGER2 = integer();
 type Test3 = Expect<Equal<typeof TEST_INTEGER1, ColumnType<"integer", { primaryKey: true }>>>;
 type Test4 = Expect<Equal<typeof TEST_INTEGER2, ColumnType<"integer", undefined>>>;
+export const Test3 = true satisfies Test3;
+export const Test4 = true satisfies Test4;
 
 // This must give error, because foo is not there!
 // const zozooz = integer({ primaryKey: true, foo: 5 });
@@ -72,7 +72,14 @@ type EmptyObject = Record<string, never>;
 
 // --------------------------------
 
-type IntCol = Params<number, { min?: number; max?: number }>;
+export function humbug(): ColumnType<"humbug", undefined> {
+    return {
+        type: "humbug",
+        params: undefined,
+    };
+}
+
+type IntCol = Params<{ min?: number; max?: number }>;
 
 export function integer(): ColumnType<"integer", undefined>;
 export function integer<T extends IntCol>(params: R<T, IntCol>): ColumnType<"integer", T>;
@@ -83,7 +90,7 @@ export function integer(params?: unknown) {
     };
 }
 
-type DecimalCol = Params<string, { precision: number; scale: number }>;
+type DecimalCol = Params<{ precision: number; scale: number }>;
 
 export function decimal<T extends DecimalCol>(params: R<T, DecimalCol>): ColumnType<"decimal", T> {
     return {
@@ -93,9 +100,7 @@ export function decimal<T extends DecimalCol>(params: R<T, DecimalCol>): ColumnT
 }
 
 export function bigserial(): ColumnType<"bigserial", undefined>;
-export function bigserial<T extends Params<bigint>>(
-    params: R<T, Params<bigint>>
-): ColumnType<"bigserial", T>;
+export function bigserial<T extends Params>(params: R<T, Params>): ColumnType<"bigserial", T>;
 export function bigserial(params?: unknown) {
     return {
         type: "bigserial",
@@ -103,7 +108,7 @@ export function bigserial(params?: unknown) {
     };
 }
 
-type UserStringCol = Params<string, { minLength?: number; maxLength: number }>;
+type UserStringCol = Params<{ minLength?: number; maxLength: number }>;
 export function userstring<T extends UserStringCol>(
     params: R<T, UserStringCol>
 ): ColumnType<"userstring", T> {
@@ -127,7 +132,7 @@ export function boolean(params?: unknown) {
 export function createdAt(): ColumnType<"createdAt", undefined> {
     return {
         type: "createdAt",
-        params: {} as never,
+        params: undefined,
     };
 }
 
@@ -147,10 +152,33 @@ export function rowVersion(): ColumnType<
     };
 }
 
+/**
+ * Concurrency stamp, used like rowversion but is randomized UUID
+ *
+ * Typically used in .NET applications
+ *
+ * @returns
+ */
+export function concurrencyStamp(): ColumnType<
+    "concurrencyStamp",
+    {
+        notInsertable: true;
+        notUpdatable: true;
+    }
+> {
+    return {
+        type: "concurrencyStamp",
+        params: {
+            notInsertable: true,
+            notUpdatable: true,
+        },
+    };
+}
+
 export function updatedAt(): ColumnType<"updatedAt", undefined> {
     return {
         type: "updatedAt",
-        params: {} as never,
+        params: undefined,
     };
 }
 
@@ -179,12 +207,12 @@ export function jsonb(schema: object, params?: object) {
             schema,
             ...params,
         },
-    } satisfies ColumnType<"jsonb", Params<unknown, { schema: object }>>;
+    } satisfies ColumnType<"jsonb", Params<{ schema: object }>>;
 }
 
-export function json<T extends Params<v.InferOutput<Schema>>, Schema extends ValibotSchema>(
+export function json<T extends Params, Schema extends ValibotSchema>(
     schema: Schema,
-    params: R<T, Params<v.InferOutput<Schema>>>
+    params: R<T, Params>
 ): ColumnType<"json", FinalType<T & { schema: Schema }>>;
 export function json<Schema extends ValibotSchema>(
     schema: Schema
@@ -196,7 +224,7 @@ export function json(schema: object, params?: object) {
             schema,
             ...params,
         },
-    } satisfies ColumnType<"json", Params<unknown, { schema: object }>>;
+    } satisfies ColumnType<"json", Params<{ schema: object }>>;
 }
 
 export interface Table<TableName extends string, Columns extends Record<string, unknown>> {
@@ -204,6 +232,13 @@ export interface Table<TableName extends string, Columns extends Record<string, 
     columns: Columns;
 }
 
+/**
+ * Create a database table definition
+ *
+ * @param table Name of the table, must be string literal
+ * @param columns Definition of columns as a record of ColumnTypes
+ * @returns
+ */
 export function table<TableName extends string, Columns extends Record<string, unknown>>(
     table: StringLiteral<TableName>,
     columns: Columns
@@ -223,7 +258,147 @@ export function table<TableName extends string, Columns extends Record<string, u
     };
 }
 
+/**
+ * Get primary key columns
+ *
+ * @param table
+ * @returns
+ */
+function getPrimaryKeyColumns<Columns extends Record<string, ColumnType<string, any>>>(
+    table: Table<any, Columns>
+): {
+    [K in keyof Columns as Columns[K]["params"]["primaryKey"] extends true ? K : never]: Columns[K];
+} {
+    return null as any;
+    // return Object.keys(table.columns).find((key) => {
+    //     const column = table.columns[key];
+    //     return column.params.primaryKey === true;
+    // }) as any;
+}
+
+/**
+ * Get update key columns, these are keys that are required for updating a row.
+ *
+ * These are: primary key, row version, concurrency stamp columns
+ *
+ * @param table
+ * @returns
+ */
+function getUpdateKeyColumns<Columns extends Record<string, ColumnType<string, any>>>(
+    table: Table<any, Columns>
+): FinalType<
+    {
+        [K in keyof Columns as Columns[K]["params"]["primaryKey"] extends true
+            ? K
+            : never]: Columns[K];
+    } & {
+        [K in keyof Columns as Columns[K]["type"] extends "rowVersion" | "concurrencyStamp"
+            ? K
+            : never]: Columns[K];
+    }
+> {
+    return null as any;
+    // return Object.keys(table.columns).find((key) => {
+    //     const column = table.columns[key];
+    //     return column.params.primaryKey === true;
+    // }) as any;
+}
+
+/**
+ * Get patch updateable columns
+ *
+ * @param table
+ * @returns
+ */
+function getPatchColumns<Columns extends Record<string, ColumnType<string, any>>>(
+    table: Table<any, Columns>
+): {
+    [K in keyof Columns as Columns[K]["params"]["primaryKey"] extends true
+        ? never
+        : Columns[K]["params"]["notUpdatable"] extends true
+        ? never
+        : K]: Columns[K];
+} {
+    return null as any;
+    // return Object.keys(table.columns).find((key) => {
+    //     const column = table.columns[key];
+    //     return column.params.primaryKey === true;
+    // }) as any;
+}
+
+export const TYPES_TO_SCHEMAS = {
+    integer(params: IntCol) {
+        return v.pipe(
+            v.number(),
+            v.integer(),
+            v.minValue(params.min ?? Number.MIN_SAFE_INTEGER),
+            v.maxValue(params.max ?? Number.MAX_SAFE_INTEGER)
+        );
+    },
+    decimal(params: DecimalCol) {
+        return v.pipe(
+            v.string(),
+            v.minLength(params.precision + 1),
+            v.maxLength(params.precision + params.scale + 1),
+            v.decimal()
+        );
+    },
+    userstring(params: UserStringCol) {
+        return v.pipe(
+            v.string(),
+            v.minLength(params.minLength ?? 0),
+            v.maxLength(params.maxLength)
+        );
+    },
+    concurrencyStamp() {
+        return v.pipe(v.string(), v.uuid());
+    },
+    bigserial() {
+        return v.pipe(v.number(), v.integer());
+    },
+    boolean() {
+        return v.pipe(v.boolean());
+    },
+    email() {
+        return v.pipe(v.string(), v.email(), v.maxLength(320));
+    },
+    rowVersion() {
+        return v.pipe(v.number(), v.integer());
+    },
+    createdAt() {
+        return v.pipe(v.date());
+    },
+    updatedAt() {
+        return v.pipe(v.date());
+    },
+    jsonb<T extends ValibotSchema>(params: Params<{ schema: T }>) {
+        return params.schema;
+    },
+    json<T extends ValibotSchema>(params: Params<{ schema: T }>) {
+        return params.schema;
+    },
+};
+
+type Types = keyof typeof TYPES_TO_SCHEMAS;
+
+function getSchemasFromColumns<Columns extends Record<string, ColumnType<Types, any>>>(
+    columns: Columns
+): {
+    [K in keyof Columns as Columns[K]["type"] extends Types ? K : never]: ReturnType<
+        (typeof TYPES_TO_SCHEMAS)[Columns[K]["type"]]
+    >;
+} {
+    const schemas = {} as any;
+    for (const key in columns) {
+        const column = columns[key];
+        const schema = (TYPES_TO_SCHEMAS as any)[column.type](column.params ?? {});
+        schemas[key] = schema;
+    }
+    return schemas;
+}
+
 const PERSON_TABLE = table("person", {
+    // humbug: humbug(),
     id: bigserial({ default: 1n, primaryKey: true }),
     name: userstring({ maxLength: 300, default: "Alice" as const }),
     email: email(),
@@ -248,57 +423,16 @@ const PERSON_TABLE = table("person", {
             nullable: true,
         }
     ),
+    stamp: concurrencyStamp(),
     version: rowVersion(),
     isActive: boolean(),
 });
+const foo = getPrimaryKeyColumns(PERSON_TABLE);
+const zoo = getUpdateKeyColumns(PERSON_TABLE);
+const goo = getPatchColumns(PERSON_TABLE);
 
-function getPrimaryKeySchema<Columns extends Record<string, any>>(
-    table: Table<any, Columns>
-): {
-    [K in keyof Columns as Columns[K]["params"]["primaryKey"] extends true ? K : never]: Columns[K];
-} {
-    return null as any;
-    // return Object.keys(table.columns).find((key) => {
-    //     const column = table.columns[key];
-    //     return column.params.primaryKey === true;
-    // }) as any;
-}
-
-function getUpdateKeySchema<Columns extends Record<string, any>>(
-    table: Table<any, Columns>
-): {
-    [K in keyof Columns as Columns[K]["params"]["primaryKey"] extends true
-        ? K
-        : Columns[K]["type"] extends "rowVersion"
-        ? K
-        : never]: Columns[K];
-} {
-    return null as any;
-    // return Object.keys(table.columns).find((key) => {
-    //     const column = table.columns[key];
-    //     return column.params.primaryKey === true;
-    // }) as any;
-}
-
-function getPatchSchema<Columns extends Record<string, any>>(
-    table: Table<any, Columns>
-): {
-    [K in keyof Columns as Columns[K]["params"]["primaryKey"] extends true
-        ? never
-        : Columns[K]["params"]["notUpdatable"] extends true
-        ? never
-        : K]: Columns[K];
-} {
-    return null as any;
-    // return Object.keys(table.columns).find((key) => {
-    //     const column = table.columns[key];
-    //     return column.params.primaryKey === true;
-    // }) as any;
-}
-
-const foo = getPrimaryKeySchema(PERSON_TABLE);
-const zoo = getUpdateKeySchema(PERSON_TABLE);
-const goo = getPatchSchema(PERSON_TABLE);
+const fofo = getSchemasFromColumns(PERSON_TABLE.columns);
+fofo.createdAt;
 
 // const ExampleTable = {
 //     table: "person" as const,
