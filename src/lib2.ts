@@ -21,6 +21,7 @@ export type Params<ExtraProps = {}> = FinalType<
         {
             primaryKey?: boolean;
             unique?: boolean;
+            updateKey?: boolean;
             notInsertable?: boolean;
             notUpdatable?: boolean;
             nullable?: boolean;
@@ -63,22 +64,34 @@ export function decimal<T extends DecimalCol>(params: R<T, DecimalCol>): ColumnT
  * BIGSERIAL or PRIMARY KEY AUTOINCREMENT
  */
 export function pkAutoInc(): ColumnType<
-    "pkAutoInc",
+    "bigserial",
     {
         primaryKey: true;
         notInsertable: true;
         notUpdatable: true;
     }
 >;
-export function pkAutoInc<T extends Params>(params: R<T, Params>): ColumnType<"pkAutoInc", T>;
+export function pkAutoInc<T extends Params>(params: R<T, Params>): ColumnType<"bigserial", T>;
 export function pkAutoInc(params?: unknown) {
     return {
-        type: "pkAutoInc",
+        type: "bigserial",
         params: params ?? {
             primaryKey: true,
             notInsertable: true,
             notUpdatable: true,
         },
+    };
+}
+
+/**
+ * Big serial, is auto incrementing column
+ */
+export function bigserial(): ColumnType<"bigserial", undefined>;
+export function bigserial<T extends Params>(params: R<T, Params>): ColumnType<"bigserial", T>;
+export function bigserial(params?: unknown) {
+    return {
+        type: "bigserial",
+        params: params,
     };
 }
 
@@ -136,6 +149,7 @@ export function rowVersion(): ColumnType<
     {
         notInsertable: true;
         notUpdatable: true;
+        updateKey: true;
     }
 > {
     return {
@@ -143,7 +157,20 @@ export function rowVersion(): ColumnType<
         params: {
             notInsertable: true,
             notUpdatable: true,
+            updateKey: true,
         },
+    };
+}
+
+/**
+ * UUID column
+ */
+export function uuid(): ColumnType<"uuid", undefined>;
+export function uuid<T extends Params>(params: R<T, Params>): ColumnType<"uuid", T>;
+export function uuid(params?: unknown) {
+    return {
+        type: "uuid",
+        params: params,
     };
 }
 
@@ -155,17 +182,19 @@ export function rowVersion(): ColumnType<
  * @returns
  */
 export function concurrencyStamp(): ColumnType<
-    "concurrencyStamp",
+    "uuid",
     {
         notInsertable: true;
         notUpdatable: true;
+        updateKey: true;
     }
 > {
     return {
-        type: "concurrencyStamp",
+        type: "uuid",
         params: {
             notInsertable: true,
             notUpdatable: true,
+            updateKey: true,
         },
     };
 }
@@ -181,40 +210,23 @@ export function email(params?: unknown) {
     };
 }
 
-export function jsonb<T extends Params<v.InferOutput<Schema>>, Schema extends ValibotSchema>(
-    schema: Schema,
-    params: R<T, Params<v.InferOutput<Schema>>>
-): ColumnType<"jsonb", FinalType<T & { schema: Schema }>>;
-export function jsonb<Schema extends ValibotSchema>(
-    schema: Schema
-): ColumnType<"jsonb", { schema: Schema }>;
-export function jsonb(schema: object, params?: object) {
+export function jsonb<Schema extends ValibotSchema, T extends Params<{ schema: Schema }>>(
+    params: R<T, Params<{ schema: Schema }>>
+): ColumnType<"jsonb", T> {
     return {
         type: "jsonb",
-        params: {
-            schema,
-            ...params,
-        },
-    } satisfies ColumnType<"jsonb", Params<{ schema: object }>>;
+        params,
+    };
 }
 
-export function json<T extends Params, Schema extends ValibotSchema>(
-    schema: Schema,
-    params: R<T, Params>
-): ColumnType<"json", FinalType<T & { schema: Schema }>>;
-export function json<Schema extends ValibotSchema>(
-    schema: Schema
-): ColumnType<"json", { schema: Schema }>;
-export function json(schema: object, params?: object) {
+export function json<Schema extends ValibotSchema, T extends Params<{ schema: Schema }>>(
+    params: R<T, Params<{ schema: Schema }>>
+): ColumnType<"jsonb", T> {
     return {
-        type: "json",
-        params: {
-            schema,
-            ...params,
-        },
-    } satisfies ColumnType<"json", Params<{ schema: object }>>;
+        type: "jsonb",
+        params,
+    };
 }
-
 /**
  * Create a database table definition
  *
@@ -262,33 +274,47 @@ export function getPrimaryKeyColumns<Columns extends Record<string, ColumnType<s
 }
 
 /**
+ * Get primary key columns
+ *
+ * @param table
+ * @returns
+ */
+export function getInsertColumns<Columns extends Record<string, ColumnType<string, any>>>(
+    table: Table<any, Columns>
+): {
+    [K in keyof Columns as Columns[K]["params"]["notInsertable"] extends false
+        ? K
+        : undefined extends Columns[K]["params"]["notInsertable"]
+        ? K
+        : never]: Columns[K];
+} {
+    return Object.keys(table.columns).reduce((acc, key) => {
+        const column = table.columns[key];
+        if (column.params?.notInsertable !== true) {
+            acc[key] = column;
+        }
+        return acc;
+    }, {} as any);
+}
+
+/**
  * Get update key columns, these are keys that are required for updating a row.
  *
- * These are: primary key, row version, concurrency stamp columns
+ * These are: rowversion or concurrency stamp
+ *
+ * Updates are done with a WHERE clause that includes these columns
  *
  * @param table
  * @returns
  */
 export function getUpdateKeyColumns<Columns extends Record<string, ColumnType<string, any>>>(
     table: Table<any, Columns>
-): FinalType<
-    {
-        [K in keyof Columns as Columns[K]["params"]["primaryKey"] extends true
-            ? K
-            : never]: Columns[K];
-    } & {
-        [K in keyof Columns as Columns[K]["type"] extends "rowVersion" | "concurrencyStamp"
-            ? K
-            : never]: Columns[K];
-    }
-> {
+): FinalType<{
+    [K in keyof Columns as Columns[K]["params"]["updateKey"] extends true ? K : never]: Columns[K];
+}> {
     return Object.keys(table.columns).reduce((acc, key) => {
         const column = table.columns[key];
-        if (
-            column.params?.primaryKey === true ||
-            column.type === "rowVersion" ||
-            column.type === "concurrencyStamp"
-        ) {
+        if (column.params?.updateKey === true) {
             acc[key] = column;
         }
         return acc;
@@ -362,10 +388,13 @@ export const TYPES_TO_SCHEMAS = {
             v.maxLength(params.maxLength)
         );
     },
+    uuid() {
+        return v.pipe(v.string(), v.uuid());
+    },
     concurrencyStamp() {
         return v.pipe(v.string(), v.uuid());
     },
-    pkAutoInc() {
+    bigserial() {
         return v.pipe(v.number(), v.integer());
     },
     boolean() {

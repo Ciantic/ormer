@@ -18,29 +18,28 @@ function humbug(): o.ColumnType<"humbug", undefined> {
 const PERSON_TABLE = o.table("person", {
     // humbug: humbug(),
     id: o.pkAutoInc(),
+    publicId: o.uuid({ unique: true, notUpdatable: true }),
     name: o.userstring({ maxLength: 300, default: "Alice" as const }),
     email: o.email(),
     age: o.integer(),
     price: o.decimal({ precision: 10, scale: 2 }),
     createdAt: o.createdAt(),
     updatedAt: o.updatedAt(),
-    billingAddress: o.jsonb(
-        v.object({
-            street: v.string(),
-            city: v.string(),
-            postcode: v.string(),
-        })
-    ),
-    deliveryAddress: o.json(
-        v.object({
+    billingAddress: o.jsonb({
+        schema: v.object({
             street: v.string(),
             city: v.string(),
             postcode: v.string(),
         }),
-        {
-            nullable: true,
-        }
-    ),
+    }),
+    deliveryAddress: o.json({
+        schema: v.object({
+            street: v.string(),
+            city: v.string(),
+            postcode: v.string(),
+        }),
+        nullable: true,
+    }),
     stamp: o.concurrencyStamp(),
     version: o.rowVersion(),
     isActive: o.boolean(),
@@ -82,7 +81,7 @@ Deno.test("pkAutoInc signature", () => {
     type Test3 = Expect<
         Equal<
             typeof TEST_INTEGER1,
-            o.ColumnType<"pkAutoInc", { primaryKey: true; notInsertable: true; notUpdatable: true }>
+            o.ColumnType<"bigserial", { primaryKey: true; notInsertable: true; notUpdatable: true }>
         >
     >;
     true satisfies Test3;
@@ -91,7 +90,7 @@ Deno.test("pkAutoInc signature", () => {
         Equal<
             typeof TEST_INTEGER2,
             o.ColumnType<
-                "pkAutoInc",
+                "bigserial",
                 {
                     primaryKey: false;
                 }
@@ -101,11 +100,11 @@ Deno.test("pkAutoInc signature", () => {
     true satisfies Test4;
 
     assertEquals(TEST_INTEGER1, {
-        type: "pkAutoInc",
+        type: "bigserial",
         params: { primaryKey: true, notInsertable: true, notUpdatable: true },
     });
     assertEquals(TEST_INTEGER2, {
-        type: "pkAutoInc",
+        type: "bigserial",
         params: { primaryKey: false },
     });
 });
@@ -118,19 +117,37 @@ Deno.test("getPrimaryKeyColumns", () => {
 
     // Runtime test
     assertEquals(Object.keys(columns).length, 1);
-    assertEquals(columns.id.type, "pkAutoInc");
+    assertEquals(columns.id.type, "bigserial");
+});
+
+Deno.test("getInsertColumns", () => {
+    const columns = o.getInsertColumns(PERSON_TABLE);
+    const expected_keys = [
+        "publicId",
+        "name",
+        "email",
+        "age",
+        "price",
+        "billingAddress",
+        "deliveryAddress",
+        "isActive",
+    ] as const;
+
+    true satisfies Expect<Equal<keyof typeof columns, (typeof expected_keys)[number]>>;
+
+    assertEquals(Object.keys(columns).length, expected_keys.length);
+    assertEquals(new Set(Object.keys(columns)), new Set(expected_keys));
 });
 
 Deno.test("getUpdateKeyColumns", () => {
     const columns = o.getUpdateKeyColumns(PERSON_TABLE);
 
     // Pure type level test
-    true satisfies Expect<Equal<keyof typeof columns, "id" | "version" | "stamp">>;
+    true satisfies Expect<Equal<keyof typeof columns, "version" | "stamp">>;
 
-    assertEquals(Object.keys(columns).length, 3);
-    assertEquals(columns.id.type, "pkAutoInc");
+    assertEquals(Object.keys(columns).length, 2);
     assertEquals(columns.version.type, "rowVersion");
-    assertEquals(columns.stamp.type, "concurrencyStamp");
+    assertEquals(columns.stamp.type, "uuid");
 });
 
 Deno.test("getPatchColumns", () => {
