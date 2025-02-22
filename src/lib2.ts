@@ -33,8 +33,8 @@ export type Params<ExtraProps extends object = {}> = FinalType<
 >;
 
 export interface Table<TableName extends string, Columns extends Record<string, unknown>> {
-    table: StringLiteral<TableName>;
-    columns: Columns;
+    readonly table: StringLiteral<TableName>;
+    readonly columns: Columns;
 }
 
 // ----------------------------------------------------------------------------
@@ -475,13 +475,13 @@ export function getSchemasFromColumns<
 type RecordOfColumnTypes = Record<string, ColumnType<string, any>>;
 
 type ColumnOfTable<
-    T extends readonly Table<any, RecordOfColumnTypes>[],
+    T extends Table<any, RecordOfColumnTypes>[],
     K extends string,
     C extends keyof Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"]
 > = Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"][C];
 
 type InferredValue<
-    T extends readonly Table<any, RecordOfColumnTypes>[],
+    T extends Table<any, RecordOfColumnTypes>[],
     K extends string,
     C extends keyof Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"],
     TypeTable extends Record<string, (params?: any) => ValibotSchema>
@@ -493,7 +493,7 @@ type InferredValue<
         : ReturnType<TypeTable[ColumnOfTable<T, K, C>["type"]]>
 >;
 
-export function createDbFactory<T extends readonly Table<any, RecordOfColumnTypes>[]>(
+export function createDbFactory<T extends Table<any, RecordOfColumnTypes>[]>(
     ...tables: T
 ): {
     // tables: T,
