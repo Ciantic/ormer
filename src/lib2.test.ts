@@ -64,10 +64,10 @@ Deno.test("integer signature", () => {
     // Always test these manually when changing the code!
     //
     // This must give error, because foo is not there!
-    // const mustErrorBecauseFoo = o.integer({ primaryKey: true, foo: 5 });
+    // const mustErrorBecauseFoo = o.int32({ primaryKey: true, foo: 5 });
 
     // This must have autocompletion!
-    // const fofofo = o.integer({
+    // const fofofo = o.int32({
     //     /* CURSOR HERE */
     // });
 });
