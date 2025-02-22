@@ -466,6 +466,7 @@ export function getSchemasFromColumns<Columns extends Record<string, ColumnType<
 }
 
 export const TYPES_TO_SCHEMAS = {
+    // Primitive types
     int32() {
         return v.pipe(v.number(), v.integer());
     },
@@ -533,6 +534,7 @@ export const TYPES_TO_SCHEMAS = {
     json<T extends ValibotSchema>(params: Params<{ schema: T }>) {
         return params.schema;
     },
+    // Helper types
     rowversion() {
         return v.pipe(v.number(), v.integer());
     },
@@ -542,12 +544,13 @@ export const TYPES_TO_SCHEMAS = {
     userstring(params: UserStringCol) {
         return v.pipe(
             v.string(),
+            v.trim(),
             v.minLength(params.minLength ?? 0),
             v.maxLength(params.maxLength)
         );
     },
     email() {
-        return v.pipe(v.string(), v.email(), v.maxLength(320));
+        return v.pipe(v.string(), v.trim(), v.email(), v.maxLength(320));
     },
     updatedAt() {
         return v.pipe(v.date());
