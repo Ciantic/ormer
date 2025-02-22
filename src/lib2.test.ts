@@ -20,8 +20,10 @@ const PERSON_TABLE = o.table("person", {
     id: o.pkAutoInc(),
     publicId: o.uuid({ unique: true, notUpdatable: true }),
     name: o.userstring({ maxLength: 300, default: "Alice" as const }),
+    ssn: o.varchar({ maxLength: 10 }),
+    notes: o.string(),
     email: o.email(),
-    age: o.integer(),
+    age: o.int32(),
     price: o.decimal({ precision: 10, scale: 2 }),
     createdAt: o.createdAt(),
     updatedAt: o.updatedAt(),
@@ -41,23 +43,23 @@ const PERSON_TABLE = o.table("person", {
         nullable: true,
     }),
     stamp: o.concurrencyStamp(),
-    version: o.rowVersion(),
+    version: o.rowversion(),
     isActive: o.boolean(),
 });
 
 Deno.test("integer signature", () => {
-    const TEST_INTEGER1 = o.integer({ primaryKey: true });
-    const TEST_INTEGER2 = o.integer();
+    const TEST_INTEGER1 = o.int32({ primaryKey: true });
+    const TEST_INTEGER2 = o.int32();
 
     // Pure type level test for inference
-    type Test3 = Expect<Equal<typeof TEST_INTEGER1, o.ColumnType<"integer", { primaryKey: true }>>>;
-    type Test4 = Expect<Equal<typeof TEST_INTEGER2, o.ColumnType<"integer", undefined>>>;
+    type Test3 = Expect<Equal<typeof TEST_INTEGER1, o.ColumnType<"int32", { primaryKey: true }>>>;
+    type Test4 = Expect<Equal<typeof TEST_INTEGER2, o.ColumnType<"int32", undefined>>>;
     true satisfies Test3;
     true satisfies Test4;
 
     // Runtime test
-    assertEquals(TEST_INTEGER1, { type: "integer", params: { primaryKey: true } });
-    assertEquals(TEST_INTEGER2, { type: "integer", params: undefined });
+    assertEquals(TEST_INTEGER1, { type: "int32", params: { primaryKey: true } });
+    assertEquals(TEST_INTEGER2, { type: "int32", params: undefined });
 
     // Always test these manually when changing the code!
     //
@@ -126,6 +128,8 @@ Deno.test("getInsertColumns", () => {
         "publicId",
         "name",
         "email",
+        "ssn",
+        "notes",
         "age",
         "price",
         "billingAddress",
@@ -156,6 +160,8 @@ Deno.test("getPatchColumns", () => {
         "name",
         "email",
         "age",
+        "notes",
+        "ssn",
         "price",
         "billingAddress",
         "deliveryAddress",
