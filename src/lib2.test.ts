@@ -176,7 +176,7 @@ Deno.test("getPatchColumns", () => {
 });
 
 Deno.test("getSchemasFromColumns", () => {
-    const columns = o.getSchemasFromColumns(PERSON_TABLE.columns);
+    const columns = o.getSchemasFromColumns(PERSON_TABLE.columns, o.TYPES_TO_SCHEMAS);
 
     // Pure type level test
     true satisfies Expect<Equal<keyof typeof columns, keyof typeof PERSON_TABLE.columns>>;

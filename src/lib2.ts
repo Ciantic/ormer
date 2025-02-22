@@ -451,18 +451,22 @@ export function getPatchColumns<Columns extends Record<string, ColumnType<string
  * @param columns Columns property of the table
  * @returns A record of schemas mapped to the column's keys
  */
-export function getSchemasFromColumns<Columns extends Record<string, ColumnType<Types, any>>>(
-    columns: Columns
+export function getSchemasFromColumns<
+    Columns extends Record<string, ColumnType<Types, any>>,
+    TypeTable extends Record<string, (params?: any) => ValibotSchema>
+>(
+    columns: Columns,
+    types: TypeTable
 ): {
     // prettier-ignore
     [K in keyof Columns as Columns[K]["type"] extends Types ? K : never]: 
         Columns[K]["params"]["schema"] extends ValibotSchema
         ? Columns[K]["params"]["schema"]
-        : ReturnType<(typeof TYPES_TO_SCHEMAS)[Columns[K]["type"]]>;
+        : ReturnType<TypeTable[Columns[K]["type"]]>;
 } {
     return Object.keys(columns).reduce((acc, key) => {
         const column = columns[key];
-        const schema = (TYPES_TO_SCHEMAS as any)[column.type](column.params ?? {});
+        const schema = (types as any)[column.type](column.params ?? {});
         acc[key] = schema;
         return acc;
     }, {} as any);
@@ -488,15 +492,38 @@ export function createDbFactory<T extends readonly Table<any, RecordOfColumnType
         // prettier-ignore
         [K in T[number]["table"]]: {
             [C in keyof Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"]]: 
-            v.InferOutput<
-                Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"] extends ValibotSchema
-                    // Return schema from params of a column
-                    ? Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"]
-                    // Or value from TypeTable (usually TYPES_TO_SCHEMAS)
-                    : ReturnType<
-                        TypeTable[Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["type"]]
+            k.ColumnType<
+                v.InferOutput<
+                    Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"] extends ValibotSchema
+                        // Return schema from params of a column
+                        ? Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"]
+                        // Or value from TypeTable (usually TYPES_TO_SCHEMAS)
+                        : ReturnType<
+                            TypeTable[Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["type"]]
+                        >
+                >,
+                Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["notInsertable"] extends true ? never : 
+                    v.InferOutput<
+                        Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"] extends ValibotSchema
+                            // Return schema from params of a column
+                            ? Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"]
+                            // Or value from TypeTable (usually TYPES_TO_SCHEMAS)
+                            : ReturnType<
+                                TypeTable[Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["type"]]
+                            >
                     >
-            >;
+                ,
+                Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["notUpdatable"] extends true ? never : 
+                    v.InferOutput<
+                        Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"] extends ValibotSchema
+                            // Return schema from params of a column
+                            ? Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"]
+                            // Or value from TypeTable (usually TYPES_TO_SCHEMAS)
+                            : ReturnType<
+                                TypeTable[Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["type"]]
+                            >
+                    >
+            >
         };
     }>;
 } {
