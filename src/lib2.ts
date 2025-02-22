@@ -474,6 +474,25 @@ export function getSchemasFromColumns<
 
 type RecordOfColumnTypes = Record<string, ColumnType<string, any>>;
 
+type ColumnOfTable<
+    T extends readonly Table<any, RecordOfColumnTypes>[],
+    K extends string,
+    C extends keyof Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"]
+> = Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"][C];
+
+type InferredValue<
+    T extends readonly Table<any, RecordOfColumnTypes>[],
+    K extends string,
+    C extends keyof Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"],
+    TypeTable extends Record<string, (params?: any) => ValibotSchema>
+> = v.InferOutput<
+    // Return schema from params of a column
+    // Or value from TypeTable (usually TYPES_TO_SCHEMAS)
+    ColumnOfTable<T, K, C>["params"]["schema"] extends ValibotSchema
+        ? ColumnOfTable<T, K, C>["params"]["schema"]
+        : ReturnType<TypeTable[ColumnOfTable<T, K, C>["type"]]>
+>;
+
 export function createDbFactory<T extends readonly Table<any, RecordOfColumnTypes>[]>(
     ...tables: T
 ): {
@@ -489,41 +508,19 @@ export function createDbFactory<T extends readonly Table<any, RecordOfColumnType
         kysely: k.KyselyConfig;
         types: TypeTable;
     }): k.Kysely<{
-        // prettier-ignore
         [K in T[number]["table"]]: {
-            [C in keyof Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"]]: 
-            k.ColumnType<
-                v.InferOutput<
-                    Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"] extends ValibotSchema
-                        // Return schema from params of a column
-                        ? Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"]
-                        // Or value from TypeTable (usually TYPES_TO_SCHEMAS)
-                        : ReturnType<
-                            TypeTable[Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["type"]]
-                        >
-                >,
-                Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["notInsertable"] extends true ? never : 
-                    v.InferOutput<
-                        Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"] extends ValibotSchema
-                            // Return schema from params of a column
-                            ? Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"]
-                            // Or value from TypeTable (usually TYPES_TO_SCHEMAS)
-                            : ReturnType<
-                                TypeTable[Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["type"]]
-                            >
-                    >
-                ,
-                Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["notUpdatable"] extends true ? never : 
-                    v.InferOutput<
-                        Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"] extends ValibotSchema
-                            // Return schema from params of a column
-                            ? Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"]
-                            // Or value from TypeTable (usually TYPES_TO_SCHEMAS)
-                            : ReturnType<
-                                TypeTable[Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["type"]]
-                            >
-                    >
-            >
+            [C in keyof Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"]]: k.ColumnType<
+                // Select
+                InferredValue<T, K, C, TypeTable>,
+                // Insert
+                ColumnOfTable<T, K, C>["params"]["notInsertable"] extends true
+                    ? never
+                    : InferredValue<T, K, C, TypeTable>,
+                // Update
+                ColumnOfTable<T, K, C>["params"]["notUpdatable"] extends true
+                    ? never
+                    : InferredValue<T, K, C, TypeTable>
+            >;
         };
     }>;
 } {
