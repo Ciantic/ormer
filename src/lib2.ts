@@ -496,26 +496,23 @@ export const TYPES_TO_SCHEMAS = {
             v.decimal()
         );
     },
+    serial() {
+        return v.pipe(v.number(), v.integer());
+    },
+    bigserial() {
+        return v.pipe(v.number(), v.integer());
+    },
+    uuid() {
+        return v.pipe(v.string(), v.uuid());
+    },
     string() {
         return v.string();
     },
     varchar(params: VarCharCol) {
         return v.pipe(v.string(), v.maxLength(params.maxLength));
     },
-    uuid() {
-        return v.pipe(v.string(), v.uuid());
-    },
-    concurrencyStamp() {
-        return v.pipe(v.string(), v.uuid());
-    },
-    bigserial() {
-        return v.pipe(v.number(), v.integer());
-    },
     boolean() {
         return v.pipe(v.boolean());
-    },
-    rowversion() {
-        return v.pipe(v.number(), v.integer());
     },
     timestamp() {
         return v.date();
@@ -524,10 +521,10 @@ export const TYPES_TO_SCHEMAS = {
         // TODO: Use temporal
         return v.string();
     },
-    timepart() {
+    datepart() {
         return v.string();
     },
-    datepart() {
+    timepart() {
         return v.string();
     },
     jsonb<T extends ValibotSchema>(params: Params<{ schema: T }>) {
@@ -536,7 +533,12 @@ export const TYPES_TO_SCHEMAS = {
     json<T extends ValibotSchema>(params: Params<{ schema: T }>) {
         return params.schema;
     },
-
+    rowversion() {
+        return v.pipe(v.number(), v.integer());
+    },
+    concurrencyStamp() {
+        return v.pipe(v.string(), v.uuid());
+    },
     userstring(params: UserStringCol) {
         return v.pipe(
             v.string(),
@@ -547,10 +549,10 @@ export const TYPES_TO_SCHEMAS = {
     email() {
         return v.pipe(v.string(), v.email(), v.maxLength(320));
     },
-    createdAt() {
+    updatedAt() {
         return v.pipe(v.date());
     },
-    updatedAt() {
+    createdAt() {
         return v.pipe(v.date());
     },
 };
