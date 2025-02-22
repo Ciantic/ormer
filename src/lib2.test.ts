@@ -181,5 +181,16 @@ Deno.test("getSchemasFromColumns", () => {
     // Pure type level test
     true satisfies Expect<Equal<keyof typeof columns, keyof typeof PERSON_TABLE.columns>>;
 
+    columns.billingAddress;
+
     assertEquals(Object.keys(columns).length, Object.keys(PERSON_TABLE.columns).length);
+});
+
+Deno.test("createDbFactory", () => {
+    const dbFactory = o.createDbFactory(PERSON_TABLE);
+
+    const foo = dbFactory.createKyselyDb({
+        kysely: null as any,
+        types: o.TYPES_TO_SCHEMAS,
+    });
 });

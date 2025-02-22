@@ -1,3 +1,4 @@
+import * as k from "npm:kysely";
 import * as v from "npm:valibot";
 
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
@@ -453,9 +454,11 @@ export function getPatchColumns<Columns extends Record<string, ColumnType<string
 export function getSchemasFromColumns<Columns extends Record<string, ColumnType<Types, any>>>(
     columns: Columns
 ): {
-    [K in keyof Columns as Columns[K]["type"] extends Types ? K : never]: ReturnType<
-        (typeof TYPES_TO_SCHEMAS)[Columns[K]["type"]]
-    >;
+    // prettier-ignore
+    [K in keyof Columns as Columns[K]["type"] extends Types ? K : never]: 
+        Columns[K]["params"]["schema"] extends ValibotSchema
+        ? Columns[K]["params"]["schema"]
+        : ReturnType<(typeof TYPES_TO_SCHEMAS)[Columns[K]["type"]]>;
 } {
     return Object.keys(columns).reduce((acc, key) => {
         const column = columns[key];
@@ -463,6 +466,49 @@ export function getSchemasFromColumns<Columns extends Record<string, ColumnType<
         acc[key] = schema;
         return acc;
     }, {} as any);
+}
+
+type RecordOfColumnTypes = Record<string, ColumnType<string, any>>;
+
+export function createDbFactory<T extends readonly Table<any, RecordOfColumnTypes>[]>(
+    ...tables: T
+): {
+    // tables: T,
+    tables: {
+        [K in T[number]["table"]]: Extract<T[number], Table<K, RecordOfColumnTypes>>;
+    };
+
+    createKyselyDb<TypeTable extends Record<string, (params?: any) => ValibotSchema>>({
+        kysely,
+        types,
+    }: {
+        kysely: k.KyselyConfig;
+        types: TypeTable;
+    }): k.Kysely<{
+        // prettier-ignore
+        [K in T[number]["table"]]: {
+            [C in keyof Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"]]: 
+            v.InferOutput<
+                Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"] extends ValibotSchema
+                    // Return schema from params of a column
+                    ? Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["params"]["schema"]
+                    // Or value from TypeTable (usually TYPES_TO_SCHEMAS)
+                    : ReturnType<
+                        TypeTable[Extract<T[number],Table<K, RecordOfColumnTypes>>["columns"][C]["type"]]
+                    >
+            >;
+        };
+    }>;
+} {
+    return {
+        tables: tables.reduce((acc, table) => {
+            acc[table.table] = table;
+            return acc;
+        }, {} as any),
+        createKyselyDb({ kysely, types }) {
+            return new k.Kysely(kysely);
+        },
+    };
 }
 
 export const TYPES_TO_SCHEMAS = {
