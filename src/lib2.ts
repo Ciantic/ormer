@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-explicit-any
 import * as k from "npm:kysely";
 import * as v from "npm:valibot";
 
@@ -491,6 +492,7 @@ type InferredValue<
     ColumnOfTable<T, K, C>["params"]["schema"] extends ValibotSchema
         ? ColumnOfTable<T, K, C>["params"]["schema"]
         : ReturnType<TypeTable[ColumnOfTable<T, K, C>["type"]]>
+    // FAIL HERE
 >;
 
 export function createDbFactory<T extends Table<any, RecordOfColumnTypes>[]>(
@@ -530,7 +532,10 @@ export function createDbFactory<T extends Table<any, RecordOfColumnTypes>[]>(
             return acc;
         }, {} as any),
         createKyselyDb({ kysely, types }) {
-            return new k.Kysely(kysely);
+            return new k.Kysely({
+                ...kysely,
+                plugins: [],
+            });
         },
     };
 }
