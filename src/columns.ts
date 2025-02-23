@@ -1,0 +1,334 @@
+import type * as v from "npm:valibot";
+
+type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+
+type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
+
+// Restrict record T to only keys from record B
+type R<T, B> = {
+    [K in keyof T]: K extends keyof B ? T[K] : never;
+};
+
+// deno-lint-ignore ban-types
+export type Params<ExtraProps extends object = {}> = FinalType<
+    Readonly<
+        {
+            primaryKey?: boolean;
+            unique?: boolean;
+            updateKey?: boolean;
+            notInsertable?: boolean;
+            notUpdatable?: boolean;
+            nullable?: boolean;
+            default?: unknown;
+            columnName?: string; // Automatically assigned by table()
+        } & ExtraProps
+    >
+>;
+export type ColumnType<Type extends string, Params> = {
+    readonly type: Type;
+    readonly params: Params;
+};
+
+// ----------------------------------------------------------------------------
+// Primitive types
+// ----------------------------------------------------------------------------
+
+export function int32(): ColumnType<"int32", undefined>;
+export function int32<T extends Params>(params: R<T, Params>): ColumnType<"int32", T>;
+export function int32(params?: unknown) {
+    return {
+        type: "int32",
+        params: params,
+    };
+}
+
+export function int64(): ColumnType<"int64", undefined>;
+export function int64<T extends Params>(params: R<T, Params>): ColumnType<"int64", T>;
+export function int64(params?: unknown) {
+    return {
+        type: "int64",
+        params: params,
+    };
+}
+
+export function bigint(): ColumnType<"bigint", undefined>;
+export function bigint<T extends Params>(params: R<T, Params>): ColumnType<"bigint", T>;
+export function bigint(params?: unknown) {
+    return {
+        type: "bigint",
+        params: params,
+    };
+}
+
+export function float32(): ColumnType<"float32", undefined>;
+export function float32<T extends Params>(params: R<T, Params>): ColumnType<"float32", T>;
+export function float32(params?: unknown) {
+    return {
+        type: "float32",
+        params: params,
+    };
+}
+
+export function float64(): ColumnType<"float64", undefined>;
+export function float64<T extends Params>(params: R<T, Params>): ColumnType<"float64", T>;
+export function float64(params?: unknown) {
+    return {
+        type: "float64",
+        params: params,
+    };
+}
+
+export type DecimalCol = Params<{ precision: number; scale: number }>;
+export function decimal<T extends DecimalCol>(params: R<T, DecimalCol>): ColumnType<"decimal", T> {
+    return {
+        type: "decimal",
+        params: params,
+    };
+}
+
+/**
+ * Serial is 32bit auto-incrementing column
+ */
+export function serial(): ColumnType<"serial", undefined>;
+export function serial<T extends Params>(params: R<T, Params>): ColumnType<"serial", T>;
+export function serial(params?: unknown) {
+    return {
+        type: "serial",
+        params: params,
+    };
+}
+
+/**
+ * Big serial is 64bit auto-incrementing column
+ */
+export function bigserial(): ColumnType<"bigserial", undefined>;
+export function bigserial<T extends Params>(params: R<T, Params>): ColumnType<"bigserial", T>;
+export function bigserial(params?: unknown) {
+    return {
+        type: "bigserial",
+        params: params,
+    };
+}
+
+export function uuid(): ColumnType<"uuid", undefined>;
+export function uuid<T extends Params>(params: R<T, Params>): ColumnType<"uuid", T>;
+export function uuid(params?: unknown) {
+    return {
+        type: "uuid",
+        params: params,
+    };
+}
+
+export function string(): ColumnType<"string", undefined>;
+export function string<T extends Params>(params: R<T, Params>): ColumnType<"string", T>;
+export function string(params?: unknown) {
+    return {
+        type: "string",
+        params,
+    };
+}
+
+export type VarCharCol = Params<{ maxLength: number }>;
+export function varchar<T extends VarCharCol>(params: R<T, VarCharCol>): ColumnType<"varchar", T> {
+    return {
+        type: "varchar",
+        params,
+    };
+}
+
+export function boolean(): ColumnType<"boolean", undefined>;
+export function boolean<T extends Params>(params: R<T, Params>): ColumnType<"boolean", T>;
+export function boolean(params?: unknown) {
+    return {
+        type: "boolean",
+        params: params,
+    };
+}
+
+export function timestamp(): ColumnType<"timestamp", undefined>;
+export function timestamp<T extends Params>(params: R<T, Params>): ColumnType<"timestamp", T>;
+export function timestamp(params?: unknown) {
+    return {
+        type: "timestamp",
+        params: params,
+    };
+}
+
+export function timestamptz(): ColumnType<"timestamptz", undefined>;
+export function timestamptz<T extends Params>(params: R<T, Params>): ColumnType<"timestamptz", T>;
+export function timestamptz(params?: unknown) {
+    return {
+        type: "timestamptz",
+        params: params,
+    };
+}
+
+export function datepart(): ColumnType<"datepart", undefined>;
+export function datepart<T extends Params>(params: R<T, Params>): ColumnType<"datepart", T>;
+export function datepart(params?: unknown) {
+    return {
+        type: "datepart",
+        params: params,
+    };
+}
+
+export function timepart(): ColumnType<"timepart", undefined>;
+export function timepart<T extends Params>(params: R<T, Params>): ColumnType<"timepart", T>;
+export function timepart(params?: unknown) {
+    return {
+        type: "timepart",
+        params: params,
+    };
+}
+
+export function jsonb<Schema extends ValibotSchema, T extends Params<{ schema: Schema }>>(
+    params: R<T, Params<{ schema: Schema }>>
+): ColumnType<"jsonb", T> {
+    return {
+        type: "jsonb",
+        params,
+    };
+}
+
+export function json<Schema extends ValibotSchema, T extends Params<{ schema: Schema }>>(
+    params: R<T, Params<{ schema: Schema }>>
+): ColumnType<"jsonb", T> {
+    return {
+        type: "jsonb",
+        params,
+    };
+}
+
+export type ForeignKeyCol = Params<{ foreignKeyTable: string; foreignKeyColumn: string }>;
+export function foreignKeyUntyped<T extends ForeignKeyCol>(
+    params: R<T, ForeignKeyCol>
+): ColumnType<"foreignKey", T> {
+    return {
+        type: "foreignKey",
+        params,
+    };
+}
+
+// ----------------------------------------------------------------------------
+// Helper types
+// ----------------------------------------------------------------------------
+
+/**
+ * Primary key column with auto increment
+ *
+ * BIGSERIAL or PRIMARY KEY AUTOINCREMENT
+ */
+export function pkAutoInc(): ColumnType<
+    "bigserial",
+    {
+        primaryKey: true;
+        notInsertable: true;
+        notUpdatable: true;
+    }
+>;
+export function pkAutoInc<T extends Params>(params: R<T, Params>): ColumnType<"bigserial", T>;
+export function pkAutoInc(params?: unknown) {
+    return {
+        type: "bigserial",
+        params: params ?? {
+            primaryKey: true,
+            notInsertable: true,
+            notUpdatable: true,
+        },
+    };
+}
+
+/**
+ * Used as an update key to avoid concurrency issues
+ *
+ * Implementation can be an integer which is incremented on each update
+ */
+export function rowversion(): ColumnType<
+    "rowversion",
+    {
+        notInsertable: true;
+        notUpdatable: true;
+        updateKey: true;
+    }
+> {
+    return {
+        type: "rowversion",
+        params: {
+            notInsertable: true,
+            notUpdatable: true,
+            updateKey: true,
+        },
+    };
+}
+
+/**
+ * Concurrency stamp, used like rowversion but is randomized UUID
+ *
+ * Typically used in .NET applications
+ *
+ * @returns
+ */
+export function concurrencyStamp(): ColumnType<
+    "concurrencyStamp",
+    {
+        notInsertable: true;
+        notUpdatable: true;
+        updateKey: true;
+    }
+> {
+    return {
+        type: "concurrencyStamp",
+        params: {
+            notInsertable: true,
+            notUpdatable: true,
+            updateKey: true,
+        },
+    };
+}
+
+export type UserStringCol = Params<{ minLength?: number; maxLength: number }>;
+
+/**
+ * User input string, typically used for names, addresses, etc.
+ *
+ * This is automatically trimmed and validated for length
+ *
+ * @param params
+ */
+export function userstring<T extends UserStringCol>(
+    params: R<T, UserStringCol>
+): ColumnType<"userstring", T> {
+    return {
+        type: "userstring",
+        params,
+    };
+}
+
+export function email(): ColumnType<"email", undefined>;
+export function email<T extends Params>(params: R<T, Params>): ColumnType<"email", T>;
+export function email(params?: unknown) {
+    return {
+        type: "email",
+        params: params,
+    };
+}
+
+export function updatedAt(): ColumnType<"updatedAt", { notInsertable: true; notUpdatable: true }> {
+    return {
+        type: "updatedAt",
+        params: {
+            notInsertable: true,
+            notUpdatable: true,
+        },
+    };
+}
+
+export function createdAt(): ColumnType<"createdAt", { notInsertable: true; notUpdatable: true }> {
+    return {
+        type: "createdAt",
+        params: {
+            notInsertable: true,
+            notUpdatable: true,
+        },
+    };
+}

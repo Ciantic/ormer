@@ -1,12 +1,11 @@
 import * as v from "npm:valibot";
+import * as o from "../../mod.ts";
 import { assertEquals, assertThrows } from "jsr:@std/assert";
-import type { Table, ColumnKind, ColumnType } from "./lib.ts";
-import * as o from "./lib.ts";
-import { sqliteCreateTables } from "./sqlite.ts";
+import { sqliteCreateTables } from "../drivers/sqlite.ts";
 
 Deno.test("optional throws", () => {
     const exampleTable = o.table("example", {
-        some_optional_string: o.col(v.optional(v.string())),
+        some_optional_string: o.string({ nullable: true }),
     });
     assertThrows(
         () => sqliteCreateTables(exampleTable),
@@ -19,30 +18,32 @@ Deno.test("sqliteCreateTables", () => {
     const exampleTable = o.table("example", {
         // Key types
         some_autoinc_primarykey: o.pkAutoInc(),
-        some_rowversion: o.rowVersion(),
+        some_rowversion: o.rowversion(),
 
         // String types
         some_string: o.string(),
-        some_varchar: o.varchar(255),
+        some_varchar: o.varchar({ maxLength: 255 }),
 
         // Date types
-        some_date: o.col(v.date()),
+        some_date: o.timestamp(),
 
         // Numeric types
-        some_integer: o.integer(),
+        some_integer: o.int64(),
         some_bigint: o.bigint(),
-        some_number: o.float(),
+        some_number: o.float64(),
 
         // Nullability
-        some_nullable_string: o.nullable(o.string()),
-        some_nullable_integer: o.nullable(o.integer()),
+        some_nullable_string: o.string({ nullable: true }),
+        some_nullable_integer: o.int64({ nullable: true }),
 
         // JSON types
         some_json_col: o.json({
-            foo: v.string(),
-            bar: v.number(),
+            schema: v.object({
+                foo: v.string(),
+                bar: v.number(),
+            }),
         }),
-        some_json_array_col: o.array(v.string()),
+        // some_json_array_col: o.array(v.string()),
 
         // Auto populated timestamps
         some_created_at: o.createdAt(),

@@ -1,13 +1,15 @@
 import type * as v from "npm:valibot";
-import type { Table, ColumnKind, ColumnType } from "./lib.ts";
+import { Table } from "../table.ts";
+import { ColumnType } from "../columns.ts";
+import { TYPES_TO_SCHEMAS } from "../schemas.ts";
 
 export function sqliteCreateTables<
-    T extends readonly Table<any, Record<string, ColumnType<ColumnKind>>>[]
+    T extends readonly Table<any, Record<string, ColumnType<any, any>>>[]
 >(...tables: T) {
     return tables.map(buildSqliteCreateTable).join("\n\n");
 }
 
-function buildSqliteCreateTable<T extends Record<string, ColumnType<ColumnKind>>>(
+function buildSqliteCreateTable<T extends Record<string, ColumnType<any, any>>>(
     table: Table<any, T>
 ) {
     const columns = Object.entries(table.columns)
@@ -17,7 +19,7 @@ function buildSqliteCreateTable<T extends Record<string, ColumnType<ColumnKind>>
     return `CREATE TABLE ${table.table} (\n${columns}\n);`;
 }
 
-function buildSqliteColumn([name, column]: [string, ColumnType<ColumnKind>]) {
+function buildSqliteColumn([name, column]: [string, ColumnType<any, any>]) {
     return `"${name}" ${buildSqliteColumnTypeStr(column)}`;
 }
 
@@ -37,12 +39,15 @@ const COLUMN_TYPE_MAP = {
 };
 
 function buildSqliteColumnTypeStrSchema(
-    column: ColumnType<ColumnKind>,
+    column: ColumnType<any, any>,
     schema: v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>,
     extra: { isOptional?: boolean; isNullable?: boolean } = {}
 ) {
     const { isOptional, isNullable } = extra;
-    const name = column.columnName;
+    const name = column.params.columnName;
+    if (!name) {
+        throw new Error("Column name is required");
+    }
     let type = schema.expects as keyof typeof COLUMN_TYPE_MAP;
     let constraints = "";
     if (schema.type === "optional") {
@@ -93,8 +98,9 @@ function buildSqliteColumnTypeStrSchema(
         constraints = `CHECK (json_valid("${name}") AND json_type("${name}") = 'array')`;
     }
 
-    const primaryKeyStr = column.kind === "primaryKey" ? "PRIMARY KEY" : "";
-    const autoIncStr = column.autoIncrement ? "AUTOINCREMENT" : "";
+    const primaryKeyStr = column.params.primaryKey ? "PRIMARY KEY" : "";
+    const autoIncStr =
+        column.type === "serial" || column.type === "bigserial" ? "AUTOINCREMENT" : "";
     const nullnessStr = isOptional || isNullable ? "" : "NOT NULL";
 
     return [columnTypeStr, nullnessStr, primaryKeyStr, autoIncStr, constraints]
@@ -102,8 +108,8 @@ function buildSqliteColumnTypeStrSchema(
         .join(" ");
 }
 
-function buildSqliteColumnTypeStr(column: ColumnType<ColumnKind>) {
-    return buildSqliteColumnTypeStrSchema(column, column.select, {});
+function buildSqliteColumnTypeStr(column: ColumnType<any, any>) {
+    // return buildSqliteColumnTypeStrSchema(column, column, {});
 }
 
 /*
