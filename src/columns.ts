@@ -1,4 +1,5 @@
 import type * as v from "npm:valibot";
+import { Table } from "./table.ts";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 
@@ -21,6 +22,9 @@ export type Params<ExtraProps extends object = {}> = FinalType<
             nullable?: boolean;
             default?: unknown;
             columnName?: string; // Automatically assigned by table()
+            foreignKeyTable?: string;
+            foreignKeyColumn?: string;
+            autoIncrement?: boolean;
         } & ExtraProps
     >
 >;
@@ -86,29 +90,29 @@ export function decimal<T extends DecimalCol>(params: R<T, DecimalCol>): ColumnT
     };
 }
 
-/**
- * Serial is 32bit auto-incrementing column
- */
-export function serial(): ColumnType<"serial", undefined>;
-export function serial<T extends Params>(params: R<T, Params>): ColumnType<"serial", T>;
-export function serial(params?: unknown) {
-    return {
-        type: "serial",
-        params: params,
-    };
-}
+// /**
+//  * Serial is 32bit auto-incrementing column
+//  */
+// export function serial(): ColumnType<"serial", undefined>;
+// export function serial<T extends Params>(params: R<T, Params>): ColumnType<"serial", T>;
+// export function serial(params?: unknown) {
+//     return {
+//         type: "serial",
+//         params: params,
+//     };
+// }
 
-/**
- * Big serial is 64bit auto-incrementing column
- */
-export function bigserial(): ColumnType<"bigserial", undefined>;
-export function bigserial<T extends Params>(params: R<T, Params>): ColumnType<"bigserial", T>;
-export function bigserial(params?: unknown) {
-    return {
-        type: "bigserial",
-        params: params,
-    };
-}
+// /**
+//  * Big serial is 64bit auto-incrementing column
+//  */
+// export function bigserial(): ColumnType<"bigserial", undefined>;
+// export function bigserial<T extends Params>(params: R<T, Params>): ColumnType<"bigserial", T>;
+// export function bigserial(params?: unknown) {
+//     return {
+//         type: "bigserial",
+//         params: params,
+//     };
+// }
 
 export function uuid(): ColumnType<"uuid", undefined>;
 export function uuid<T extends Params>(params: R<T, Params>): ColumnType<"uuid", T>;
@@ -133,6 +137,39 @@ export function varchar<T extends VarCharCol>(params: R<T, VarCharCol>): ColumnT
     return {
         type: "varchar",
         params,
+    };
+}
+
+export function foreignKey<
+    C extends keyof T["columns"],
+    T extends Table<any, any>,
+    P extends Params = {}
+>(
+    table: T,
+    column: C,
+    params?: R<P, Params>
+    // wrapped: ColumnType<T["columns"][C]["type"], unknown>
+): ColumnType<
+    T["columns"][C]["type"],
+    FinalType<
+        P & {
+            foreignKeyTable: T["table"];
+            foreignKeyColumn: C;
+        }
+    >
+> {
+    return {
+        type: table.columns[column].type,
+        params: {
+            ...params,
+            foreignKeyTable: table.table,
+            foreignKeyColumn: column,
+        } as FinalType<
+            P & {
+                foreignKeyTable: T["table"];
+                foreignKeyColumn: C;
+            }
+        >,
     };
 }
 
@@ -198,17 +235,6 @@ export function json<Schema extends ValibotSchema, T extends Params<{ schema: Sc
         params,
     };
 }
-
-export type ForeignKeyCol = Params<{ foreignKeyTable: string; foreignKeyColumn: string }>;
-export function foreignKeyUntyped<T extends ForeignKeyCol>(
-    params: R<T, ForeignKeyCol>
-): ColumnType<"foreignKey", T> {
-    return {
-        type: "foreignKey",
-        params,
-    };
-}
-
 // ----------------------------------------------------------------------------
 // Helper types
 // ----------------------------------------------------------------------------
@@ -219,21 +245,23 @@ export function foreignKeyUntyped<T extends ForeignKeyCol>(
  * BIGSERIAL or PRIMARY KEY AUTOINCREMENT
  */
 export function pkAutoInc(): ColumnType<
-    "bigserial",
+    "int64",
     {
+        autoIncrement: true;
         primaryKey: true;
         notInsertable: true;
         notUpdatable: true;
     }
 >;
-export function pkAutoInc<T extends Params>(params: R<T, Params>): ColumnType<"bigserial", T>;
+export function pkAutoInc<T extends Params>(params: R<T, Params>): ColumnType<"int64", T>;
 export function pkAutoInc(params?: unknown) {
     return {
-        type: "bigserial",
+        type: "int64",
         params: params ?? {
             primaryKey: true,
             notInsertable: true,
             notUpdatable: true,
+            autoIncrement: true,
         },
     };
 }

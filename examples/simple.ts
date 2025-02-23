@@ -21,10 +21,7 @@ const invoiceRowTable = o.table("invoice_row", {
     price: o.float64(),
     tax_percentage: o.float64(),
     quantity: o.float64(),
-    invoice_id: o.foreignKeyUntyped({
-        foreignKeyColumn: "id",
-        foreignKeyTable: "invoice",
-    }),
+    invoice_id: o.foreignKey(invoiceTable, "id"),
 });
 
 const personTable = o.table("person", {
@@ -34,10 +31,11 @@ const personTable = o.table("person", {
         nullable: true,
     }),
     email: o.email(),
-    // Self referencing foreign key, requires untyped `foreignKeyUntyped`
-    supervisor_id: o.foreignKeyUntyped({
+    // Self referencing foreign key, requires untyped
+    supervisor_id: o.int64({
         foreignKeyTable: "person",
         foreignKeyColumn: "id",
+        nullable: true,
     }),
     created_at: o.createdAt(),
     updated_at: o.updatedAt(),

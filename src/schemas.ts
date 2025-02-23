@@ -1,5 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 import * as v from "npm:valibot";
+import * as c from "./columns.ts";
 import { DecimalCol, Params, UserStringCol, VarCharCol } from "./columns.ts";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
@@ -36,12 +37,12 @@ export const TYPES_TO_SCHEMAS = {
             v.decimal()
         );
     },
-    serial() {
-        return v.pipe(v.number(), v.integer());
-    },
-    bigserial() {
-        return v.pipe(v.number(), v.integer());
-    },
+    // serial() {
+    //     return v.pipe(v.number(), v.integer());
+    // },
+    // bigserial() {
+    //     return v.pipe(v.number(), v.integer());
+    // },
     uuid() {
         return v.pipe(v.string(), v.uuid());
     },
@@ -99,6 +100,15 @@ export const TYPES_TO_SCHEMAS = {
     },
 };
 
-TYPES_TO_SCHEMAS satisfies Record<Types, (params?: any) => ValibotSchema>;
+type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
+type ValueOf<T> = T[keyof T];
+type TypesDefined = {
+    [K in keyof typeof c]: ReturnType<(typeof c)[K]> extends c.ColumnType<infer T, any>
+        ? StringLiteral<T>
+        : never;
+};
+type DefinedColumnTypes = ValueOf<TypesDefined>;
+
+TYPES_TO_SCHEMAS satisfies Record<DefinedColumnTypes, (params?: any) => ValibotSchema>;
 
 type Types = keyof typeof TYPES_TO_SCHEMAS;
