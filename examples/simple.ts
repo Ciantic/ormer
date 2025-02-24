@@ -9,7 +9,9 @@ const invoiceTable = o.table("invoice", {
     description: o.string({
         nullable: true,
     }),
-    due_date: o.timestamp(),
+    due_date: o.timestamp({
+        default: () => new Date(),
+    }),
     rowversion: o.rowversion(),
     created_at: o.createdAt(),
     updated_at: o.updatedAt(),
@@ -45,7 +47,9 @@ const personTable = o.table("person", {
 // personTable.columns.supervisor_id = o.nullable(o.foreignKey(personTable, "id"));
 
 const dbFactory = o.createDbFactory(invoiceTable, invoiceRowTable, personTable);
-const dbSqlite = dbFactory.createKyselyDb({ dialect: "sqlite" } as any);
+const dbSqlite = dbFactory.createKyselyDb({
+    dialect: {},
+} as any);
 type Database = typeof dbSqlite;
 
 // Alternate way of creating Kysely database table types
@@ -104,7 +108,8 @@ export function test2(db: Database) {
         .insertInto("invoice")
         .values({
             title: "Invoice 1",
-            due_date: new Date(),
+            // title: "Invoice 1",
+            // due_date: new Date(),
         })
         .returning(["id"])
         .execute();
