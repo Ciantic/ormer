@@ -42,7 +42,10 @@ Deno.test("pkAutoInc signature", () => {
     type Test3 = Expect<
         Equal<
             typeof TEST_INTEGER1,
-            o.ColumnType<"bigserial", { primaryKey: true; notInsertable: true; notUpdatable: true }>
+            o.ColumnType<
+                "int64",
+                { primaryKey: true; notInsertable: true; notUpdatable: true; autoIncrement: true }
+            >
         >
     >;
     true satisfies Test3;
@@ -51,7 +54,7 @@ Deno.test("pkAutoInc signature", () => {
         Equal<
             typeof TEST_INTEGER2,
             o.ColumnType<
-                "bigserial",
+                "int64",
                 {
                     primaryKey: false;
                 }
@@ -61,11 +64,11 @@ Deno.test("pkAutoInc signature", () => {
     true satisfies Test4;
 
     assertEquals(TEST_INTEGER1, {
-        type: "bigserial",
-        params: { primaryKey: true, notInsertable: true, notUpdatable: true },
+        type: "int64",
+        params: { primaryKey: true, notInsertable: true, notUpdatable: true, autoIncrement: true },
     });
     assertEquals(TEST_INTEGER2, {
-        type: "bigserial",
+        type: "int64",
         params: { primaryKey: false },
     });
 });

@@ -1,4 +1,4 @@
-import * as k from "npm:kysely";
+// deno-lint-ignore-file no-explicit-any no-unused-vars
 import { jsonArrayFrom } from "npm:kysely/helpers/sqlite";
 import * as v from "npm:valibot";
 import * as o from "../mod.ts";
@@ -12,6 +12,7 @@ const invoiceTable = o.table("invoice", {
     due_date: o.timestamp({
         default: () => new Date(),
     }),
+    foo: o.timestamptz(),
     rowversion: o.rowversion(),
     created_at: o.createdAt(),
     updated_at: o.updatedAt(),
@@ -108,6 +109,7 @@ export function test2(db: Database) {
         .insertInto("invoice")
         .values({
             title: "Invoice 1",
+            foo: Temporal.Now.zonedDateTimeISO(),
             // title: "Invoice 1",
             // due_date: new Date(),
         })

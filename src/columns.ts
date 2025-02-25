@@ -142,7 +142,9 @@ export function varchar<T extends VarCharCol>(params: R<T, VarCharCol>): ColumnT
 
 export function foreignKey<
     C extends keyof T["columns"],
+    // deno-lint-ignore no-explicit-any
     T extends Table<any, any>,
+    // deno-lint-ignore ban-types
     P extends Params = {}
 >(
     table: T,
@@ -229,9 +231,9 @@ export function jsonb<Schema extends ValibotSchema, T extends Params<{ schema: S
 
 export function json<Schema extends ValibotSchema, T extends Params<{ schema: Schema }>>(
     params: R<T, Params<{ schema: Schema }>>
-): ColumnType<"jsonb", T> {
+): ColumnType<"json", T> {
     return {
-        type: "jsonb",
+        type: "json",
         params,
     };
 }

@@ -58,7 +58,7 @@ Deno.test("getPrimaryKeyColumns", () => {
 
     // Runtime test
     assertEquals(Object.keys(columns).length, 1);
-    assertEquals(columns.id.type, "bigserial");
+    assertEquals(columns.id.type, "int64");
 });
 
 Deno.test("getInsertColumns", () => {

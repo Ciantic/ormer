@@ -1,7 +1,6 @@
-// deno-lint-ignore-file no-explicit-any
 import * as v from "npm:valibot";
-import * as c from "./columns.ts";
-import { DecimalCol, Params, UserStringCol, VarCharCol } from "./columns.ts";
+import type { MapColumnsTo } from "./helpers.ts";
+import type { Params } from "./columns.ts";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 
@@ -29,7 +28,7 @@ export const TYPES_TO_SCHEMAS = {
         // TODO: Validate JS number limits, https://stackoverflow.com/questions/45929493/node-js-maximum-safe-floating-point-number
         return v.pipe(v.number());
     },
-    decimal(params: DecimalCol) {
+    decimal(params) {
         return v.pipe(
             v.string(),
             v.minLength(3), // 0.0
@@ -49,7 +48,7 @@ export const TYPES_TO_SCHEMAS = {
     string() {
         return v.string();
     },
-    varchar(params: VarCharCol) {
+    varchar(params) {
         return v.pipe(v.string(), v.maxLength(params.maxLength));
     },
     boolean() {
@@ -59,14 +58,13 @@ export const TYPES_TO_SCHEMAS = {
         return v.date();
     },
     timestamptz() {
-        // TODO: Use temporal
-        return v.string();
+        return v.instance(Temporal.ZonedDateTime);
     },
     datepart() {
-        return v.string();
+        return v.instance(Temporal.PlainDate);
     },
     timepart() {
-        return v.string();
+        return v.instance(Temporal.PlainTime);
     },
     jsonb<T extends ValibotSchema>(params: Params<{ schema: T }>) {
         return params.schema;
@@ -81,7 +79,7 @@ export const TYPES_TO_SCHEMAS = {
     concurrencyStamp() {
         return v.pipe(v.string(), v.uuid());
     },
-    userstring(params: UserStringCol) {
+    userstring(params) {
         return v.pipe(
             v.string(),
             v.trim(),
@@ -98,17 +96,4 @@ export const TYPES_TO_SCHEMAS = {
     createdAt() {
         return v.pipe(v.date());
     },
-};
-
-type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
-type ValueOf<T> = T[keyof T];
-type TypesDefined = {
-    [K in keyof typeof c]: ReturnType<(typeof c)[K]> extends c.ColumnType<infer T, any>
-        ? StringLiteral<T>
-        : never;
-};
-type DefinedColumnTypes = ValueOf<TypesDefined>;
-
-TYPES_TO_SCHEMAS satisfies Record<DefinedColumnTypes, (params?: any) => ValibotSchema>;
-
-type Types = keyof typeof TYPES_TO_SCHEMAS;
+} satisfies MapColumnsTo<ValibotSchema>;
