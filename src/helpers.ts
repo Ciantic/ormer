@@ -9,6 +9,6 @@ type TypesDefined = {
 
 export type MapColumnsTo<T> = {
     [K in keyof TypesDefined as TypesDefined[K] extends string ? TypesDefined[K] : never]: (
-        ...params: Parameters<(typeof c)[K]> extends [infer T] ? [T] : [c.Params]
+        ...params: Parameters<(typeof c)[K]> extends [infer U] ? [U] : [c.Params]
     ) => T;
 };
