@@ -1,94 +1,79 @@
-// import { PGlite } from "npm:@electric-sql/pglite";
 import type { MapColumnsTo } from "../helpers.ts";
+import type { ColumnDataType } from "npm:kysely";
 
-// const db = new PGlite();
-
-// db.exec(`
-//     CREATE TABLE users (
-//         id SERIAL PRIMARY KEY,
-//         name VARCHAR(100) NOT NULL,
-//         email VARCHAR(100) UNIQUE NOT NULL,
-//         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-//     )
-// `);
-
-// db.exec(`INSERT INTO users (name, email) VALUES ('John Doe', 'john.doe@example.com')`);
-
-// console.log(await db.query(`SELECT * FROM users`));
-
-export const SCHEMAS_TO_POSTGRES = {
+export const POSTGRES_COLUMN_TYPES = {
     // Primitive types
     int32(params) {
         if (params.autoIncrement) {
-            return "SERIAL";
+            return "serial";
         }
-        return "INTEGER";
+        return "integer";
     },
     int64(params) {
         if (params.autoIncrement) {
-            return "BIGSERIAL";
+            return "bigserial";
         }
-        return "BIGINT";
+        return "bigint";
     },
     bigint() {
-        return "NUMERIC";
+        return "numeric";
     },
     float32() {
-        return "REAL";
+        return "real";
     },
     float64() {
-        return "DOUBLE PRECISION";
+        return "double precision";
     },
     decimal(params) {
-        return `DECIMAL(${params.precision}, ${params.scale})`;
+        return `decimal(${params.precision}, ${params.scale})`;
     },
     uuid() {
-        return "UUID";
+        return "uuid";
     },
     string() {
-        return "TEXT";
+        return "text";
     },
     varchar(params) {
-        return `VARCHAR(${params.maxLength})`;
+        return `varchar(${params.maxLength})`;
     },
     boolean() {
-        return "BOOLEAN";
+        return "boolean";
     },
     timestamp() {
-        return "TIMESTAMP";
+        return "timestamp";
     },
     timestamptz() {
-        return "TIMESTAMPTZ";
+        return "timestamptz";
     },
     datepart() {
-        return "DATE";
+        return "date";
     },
     timepart() {
-        return "TIME";
+        return "time";
     },
     jsonb() {
-        return "JSONB";
+        return "jsonb";
     },
     json() {
-        return "JSON";
+        return "json";
     },
     // Helper types
     rowversion() {
-        return "BIGINT";
+        return "bigint";
     },
     concurrencyStamp() {
-        return "UUID";
+        return "uuid";
     },
     userstring(params) {
-        return `VARCHAR(${params.maxLength})`;
+        return `varchar(${params.maxLength})`;
     },
     email() {
-        return "VARCHAR(320)";
+        return "varchar(320)";
     },
     updatedAt() {
-        return "TIMESTAMP";
+        return "timestamp";
     },
     createdAt() {
-        return "TIMESTAMP";
+        return "timestamp";
     },
-} satisfies MapColumnsTo<string>;
+} satisfies MapColumnsTo<ColumnDataType>;

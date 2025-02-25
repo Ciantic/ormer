@@ -28,7 +28,7 @@ type InferredValue<
         : ReturnType<TypeTable[ColumnOfTable<T, K, C>["type"]]>
 >;
 
-export type InfeKyselyTables<
+export type InferKyselyTables<
     T extends Table<any, RecordOfColumnTypes>[],
     TypeTable extends Record<string, (params?: any) => ValibotSchema>
 > = FinalType<{
@@ -57,34 +57,81 @@ export type InfeKyselyTables<
     };
 }>;
 
-export function createDbFactory<T extends Table<any, RecordOfColumnTypes>[]>(
-    ...tables: T
-): {
-    // tables: T,
-    tables: {
-        [K in T[number]["table"]]: Extract<T[number], Table<K, RecordOfColumnTypes>>;
-    };
+type TableProperties<T extends Table<any, RecordOfColumnTypes>[]> = {
+    [K in T[number]["table"]]: Extract<T[number], Table<K, RecordOfColumnTypes>>;
+};
 
-    createKyselyDb(kysely: k.KyselyConfig): k.Kysely<InfeKyselyTables<T, typeof TYPES_TO_SCHEMAS>>;
-    createKyselyDb<TypeTable extends Record<string, (params?: any) => ValibotSchema>>(
-        kysely: k.KyselyConfig,
-        types: TypeTable
-    ): k.Kysely<InfeKyselyTables<T, TypeTable>>;
-} {
-    return {
-        tables: tables.reduce((acc, table) => {
-            acc[table.table] = table;
-            return acc;
-        }, {} as any),
+export function createKyselyDb<T extends Table<any, RecordOfColumnTypes>[]>(opts: {
+    tables: T;
+    kysely: k.KyselyConfig;
+}): k.Kysely<InferKyselyTables<T, typeof TYPES_TO_SCHEMAS>>;
+export function createKyselyDb<
+    T extends Table<any, RecordOfColumnTypes>[],
+    TypeTable extends Record<string, (params?: any) => ValibotSchema>
+>(opts: {
+    tables: T;
+    kysely: k.KyselyConfig;
+    types: TypeTable;
+}): k.Kysely<InferKyselyTables<T, TypeTable>>;
+export function createKyselyDb(opts: { tables: unknown; kysely: k.KyselyConfig; types?: unknown }) {
+    const typedefs = opts.types ?? TYPES_TO_SCHEMAS;
 
-        createKyselyDb(kysely: k.KyselyConfig, types?: unknown) {
-            const typedefs = types ?? TYPES_TO_SCHEMAS;
+    // TODO: Use types
+    return new k.Kysely({
+        ...opts.kysely,
+        plugins: [],
+    }) as any;
+}
 
-            // TODO: Use types
-            return new k.Kysely({
-                ...kysely,
-                plugins: [],
-            }) as any;
-        },
-    };
+/**
+ * Create table queries
+ *
+ * @param tables
+ * @param kysely
+ * @returns
+ */
+export function createTables(
+    kysely: k.Kysely<any>,
+    tables: Table<any, Record<string, ColumnType<string, any>>>[],
+    types: Record<string, (params: any) => string | k.Expression<any>> = {}
+) {
+    const queries: k.CompiledQuery[] = [];
+    for (const table of tables) {
+        let t = kysely.schema.createTable(table.table);
+        for (const columnName of Object.keys(table.columns)) {
+            const c = table.columns[columnName];
+            const columnType = types[c.type]?.(c.params ?? {});
+
+            if (!columnType) {
+                throw new Error(`Unknown column type: ${c.type}`);
+            }
+
+            t = t.addColumn(columnName, columnType as k.ColumnDataType, (p) => {
+                if (!c.params?.nullable) {
+                    p = p.notNull();
+                }
+                if (c.params?.unique) {
+                    p = p.unique();
+                }
+                if (c.params?.primaryKey) {
+                    p = p.primaryKey();
+                }
+                if (c.params?.default) {
+                    p = p.defaultTo(c.params.default);
+                }
+                if (c.params?.foreignKeyTable && c.params?.foreignKeyColumn) {
+                    t.addForeignKeyConstraint(
+                        `FOREIGN_KEY_${table.table}_${columnName}_TO_${c.params.foreignKeyTable}_${c.params.foreignKeyColumn}`,
+                        [columnName] as any,
+                        c.params.foreignKeyTable,
+                        [c.params.foreignKeyColumn]
+                    );
+                }
+                return p;
+            });
+        }
+        // TODO: Check() constraints, indexes, etc.
+        queries.push(t.compile());
+    }
+    return queries;
 }

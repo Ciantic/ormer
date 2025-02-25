@@ -2,6 +2,7 @@
 import { jsonArrayFrom } from "npm:kysely/helpers/sqlite";
 import * as v from "npm:valibot";
 import * as o from "../mod.ts";
+import { createKyselyDb } from "../src/database.ts";
 
 const invoiceTable = o.table("invoice", {
     id: o.pkAutoInc(),
@@ -47,10 +48,12 @@ const personTable = o.table("person", {
 // Alternative you can use mutational syntax, which is typed
 // personTable.columns.supervisor_id = o.nullable(o.foreignKey(personTable, "id"));
 
-const dbFactory = o.createDbFactory(invoiceTable, invoiceRowTable, personTable);
-const dbSqlite = dbFactory.createKyselyDb({
-    dialect: {},
-} as any);
+const dbSqlite = createKyselyDb({
+    tables: [invoiceTable, invoiceRowTable, personTable],
+    kysely: {
+        dialect: {} as any,
+    },
+});
 type Database = typeof dbSqlite;
 
 // Alternate way of creating Kysely database table types
