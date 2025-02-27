@@ -263,16 +263,14 @@ export function createDbBuilder(): DbBuilder {
         withTables<T extends Table<any, RecordOfColumnTypes>[]>(tables: T) {
             return {
                 tables,
-                withSchemas<Schemas extends Record<string, (params?: any) => ValibotSchema>>(
-                    schemas?: Schemas
-                ) {
+                withSchemas(schemas?: Record<string, (params?: any) => ValibotSchema>) {
                     return {
-                        withPostgresTypes<
-                            ColumnTypes extends Record<
+                        withPostgresTypes(
+                            columnTypes?: Record<
                                 string,
                                 (params?: any) => string | k.Expression<any>
                             >
-                        >(columnTypes?: ColumnTypes) {
+                        ) {
                             return {
                                 withKyselyConfig(maybeKyselyConfig?: k.KyselyConfig) {
                                     return {
