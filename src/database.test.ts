@@ -2,11 +2,9 @@
 import * as v from "npm:valibot";
 import * as k from "npm:kysely";
 import * as c from "./columns.ts";
-import { createKyselyDb, createTables } from "./database.ts";
+import { createDbBuilder, createTables } from "./database.ts";
 import { table } from "./table.ts";
 import { assert, assertEquals } from "jsr:@std/assert";
-import { TYPES_TO_SCHEMAS } from "./schemas.ts";
-import { POSTGRES_COLUMN_TYPES } from "./drivers/postgres.ts";
 
 type Expect<T extends true> = T;
 type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
@@ -29,21 +27,15 @@ Deno.test("createDbFactory", () => {
 
     // type Database = InferKyselyTables<[typeof PERSON_TABLE], typeof TYPES_TO_SCHEMAS>;
 
-    const db = createKyselyDb({
-        tables: [PERSON_TABLE],
-        kysely: {
-            dialect: {
-                createDriver: () => ({} as any),
-                createQueryCompiler: () => ({} as any),
-                createAdapter: () => ({} as any),
-                createIntrospector: () => ({} as any),
-            },
-        },
-        types: {
-            ...TYPES_TO_SCHEMAS,
+    const db = createDbBuilder()
+        .withTables([PERSON_TABLE])
+        .withSchemas({
             zoo: () => v.string(),
-        },
-    });
+        })
+        .withPostgresTypes()
+        .withKyselyConfig()
+        .build()
+        .getKysely();
 
     // Pure type level test
 
@@ -102,33 +94,23 @@ Deno.test("createTables", () => {
         },
     });
 
-    const db = createKyselyDb({
-        tables: [TEST_TABLE],
-        kysely: {
-            dialect: {
-                createDriver: () => new k.DummyDriver(),
-                createAdapter: () => new k.PostgresAdapter(),
-                createQueryCompiler: () => new k.PostgresQueryCompiler(),
-                createIntrospector: (db) => new k.PostgresIntrospector(db),
-            },
-        },
-        types: {
-            ...TYPES_TO_SCHEMAS,
+    const db = createDbBuilder()
+        .withTables([TEST_TABLE])
+        .withSchemas({
             zoo: () => v.string(),
-        },
-    });
+        })
+        .withPostgresTypes({
+            zoo() {
+                return k.sql`zootype`;
+            },
+        })
+        .withKyselyConfig()
+        .build();
 
-    const queries = createTables(db, [TEST_TABLE], {
-        ...POSTGRES_COLUMN_TYPES,
-        zoo() {
-            return k.sql`zootype`;
-        },
-    });
+    const sql = db.createTables().tables.test_table.compile().sql;
 
     assertEquals(
-        queries.map((f) => f.sql),
-        [
-            `create table "test_table" ("bigserial" bigserial not null primary key, "test_int32" integer not null, "test_nullable" integer, "test_default" integer default 42 not null, "test_varchar" varchar(255) not null, "test_zoo" zootype not null)`,
-        ]
+        sql,
+        `create table "test_table" ("bigserial" bigserial not null primary key, "test_int32" integer not null, "test_nullable" integer, "test_default" integer default 42 not null, "test_varchar" varchar(255) not null, "test_zoo" zootype not null)`
     );
 });

@@ -4,7 +4,9 @@ import * as k from "npm:kysely";
 import type { ColumnType } from "./columns.ts";
 import type { Table } from "./table.ts";
 import { TYPES_TO_SCHEMAS } from "./schemas.ts";
+import { POSTGRES_COLUMN_TYPES } from "./drivers/postgres.ts";
 
+type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 type RecordOfColumnTypes = Record<string, ColumnType<string, any>>;
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
@@ -61,27 +63,27 @@ type TableProperties<T extends Table<any, RecordOfColumnTypes>[]> = {
     [K in T[number]["table"]]: Extract<T[number], Table<K, RecordOfColumnTypes>>;
 };
 
-export function createKyselyDb<T extends Table<any, RecordOfColumnTypes>[]>(opts: {
-    tables: T;
-    kysely: k.KyselyConfig;
-}): k.Kysely<InferKyselyTables<T, typeof TYPES_TO_SCHEMAS>>;
-export function createKyselyDb<
-    T extends Table<any, RecordOfColumnTypes>[],
-    TypeTable extends Record<string, (params?: any) => ValibotSchema>
->(opts: {
-    tables: T;
-    kysely: k.KyselyConfig;
-    types: TypeTable;
-}): k.Kysely<InferKyselyTables<T, TypeTable>>;
-export function createKyselyDb(opts: { tables: unknown; kysely: k.KyselyConfig; types?: unknown }) {
-    const typedefs = opts.types ?? TYPES_TO_SCHEMAS;
+// export function createKyselyDb<T extends Table<any, RecordOfColumnTypes>[]>(opts: {
+//     tables: T;
+//     kysely: k.KyselyConfig;
+// }): k.Kysely<InferKyselyTables<T, typeof TYPES_TO_SCHEMAS>>;
+// export function createKyselyDb<
+//     T extends Table<any, RecordOfColumnTypes>[],
+//     TypeTable extends Record<string, (params?: any) => ValibotSchema>
+// >(opts: {
+//     tables: T;
+//     kysely: k.KyselyConfig;
+//     types: TypeTable;
+// }): k.Kysely<InferKyselyTables<T, TypeTable>>;
+// export function createKyselyDb(opts: { tables: unknown; kysely: k.KyselyConfig; types?: unknown }) {
+//     const typedefs = opts.types ?? TYPES_TO_SCHEMAS;
 
-    // TODO: Use types
-    return new k.Kysely({
-        ...opts.kysely,
-        plugins: [],
-    }) as any;
-}
+//     // TODO: Use types
+//     return new k.Kysely({
+//         ...opts.kysely,
+//         plugins: [],
+//     }) as any;
+// }
 
 /**
  * Create table queries
@@ -90,12 +92,22 @@ export function createKyselyDb(opts: { tables: unknown; kysely: k.KyselyConfig; 
  * @param kysely
  * @returns
  */
-export function createTables(
+export function createTables<T extends Table<string, Record<string, ColumnType<string, any>>>[]>(
     kysely: k.Kysely<any>,
-    tables: Table<any, Record<string, ColumnType<string, any>>>[],
+    tables: T,
     types: Record<string, (params: any) => string | k.Expression<any>> = {}
 ) {
-    const queries: k.CompiledQuery[] = [];
+    const ret: {
+        tables: Record<T[number]["table"], k.CreateTableBuilder<any, any>>;
+        execute: () => Promise<void>;
+    } = {
+        tables: {} as any,
+        execute: async () => {
+            for (const table of Object.values(ret.tables)) {
+                await (table as any).execute();
+            }
+        },
+    };
     for (const table of tables) {
         let t = kysely.schema.createTable(table.table);
         for (const columnName of Object.keys(table.columns)) {
@@ -129,9 +141,163 @@ export function createTables(
                 }
                 return p;
             });
+            (ret.tables as any)[table.table] = t;
         }
         // TODO: Check() constraints, indexes, etc.
-        queries.push(t.compile());
     }
-    return queries;
+    return ret;
+}
+
+interface DbBuilder {
+    withTables<T extends Table<any, RecordOfColumnTypes>[]>(tables: T): DbBuilderTables<T>;
+}
+
+interface DbBuilderTables<Tables extends Table<any, RecordOfColumnTypes>[]> {
+    tables: Tables;
+
+    withSchemas(): DbBuilderWithSchemas<Tables, typeof TYPES_TO_SCHEMAS>;
+
+    withSchemas<Schemas extends Record<string, (params?: any) => ValibotSchema>>(
+        schemas: Schemas
+    ): DbBuilderWithSchemas<Tables, typeof TYPES_TO_SCHEMAS & Schemas>;
+}
+
+interface DbBuilderWithSchemas<
+    Tables extends Table<any, RecordOfColumnTypes>[],
+    Schemas extends Record<string, (params?: any) => ValibotSchema>
+> {
+    // tables: T;
+    // schemas: Schemas;
+
+    withPostgresTypes(): DbBuilderWithSchemasAndColumnTypes<
+        "postgres",
+        Tables,
+        Schemas,
+        typeof POSTGRES_COLUMN_TYPES
+    >;
+    withPostgresTypes<
+        ColumnTypes extends Record<string, (params?: any) => string | k.Expression<any>>
+    >(
+        columnTypes: ColumnTypes
+    ): DbBuilderWithSchemasAndColumnTypes<
+        "postgres",
+        Tables,
+        Schemas,
+        typeof POSTGRES_COLUMN_TYPES & ColumnTypes
+    >;
+}
+
+interface DbBuilderWithSchemasAndColumnTypes<
+    DbType extends string,
+    Tables extends Table<any, RecordOfColumnTypes>[],
+    Schemas extends Record<string, (params?: any) => ValibotSchema>,
+    ColumnTypes extends Record<string, (params?: any) => string | k.Expression<any>>
+> {
+    // databaseType: StringLiteral<D>;
+    // tables: T;
+    // schemas: Schemas;
+    // columnTypes: ColumnTypes;
+    withKyselyConfig(config?: k.KyselyConfig): {
+        build(): Db<DbType, Tables, Schemas, ColumnTypes>;
+    };
+}
+
+interface Db<
+    DbType extends string,
+    Tables extends Table<any, RecordOfColumnTypes>[],
+    Schemas extends Record<string, (params?: any) => ValibotSchema>,
+    ColumnTypes extends Record<string, (params?: any) => string | k.Expression<any>>
+> {
+    databaseType: StringLiteral<DbType>;
+    tables: Tables;
+    schemas: Schemas;
+    columnTypes: ColumnTypes;
+    kyselyConfig: k.KyselyConfig;
+
+    getKysely(): k.Kysely<InferKyselyTables<Tables, Schemas>>;
+    createTables(): ReturnType<typeof createTables<Tables>>;
+}
+
+class DbImpl<
+    DbType extends string,
+    Tables extends Table<any, RecordOfColumnTypes>[],
+    Schemas extends Record<string, (params?: any) => ValibotSchema>,
+    ColumnTypes extends Record<string, (params?: any) => string | k.Expression<any>>
+> implements Db<DbType, Tables, Schemas, ColumnTypes>
+{
+    kyselyConfig: k.KyselyConfig;
+    kyselyInstance: k.Kysely<InferKyselyTables<Tables, Schemas>>;
+
+    constructor(
+        public databaseType: StringLiteral<DbType>,
+        public tables: Tables,
+        public schemas: Schemas,
+        public columnTypes: ColumnTypes,
+        kyselyConfig?: k.KyselyConfig
+    ) {
+        this.kyselyConfig = kyselyConfig ?? {
+            dialect: {
+                createAdapter: () => new k.PostgresAdapter(),
+                createDriver: () => new k.DummyDriver(),
+                createIntrospector: (db) => new k.PostgresIntrospector(db),
+                createQueryCompiler: () => new k.PostgresQueryCompiler(),
+            },
+        };
+
+        this.kyselyInstance = new k.Kysely({
+            ...this.kyselyConfig,
+            plugins: [],
+        });
+    }
+
+    getKysely() {
+        return this.kyselyInstance;
+    }
+    createTables() {
+        return createTables(this.getKysely(), this.tables, this.columnTypes);
+    }
+}
+
+export function createDbBuilder(): DbBuilder {
+    return {
+        withTables<T extends Table<any, RecordOfColumnTypes>[]>(tables: T) {
+            return {
+                tables,
+                withSchemas<Schemas extends Record<string, (params?: any) => ValibotSchema>>(
+                    schemas?: Schemas
+                ) {
+                    return {
+                        withPostgresTypes<
+                            ColumnTypes extends Record<
+                                string,
+                                (params?: any) => string | k.Expression<any>
+                            >
+                        >(columnTypes?: ColumnTypes) {
+                            return {
+                                withKyselyConfig(maybeKyselyConfig?: k.KyselyConfig) {
+                                    return {
+                                        build() {
+                                            return new DbImpl(
+                                                "postgres",
+                                                tables,
+                                                {
+                                                    ...TYPES_TO_SCHEMAS,
+                                                    ...schemas,
+                                                },
+                                                {
+                                                    ...POSTGRES_COLUMN_TYPES,
+                                                    ...columnTypes,
+                                                },
+                                                maybeKyselyConfig
+                                            );
+                                        },
+                                    };
+                                },
+                            };
+                        },
+                    };
+                },
+            };
+        },
+    };
 }
