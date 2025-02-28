@@ -4,7 +4,7 @@ import type { TransformSchemas } from "../helpers.ts";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 
-export const TYPES_TO_SCHEMAS = {
+export const JSON_SCHEMAS = {
     // Primitive types
     int32() {
         return {

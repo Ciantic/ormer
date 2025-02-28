@@ -4,7 +4,7 @@ import type { Params } from "./columns.ts";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 
-export const TYPES_TO_SCHEMAS = {
+export const SCHEMAS = {
     // Primitive types
     int32() {
         return v.pipe(v.number(), v.integer(), v.maxValue(2147483647), v.minValue(-2147483648));

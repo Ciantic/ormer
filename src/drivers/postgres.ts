@@ -1,7 +1,7 @@
 import type { MapColumnsTo } from "../helpers.ts";
 import type { ColumnDataType } from "npm:kysely";
 
-export const POSTGRES_COLUMN_TYPES = {
+export const POSTGRES_COLUMNS = {
     // Primitive types
     int32(params) {
         if (params.autoIncrement) {

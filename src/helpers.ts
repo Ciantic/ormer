@@ -1,6 +1,6 @@
 import type * as v from "npm:valibot";
 import type * as c from "./columns.ts";
-import type { TYPES_TO_SCHEMAS } from "./schemas.ts";
+import type { SCHEMAS } from "./schemas.ts";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 
@@ -25,7 +25,7 @@ export type MapColumnsToSchemas = MapColumnsTo<{
 
 export type TransformSchemas<
     // deno-lint-ignore no-explicit-any
-    Schemas extends Record<string, (params?: any) => ValibotSchema> = typeof TYPES_TO_SCHEMAS
+    Schemas extends Record<string, (params?: any) => ValibotSchema> = typeof SCHEMAS
 > = {
     [K in keyof TypesDefined as TypesDefined[K] extends string ? TypesDefined[K] : never]: (
         ...params: Parameters<(typeof c)[K]> extends [infer U] ? [U] : [c.Params]

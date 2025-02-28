@@ -3,7 +3,7 @@ import * as o from "./columns.ts";
 import * as g from "./getters.ts";
 import { table } from "./table.ts";
 import { assertEquals } from "jsr:@std/assert";
-import { TYPES_TO_SCHEMAS } from "./schemas.ts";
+import { SCHEMAS } from "./schemas.ts";
 
 type Expect<T extends true> = T;
 type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
@@ -115,7 +115,7 @@ Deno.test("getPatchColumns", () => {
 });
 
 Deno.test("getSchemasFromColumns", () => {
-    const columns = g.getSchemasFromColumns(PERSON_TABLE.columns, TYPES_TO_SCHEMAS);
+    const columns = g.getSchemasFromColumns(PERSON_TABLE.columns, SCHEMAS);
 
     // Pure type level test
     true satisfies Expect<Equal<keyof typeof columns, keyof typeof PERSON_TABLE.columns>>;

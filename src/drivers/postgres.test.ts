@@ -4,7 +4,7 @@ import { assertEquals, assertThrows } from "jsr:@std/assert";
 import { table } from "../table.ts";
 import * as c from "../columns.ts";
 import { createKyselyDb, createTables } from "../database.ts";
-import { POSTGRES_COLUMN_TYPES } from "./postgres.ts";
+import { POSTGRES_COLUMNS } from "./postgres.ts";
 
 const TEST_TABLE = table("test_table", {
     bigserial: c.pkAutoInc(),
@@ -67,7 +67,7 @@ Deno.test("create postgres table", () => {
         },
     });
 
-    const queries = createTables(db, [TEST_TABLE], POSTGRES_COLUMN_TYPES);
+    const queries = createTables(db, [TEST_TABLE], POSTGRES_COLUMNS);
 
     assertEquals(
         queries.map((f) => f.sql.replace(/\s+/g, "")),

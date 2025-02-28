@@ -3,8 +3,8 @@ import type * as v from "npm:valibot";
 import * as k from "npm:kysely";
 import type { ColumnType } from "./columns.ts";
 import type { Table } from "./table.ts";
-import { TYPES_TO_SCHEMAS } from "./schemas.ts";
-import { POSTGRES_COLUMN_TYPES } from "./drivers/postgres.ts";
+import { SCHEMAS } from "./schemas.ts";
+import { POSTGRES_COLUMNS } from "./drivers/postgres.ts";
 
 type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
@@ -156,11 +156,11 @@ interface DbBuilder {
 interface DbBuilderTables<Tables extends Table<any, RecordOfColumnTypes>[]> {
     tables: Tables;
 
-    withSchemas(): DbBuilderWithSchemas<Tables, typeof TYPES_TO_SCHEMAS>;
+    withSchemas(): DbBuilderWithSchemas<Tables, typeof SCHEMAS>;
 
     withSchemas<Schemas extends RecordOfSchemas>(
         schemas: Schemas
-    ): DbBuilderWithSchemas<Tables, typeof TYPES_TO_SCHEMAS & Schemas>;
+    ): DbBuilderWithSchemas<Tables, typeof SCHEMAS & Schemas>;
 }
 
 interface DbBuilderWithSchemas<
@@ -174,7 +174,7 @@ interface DbBuilderWithSchemas<
         "postgres",
         Tables,
         Schemas,
-        typeof POSTGRES_COLUMN_TYPES
+        typeof POSTGRES_COLUMNS
     >;
     withPostgresTypes<
         ColumnTypes extends Record<string, (params?: any) => string | k.Expression<any>>
@@ -184,7 +184,7 @@ interface DbBuilderWithSchemas<
         "postgres",
         Tables,
         Schemas,
-        typeof POSTGRES_COLUMN_TYPES & ColumnTypes
+        typeof POSTGRES_COLUMNS & ColumnTypes
     >;
 }
 
@@ -280,11 +280,11 @@ export function createDbBuilder(): DbBuilder {
                                                 "postgres",
                                                 tables,
                                                 {
-                                                    ...TYPES_TO_SCHEMAS,
+                                                    ...SCHEMAS,
                                                     ...schemas,
                                                 },
                                                 {
-                                                    ...POSTGRES_COLUMN_TYPES,
+                                                    ...POSTGRES_COLUMNS,
                                                     ...columnTypes,
                                                 },
                                                 maybeKyselyConfig

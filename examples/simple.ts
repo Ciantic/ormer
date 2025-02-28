@@ -1,4 +1,3 @@
-// deno-lint-ignore-file no-explicit-any no-unused-vars
 import { jsonArrayFrom } from "npm:kysely/helpers/sqlite";
 import * as v from "npm:valibot";
 import * as o from "../mod.ts";
@@ -68,14 +67,8 @@ type Database = typeof kysely;
 
 // Creating valibot schemas for the tables
 const invoiceInsertSchema = o.getInsertColumns(invoiceTable);
-const patchUpdateSchema = o.getSchemasFromColumns(
-    o.getPatchColumns(invoiceTable),
-    o.TYPES_TO_SCHEMAS
-);
-const updateKeySchema = o.getSchemasFromColumns(
-    o.getUpdateKeyColumns(invoiceTable),
-    o.TYPES_TO_SCHEMAS
-);
+const patchUpdateSchema = o.getSchemasFromColumns(o.getPatchColumns(invoiceTable), o.SCHEMAS);
+const updateKeySchema = o.getSchemasFromColumns(o.getUpdateKeyColumns(invoiceTable), o.SCHEMAS);
 const update = v.intersect([v.object(updateKeySchema), v.object(patchUpdateSchema)]);
 
 const insertPersonSchema = o.getInsertColumns(personTable);

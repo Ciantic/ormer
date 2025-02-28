@@ -2,23 +2,23 @@ import "npm:temporal-polyfill/global";
 
 import * as v from "npm:valibot";
 import { assertEquals, assertThrows } from "jsr:@std/assert";
-import { TYPES_TO_SCHEMAS } from "./json.ts";
+import { JSON_SCHEMAS } from "./json.ts";
 
 Deno.test("int32", () => {
-    const int32 = TYPES_TO_SCHEMAS.int32();
+    const int32 = JSON_SCHEMAS.int32();
     assertEquals(v.parse(int32.from, 123), 123);
     assertEquals(v.parse(int32.to, 123), 123);
 });
 
 Deno.test("int64", () => {
-    const int64 = TYPES_TO_SCHEMAS.int64();
+    const int64 = JSON_SCHEMAS.int64();
 
     assertEquals(v.parse(int64.from, 123), 123);
     assertEquals(v.parse(int64.to, 123), 123);
 });
 
 Deno.test("bigint", () => {
-    const bigint = TYPES_TO_SCHEMAS.bigint();
+    const bigint = JSON_SCHEMAS.bigint();
     // from: Allows numbers and strings
     assertEquals(v.parse(bigint.from, "12345"), 12345n);
     assertEquals(v.parse(bigint.from, 12345), 12345n);
@@ -30,25 +30,25 @@ Deno.test("bigint", () => {
 });
 
 Deno.test("float32", () => {
-    const float32 = TYPES_TO_SCHEMAS.float32();
+    const float32 = JSON_SCHEMAS.float32();
     assertEquals(v.parse(float32.from, 123.5), 123.5);
     assertEquals(v.parse(float32.to, 123.5), 123.5);
 });
 
 Deno.test("float64", () => {
-    const float64 = TYPES_TO_SCHEMAS.float64();
+    const float64 = JSON_SCHEMAS.float64();
     assertEquals(v.parse(float64.from, 123.5), 123.5);
 });
 
 Deno.test("decimal", () => {
-    const decimal = TYPES_TO_SCHEMAS.decimal();
+    const decimal = JSON_SCHEMAS.decimal();
     assertEquals(v.parse(decimal.from, "12345.123"), "12345.123");
     assertEquals(v.parse(decimal.from, 12345.123), "12345.123");
     assertEquals(v.parse(decimal.to, "12345.123"), "12345.123");
 });
 
 Deno.test("uuid", () => {
-    const uuid = TYPES_TO_SCHEMAS.uuid();
+    const uuid = JSON_SCHEMAS.uuid();
     assertEquals(
         v.parse(uuid.from, "2703b08e-d93c-4fd0-8aca-30a9f22d4d79"),
         "2703b08e-d93c-4fd0-8aca-30a9f22d4d79"
@@ -60,25 +60,25 @@ Deno.test("uuid", () => {
 });
 
 Deno.test("string", () => {
-    const string = TYPES_TO_SCHEMAS.string();
+    const string = JSON_SCHEMAS.string();
     assertEquals(v.parse(string.from, "hello"), "hello");
     assertEquals(v.parse(string.to, "hello"), "hello");
 });
 
 Deno.test("varchar", () => {
-    const varchar = TYPES_TO_SCHEMAS.varchar();
+    const varchar = JSON_SCHEMAS.varchar();
     assertEquals(v.parse(varchar.from, "hello"), "hello");
     assertEquals(v.parse(varchar.to, "hello"), "hello");
 });
 
 Deno.test("boolean", () => {
-    const boolean = TYPES_TO_SCHEMAS.boolean();
+    const boolean = JSON_SCHEMAS.boolean();
     assertEquals(v.parse(boolean.from, true), true);
     assertEquals(v.parse(boolean.to, true), true);
 });
 
 Deno.test("timestamp", () => {
-    const timestamp = TYPES_TO_SCHEMAS.timestamp();
+    const timestamp = JSON_SCHEMAS.timestamp();
 
     // From JSON
     assertEquals(v.parse(timestamp.from, "2025-02-28T12:00"), new Date("2025-02-28T12:00:00Z"));
@@ -102,7 +102,7 @@ Deno.test("timestamp", () => {
 });
 
 Deno.test("timestamptz", () => {
-    const timestamp = TYPES_TO_SCHEMAS.timestamptz();
+    const timestamp = JSON_SCHEMAS.timestamptz();
 
     // From JSON
     assertEquals(
@@ -125,7 +125,7 @@ Deno.test("timestamptz", () => {
 });
 
 Deno.test("datepart", () => {
-    const timestamp = TYPES_TO_SCHEMAS.datepart();
+    const timestamp = JSON_SCHEMAS.datepart();
 
     // From JSON
     assertEquals(v.parse(timestamp.from, "2025-02-28"), Temporal.PlainDate.from("2025-02-28"));
@@ -136,7 +136,7 @@ Deno.test("datepart", () => {
 });
 
 Deno.test("timepart", () => {
-    const timestamp = TYPES_TO_SCHEMAS.timepart();
+    const timestamp = JSON_SCHEMAS.timepart();
 
     assertEquals(v.parse(timestamp.from, "23:59"), Temporal.PlainTime.from("23:59"));
     assertEquals(v.parse(timestamp.from, "23:59:12"), Temporal.PlainTime.from("23:59:12"));

@@ -1,7 +1,7 @@
 import type * as v from "npm:valibot";
 import { Table } from "../table.ts";
 import { ColumnType } from "../columns.ts";
-import { TYPES_TO_SCHEMAS } from "../schemas.ts";
+import { SCHEMAS } from "../schemas.ts";
 
 export function sqliteCreateTables<
     T extends readonly Table<any, Record<string, ColumnType<any, any>>>[]
