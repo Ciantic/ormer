@@ -36,12 +36,6 @@ export const TYPES_TO_SCHEMAS = {
             v.decimal()
         );
     },
-    // serial() {
-    //     return v.pipe(v.number(), v.integer());
-    // },
-    // bigserial() {
-    //     return v.pipe(v.number(), v.integer());
-    // },
     uuid() {
         return v.pipe(v.string(), v.uuid());
     },

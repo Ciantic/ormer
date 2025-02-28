@@ -24,6 +24,7 @@ export type MapColumnsToSchemas = MapColumnsTo<{
 }>;
 
 export type TransformSchemas<
+    // deno-lint-ignore no-explicit-any
     Schemas extends Record<string, (params?: any) => ValibotSchema> = typeof TYPES_TO_SCHEMAS
 > = {
     [K in keyof TypesDefined as TypesDefined[K] extends string ? TypesDefined[K] : never]: (

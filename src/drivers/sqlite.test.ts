@@ -3,8 +3,6 @@ import * as o from "../../mod.ts";
 import { assertEquals, assertThrows } from "jsr:@std/assert";
 import { sqliteCreateTables } from "../drivers/sqlite.ts";
 
-throw new Error("Not implemented");
-
 Deno.test("optional throws", () => {
     const exampleTable = o.table("example", {
         some_optional_string: o.string({ nullable: true }),

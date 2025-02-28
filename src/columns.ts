@@ -90,30 +90,6 @@ export function decimal<T extends DecimalCol>(params: R<T, DecimalCol>): ColumnT
     };
 }
 
-// /**
-//  * Serial is 32bit auto-incrementing column
-//  */
-// export function serial(): ColumnType<"serial", undefined>;
-// export function serial<T extends Params>(params: R<T, Params>): ColumnType<"serial", T>;
-// export function serial(params?: unknown) {
-//     return {
-//         type: "serial",
-//         params: params,
-//     };
-// }
-
-// /**
-//  * Big serial is 64bit auto-incrementing column
-//  */
-// export function bigserial(): ColumnType<"bigserial", undefined>;
-// export function bigserial<T extends Params>(params: R<T, Params>): ColumnType<"bigserial", T>;
-// export function bigserial(params?: unknown) {
-//     return {
-//         type: "bigserial",
-//         params: params,
-//     };
-// }
-
 export function uuid(): ColumnType<"uuid", undefined>;
 export function uuid<T extends Params>(params: R<T, Params>): ColumnType<"uuid", T>;
 export function uuid(params?: unknown) {
