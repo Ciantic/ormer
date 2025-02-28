@@ -10,6 +10,14 @@ type StringLiteral<T> = T extends string ? (string extends T ? never : T) : neve
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 type RecordOfColumnTypes = Record<string, ColumnType<string, any>>;
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+type RecordOfSchemas = Record<
+    string,
+    (params?: any) => {
+        schema: ValibotSchema;
+        fromJson: ValibotSchema;
+        toJson: ValibotSchema;
+    }
+>;
 
 type ColumnOfTable<
     T extends Table<any, RecordOfColumnTypes>[],
@@ -21,18 +29,18 @@ type InferredValue<
     T extends Table<any, RecordOfColumnTypes>[],
     K extends string,
     C extends keyof Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"],
-    TypeTable extends Record<string, (params?: any) => ValibotSchema>
+    TypeTable extends RecordOfSchemas
 > = v.InferOutput<
     // Return schema from params of a column
     // Or value from TypeTable (usually TYPES_TO_SCHEMAS)
     ColumnOfTable<T, K, C>["params"]["schema"] extends ValibotSchema
         ? ColumnOfTable<T, K, C>["params"]["schema"]
-        : ReturnType<TypeTable[ColumnOfTable<T, K, C>["type"]]>
+        : ReturnType<TypeTable[ColumnOfTable<T, K, C>["type"]]>["schema"]
 >;
 
 export type InferKyselyTables<
     T extends Table<any, RecordOfColumnTypes>[],
-    TypeTable extends Record<string, (params?: any) => ValibotSchema>
+    TypeTable extends RecordOfSchemas
 > = FinalType<{
     [K in T[number]["table"]]: {
         [C in keyof Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"]]: k.ColumnType<
@@ -157,14 +165,14 @@ interface DbBuilderTables<Tables extends Table<any, RecordOfColumnTypes>[]> {
 
     withSchemas(): DbBuilderWithSchemas<Tables, typeof TYPES_TO_SCHEMAS>;
 
-    withSchemas<Schemas extends Record<string, (params?: any) => ValibotSchema>>(
+    withSchemas<Schemas extends RecordOfSchemas>(
         schemas: Schemas
     ): DbBuilderWithSchemas<Tables, typeof TYPES_TO_SCHEMAS & Schemas>;
 }
 
 interface DbBuilderWithSchemas<
     Tables extends Table<any, RecordOfColumnTypes>[],
-    Schemas extends Record<string, (params?: any) => ValibotSchema>
+    Schemas extends RecordOfSchemas
 > {
     // tables: T;
     // schemas: Schemas;
@@ -190,7 +198,7 @@ interface DbBuilderWithSchemas<
 interface DbBuilderWithSchemasAndColumnTypes<
     DbType extends string,
     Tables extends Table<any, RecordOfColumnTypes>[],
-    Schemas extends Record<string, (params?: any) => ValibotSchema>,
+    Schemas extends RecordOfSchemas,
     ColumnTypes extends Record<string, (params?: any) => string | k.Expression<any>>
 > {
     // databaseType: StringLiteral<D>;
@@ -205,7 +213,7 @@ interface DbBuilderWithSchemasAndColumnTypes<
 interface Db<
     DbType extends string,
     Tables extends Table<any, RecordOfColumnTypes>[],
-    Schemas extends Record<string, (params?: any) => ValibotSchema>,
+    Schemas extends RecordOfSchemas,
     ColumnTypes extends Record<string, (params?: any) => string | k.Expression<any>>
 > {
     databaseType: StringLiteral<DbType>;
@@ -221,7 +229,7 @@ interface Db<
 class DbImpl<
     DbType extends string,
     Tables extends Table<any, RecordOfColumnTypes>[],
-    Schemas extends Record<string, (params?: any) => ValibotSchema>,
+    Schemas extends RecordOfSchemas,
     ColumnTypes extends Record<string, (params?: any) => string | k.Expression<any>>
 > implements Db<DbType, Tables, Schemas, ColumnTypes>
 {

@@ -1,8 +1,7 @@
-// deno-lint-ignore-file no-explicit-any
 import * as v from "npm:valibot";
 import * as k from "npm:kysely";
 import * as c from "./columns.ts";
-import { createDbBuilder, createTables } from "./database.ts";
+import { createDbBuilder } from "./database.ts";
 import { table } from "./table.ts";
 import { assert, assertEquals } from "jsr:@std/assert";
 
@@ -30,7 +29,11 @@ Deno.test("createDbFactory", () => {
     const db = createDbBuilder()
         .withTables([PERSON_TABLE])
         .withSchemas({
-            zoo: () => v.string(),
+            zoo: () => ({
+                schema: v.string(),
+                fromJson: v.string(),
+                toJson: v.string(),
+            }),
         })
         .withPostgresTypes()
         .withKyselyConfig()
@@ -97,7 +100,11 @@ Deno.test("createTables", () => {
     const db = createDbBuilder()
         .withTables([TEST_TABLE])
         .withSchemas({
-            zoo: () => v.string(),
+            zoo: () => ({
+                schema: v.string(),
+                fromJson: v.string(),
+                toJson: v.string(),
+            }),
         })
         .withPostgresTypes({
             zoo() {

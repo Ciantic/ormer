@@ -5,6 +5,14 @@ import type { Table } from "./table.ts";
 
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+type RecordOfSchemas = Record<
+    string,
+    (params?: any) => {
+        schema: ValibotSchema;
+        fromJson: ValibotSchema;
+        toJson: ValibotSchema;
+    }
+>;
 
 /**
  * Get primary key columns
@@ -102,7 +110,7 @@ export function getPatchColumns<Columns extends Record<string, ColumnType<string
  */
 export function getSchemasFromColumns<
     Columns extends Record<string, ColumnType<string, any>>,
-    TypeTable extends Record<string, (params?: any) => ValibotSchema>
+    TypeTable extends RecordOfSchemas
 >(
     columns: Columns,
     types: TypeTable
@@ -111,11 +119,11 @@ export function getSchemasFromColumns<
     [K in keyof Columns as Columns[K]["type"] extends string ? K : never]: 
         Columns[K]["params"]["schema"] extends ValibotSchema
         ? Columns[K]["params"]["schema"]
-        : ReturnType<TypeTable[Columns[K]["type"]]>;
+        : ReturnType<TypeTable[Columns[K]["type"]]>["schema"];
 } {
     return Object.keys(columns).reduce((acc, key) => {
         const column = columns[key];
-        const schema = (types as any)[column.type](column.params ?? {});
+        const schema = (types as any)[column.type](column.params ?? {})["schema"];
         acc[key] = schema;
         return acc;
     }, {} as any);

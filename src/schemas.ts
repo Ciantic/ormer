@@ -7,93 +7,241 @@ type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 export const TYPES_TO_SCHEMAS = {
     // Primitive types
     int32() {
-        return v.pipe(v.number(), v.integer());
+        return {
+            schema: v.pipe(v.number(), v.integer()),
+            fromJson: v.number(),
+            toJson: v.number(),
+        };
     },
     int64() {
         // Note: JS supports up to 53 bit
-        return v.pipe(
-            v.number(),
-            v.integer(),
-            v.maxValue(Number.MAX_SAFE_INTEGER), // TODO: THINK
-            v.minValue(Number.MIN_SAFE_INTEGER)
-        );
+        return {
+            schema: v.pipe(
+                v.number(),
+                v.integer(),
+                v.maxValue(Number.MAX_SAFE_INTEGER), // TODO: THINK
+                v.minValue(Number.MIN_SAFE_INTEGER)
+            ),
+            fromJson: v.number(),
+            toJson: v.number(),
+        };
     },
     bigint() {
-        return v.bigint();
+        return {
+            schema: v.bigint(),
+            fromJson: v.union([
+                v.pipe(
+                    v.number(),
+                    v.integer(),
+                    v.transform((i) => BigInt(i))
+                ),
+                v.pipe(
+                    v.string(),
+                    v.digits(),
+                    v.transform((i) => BigInt(i))
+                ),
+            ]),
+            toJson: v.pipe(
+                v.bigint(),
+                v.transform((i) => {
+                    if (i > Number.MAX_SAFE_INTEGER || i < Number.MIN_SAFE_INTEGER) {
+                        return "" + i;
+                    } else {
+                        return Number(i);
+                    }
+                })
+            ),
+        };
     },
     float32() {
-        return v.pipe(v.number());
+        return {
+            schema: v.number(),
+            fromJson: v.number(),
+            toJson: v.number(),
+        };
     },
     float64() {
         // TODO: Validate JS number limits, https://stackoverflow.com/questions/45929493/node-js-maximum-safe-floating-point-number
-        return v.pipe(v.number());
+        return {
+            schema: v.number(),
+            fromJson: v.number(),
+            toJson: v.number(),
+        };
     },
     decimal(params) {
-        return v.pipe(
-            v.string(),
-            v.minLength(3), // 0.0
-            v.maxLength(params.precision + params.scale + 1),
-            v.decimal()
-        );
+        return {
+            schema: v.pipe(
+                v.string(),
+                v.minLength(3), // 0.0
+                v.maxLength(params.precision + params.scale + 1),
+                v.decimal()
+            ),
+            fromJson: v.string(),
+            toJson: v.string(),
+        };
     },
-    // serial() {
-    //     return v.pipe(v.number(), v.integer());
-    // },
-    // bigserial() {
-    //     return v.pipe(v.number(), v.integer());
-    // },
     uuid() {
-        return v.pipe(v.string(), v.uuid());
+        return {
+            schema: v.pipe(v.string(), v.uuid()),
+            fromJson: v.string(),
+            toJson: v.string(),
+        };
     },
     string() {
-        return v.string();
+        return {
+            schema: v.string(),
+            fromJson: v.string(),
+            toJson: v.string(),
+        };
     },
     varchar(params) {
-        return v.pipe(v.string(), v.maxLength(params.maxLength));
+        return {
+            schema: v.pipe(v.string(), v.maxLength(params.maxLength)),
+            fromJson: v.string(),
+            toJson: v.string(),
+        };
     },
     boolean() {
-        return v.pipe(v.boolean());
+        return {
+            schema: v.boolean(),
+            fromJson: v.boolean(),
+            toJson: v.boolean(),
+        };
     },
     timestamp() {
-        return v.date();
+        return {
+            schema: v.date(),
+            fromJson: v.union([
+                v.pipe(
+                    // yyyy-mm-ddThh:mm
+                    v.string(),
+                    v.isoDateTime(),
+                    v.transform((s) => new Date(s))
+                ),
+                v.pipe(
+                    // yyyy-mm-ddThh:mm:ss.sssZ, yyyy-mm-ddThh:mm:ss.sss±hh:mm, yyyy-mm-ddThh:mm:ss.sss±hhmm
+                    v.string(),
+                    v.isoTimestamp(),
+                    v.transform((s) => new Date(s))
+                ),
+                v.pipe(
+                    // Unix time in seconds
+                    v.number(),
+                    v.transform((i) => {
+                        // Seconds
+                        if (i < 10000000000) {
+                            return new Date(i * 1000);
+                        }
+                        // Milliseconds
+                        return new Date(i);
+                    })
+                ),
+            ]),
+            toJson: v.pipe(
+                v.date(),
+                v.transform((d) => d.toISOString())
+            ),
+        };
     },
     timestamptz() {
-        return v.instance(Temporal.ZonedDateTime);
+        return {
+            schema: v.instance(Temporal.ZonedDateTime),
+            fromJson: v.union([
+                v.pipe(
+                    // yyyy-mm-ddThh:mm:ss.sssZ, yyyy-mm-ddThh:mm:ss.sss±hh:mm, yyyy-mm-ddThh:mm:ss.sss±hhmm
+                    v.string(),
+                    v.isoTimestamp(),
+                    v.transform((s) => Temporal.ZonedDateTime.from(s))
+                ),
+            ]),
+            toJson: v.pipe(
+                v.instance(Temporal.ZonedDateTime),
+                v.transform((d) => d.toString())
+            ),
+        };
     },
     datepart() {
-        return v.instance(Temporal.PlainDate);
+        return {
+            schema: v.instance(Temporal.PlainDate),
+            fromJson: v.union([
+                v.pipe(
+                    // yyyy-mm-dd
+                    v.string(),
+                    v.isoDate(),
+                    v.transform((s) => Temporal.PlainDate.from(s))
+                ),
+            ]),
+            toJson: v.pipe(
+                v.instance(Temporal.PlainDate),
+                v.transform((d) => d.toString())
+            ),
+        };
     },
     timepart() {
-        return v.instance(Temporal.PlainTime);
+        return {
+            schema: v.instance(Temporal.PlainTime),
+            fromJson: v.union([
+                v.pipe(
+                    // hh:mm:ss.sssZ, hh:mm:ss.sss±hh:mm, hh:mm:ss.sss±hhmm
+                    v.string(),
+                    v.isoTime(),
+                    v.transform((s) => Temporal.PlainTime.from(s))
+                ),
+            ]),
+            toJson: v.pipe(
+                v.instance(Temporal.PlainTime),
+                v.transform((d) => d.toString())
+            ),
+        };
     },
     jsonb<T extends ValibotSchema>(params: Params<{ schema: T }>) {
-        return params.schema;
+        return {
+            schema: params.schema,
+            fromJson: params.schema,
+            toJson: params.schema,
+        };
     },
     json<T extends ValibotSchema>(params: Params<{ schema: T }>) {
-        return params.schema;
+        return {
+            schema: params.schema,
+            fromJson: params.schema,
+            toJson: params.schema,
+        };
     },
     // Helper types
     rowversion() {
-        return v.pipe(v.number(), v.integer());
+        return this.int64({});
     },
     concurrencyStamp() {
-        return v.pipe(v.string(), v.uuid());
+        return this.uuid({});
     },
     userstring(params) {
-        return v.pipe(
-            v.string(),
-            v.trim(),
-            v.minLength(params.minLength ?? 0),
-            v.maxLength(params.maxLength)
-        );
+        return {
+            schema: v.pipe(
+                v.string(),
+                v.trim(),
+                v.minLength(params.minLength ?? 0),
+                v.maxLength(params.maxLength)
+            ),
+            fromJson: v.string(),
+            toJson: v.string(),
+        };
     },
     email() {
-        return v.pipe(v.string(), v.trim(), v.email(), v.maxLength(320));
+        return {
+            schema: v.pipe(v.string(), v.trim(), v.email(), v.maxLength(320)),
+            fromJson: v.string(),
+            toJson: v.string(),
+        };
     },
     updatedAt() {
-        return v.pipe(v.date());
+        return this.timestamp({});
     },
     createdAt() {
-        return v.pipe(v.date());
+        return this.timestamp({});
     },
-} satisfies MapColumnsTo<ValibotSchema>;
+} satisfies MapColumnsTo<{
+    toJson: ValibotSchema;
+    fromJson: ValibotSchema;
+    schema: ValibotSchema;
+}>;
