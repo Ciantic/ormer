@@ -10,14 +10,7 @@ type StringLiteral<T> = T extends string ? (string extends T ? never : T) : neve
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 type RecordOfColumnTypes = Record<string, ColumnType<string, any>>;
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
-type RecordOfSchemas = Record<
-    string,
-    (params?: any) => {
-        schema: ValibotSchema;
-        fromJson: ValibotSchema;
-        toJson: ValibotSchema;
-    }
->;
+type RecordOfSchemas = Record<string, (params?: any) => ValibotSchema>;
 
 type ColumnOfTable<
     T extends Table<any, RecordOfColumnTypes>[],
@@ -35,7 +28,7 @@ type InferredValue<
     // Or value from TypeTable (usually TYPES_TO_SCHEMAS)
     ColumnOfTable<T, K, C>["params"]["schema"] extends ValibotSchema
         ? ColumnOfTable<T, K, C>["params"]["schema"]
-        : ReturnType<TypeTable[ColumnOfTable<T, K, C>["type"]]>["schema"]
+        : ReturnType<TypeTable[ColumnOfTable<T, K, C>["type"]]>
 >;
 
 export type InferKyselyTables<
