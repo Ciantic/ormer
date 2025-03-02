@@ -14,11 +14,6 @@ type RecordOfSchemas = Record<string, (params?: any) => ValibotSchema>;
 type RecordOfColumnTypeToDriver = Record<string, (params?: any) => ColumnTypeToDriver>;
 type ArrayOfTables = Table<any, RecordOfColumnTypes>[];
 
-export type Transformer = (params?: any) => {
-    from: ValibotSchema;
-    to: ValibotSchema;
-};
-
 export type ColumnTypeToDriver = {
     // Driver's datatype
     datatype: k.ColumnDataType | k.Expression<any>;
@@ -39,7 +34,7 @@ export type ColumnTypeToDriver = {
 export type OrmerDbDriver<T extends string, ColumnTypeMap extends RecordOfColumnTypeToDriver> = {
     databaseType: StringLiteral<T>;
     columnTypeMap: ColumnTypeMap;
-    createTablesBeforeHook?: (db: k.Kysely<any>, tables: ArrayOfTables) => k.CompiledQuery[];
+    // createTablesBeforeHook?: (db: k.Kysely<any>, tables: ArrayOfTables) => k.CompiledQuery[];
     createTablesAfterHook?: (db: k.Kysely<any>, tables: ArrayOfTables) => k.CompiledQuery[];
 };
 
@@ -138,7 +133,11 @@ function createTables<T extends Table<string, Record<string, ColumnType<string, 
         extraSql: [],
         execute: async () => {
             for (const table of Object.values(ret.tables)) {
-                await (table as any).execute();
+                await (table as k.CreateTableBuilder<any, any>).execute();
+            }
+
+            for (const query of ret.extraSql) {
+                await kysely.executeQuery(query);
             }
         },
     };
@@ -197,6 +196,11 @@ function createTables<T extends Table<string, Record<string, ColumnType<string, 
         }
         // TODO: Check() constraints, indexes, etc.
     }
+
+    if (driver.createTablesAfterHook) {
+        ret.extraSql.push(...driver.createTablesAfterHook(kysely, tables));
+    }
+
     return ret;
 }
 

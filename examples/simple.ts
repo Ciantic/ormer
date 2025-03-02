@@ -111,6 +111,7 @@ export function test2(db: Database) {
         .values({
             title: "Invoice 1",
             foo: new Date(),
+            // description: "foo",
             // title: "Invoice 1",
             // due_date: new Date(),
         })

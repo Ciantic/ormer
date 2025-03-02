@@ -2,7 +2,8 @@ import * as k from "npm:kysely";
 import * as v from "npm:valibot";
 import type { OrmdriverColumnTypes } from "../helpers.ts";
 import type { Params } from "../columns.ts";
-import { OrmerDbDriver } from "../database.ts";
+import type { OrmerDbDriver } from "../database.ts";
+import type { Table } from "../table.ts";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 
@@ -183,45 +184,61 @@ const POSTGRES_COLUMNS = {
 export const POSTGRES_DRIVER = {
     databaseType: "postgres" as const,
     columnTypeMap: POSTGRES_COLUMNS,
-    createTablesBeforeHook(db, tables) {
-        const results = [] as k.CompiledQuery[];
-        const updatedAtColumns = [] as [string, string][];
-        for (const table of tables) {
-            for (const [columnName, def] of Object.entries(table.columns)) {
-                if (def.type === "updatedAt") {
-                    updatedAtColumns.push([table.table, columnName]);
-                }
-            }
-        }
-        if (updatedAtColumns.length > 0) {
-            // For all unique updatedAt column names, create function
-            const uniqueColumnNames = new Set(updatedAtColumns.map(([, columnName]) => columnName));
-            for (const columnName of uniqueColumnNames) {
-                results.push(
-                    k.sql`
-                        CREATE FUNCTION ${columnName}_updater() RETURNS trigger
-                            LANGUAGE plpgsql AS
-                        $$BEGIN
-                            NEW.${k.sql.ref(columnName)} := current_timestamp;
-                            RETURN NEW;
-                        END;$$;
-                    `.compile(db)
-                );
-            }
 
-            // Create the trigger for each table
-            for (const [tableName, columnName] of updatedAtColumns) {
-                results.push(
-                    // Create the trigger
-                    k.sql`
-                        CREATE TRIGGER ${k.sql.ref(columnName + "_update")}
-                            BEFORE UPDATE ON ${k.sql.ref(tableName)}
-                        FOR EACH ROW
-                        EXECUTE FUNCTION ${columnName}_updater();
-                    `.compile(db)
-                );
-            }
-        }
-        return [];
+    createTablesAfterHook(db, tables) {
+        return updatedAtTriggers(db, tables);
     },
 } satisfies OrmerDbDriver<"postgres", typeof POSTGRES_COLUMNS>;
+
+/**
+ * Generate triggers for updatedAt columns
+ *
+ * @param db
+ * @param tables
+ */
+function updatedAtTriggers(db: k.Kysely<unknown>, tables: Table[]) {
+    const results = [] as k.CompiledQuery[];
+    const updatedAtColumns = [] as [string, string][];
+    for (const table of tables) {
+        for (const [columnName, def] of Object.entries(table.columns)) {
+            if (def.type === "updatedAt") {
+                updatedAtColumns.push([table.table, columnName]);
+            }
+        }
+    }
+    if (updatedAtColumns.length > 0) {
+        // For all unique updatedAt column names, create function
+        const uniqueColumnNames = new Set(updatedAtColumns.map(([, columnName]) => columnName));
+        for (const columnName of uniqueColumnNames) {
+            results.push(
+                k.sql`
+                    CREATE FUNCTION onupdate_set_timestamp_${k.sql.raw(
+                        columnName
+                    )}() RETURNS trigger
+                        LANGUAGE plpgsql AS
+                    $$BEGIN
+                        -- Set only if the value has not changed
+                        IF NEW.${k.sql.ref(columnName)} = OLD.${k.sql.ref(columnName)} THEN
+                            NEW.${k.sql.ref(columnName)} := current_timestamp;
+                        END IF;
+                        RETURN NEW;
+                    END;$$;
+                `.compile(db)
+            );
+        }
+
+        // Create the trigger for each table
+        for (const [tableName, columnName] of updatedAtColumns) {
+            results.push(
+                // Create the trigger
+                k.sql`
+                    CREATE TRIGGER ${k.sql.ref(tableName + "_" + columnName + "_update")}
+                        BEFORE UPDATE ON ${k.sql.table(tableName)}
+                    FOR EACH ROW
+                    EXECUTE FUNCTION onupdate_set_timestamp_${k.sql.raw(columnName)}();
+                `.compile(db)
+            );
+        }
+    }
+    return results;
+}

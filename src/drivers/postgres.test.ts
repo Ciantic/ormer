@@ -1,51 +1,11 @@
 import * as k from "npm:kysely";
 import * as v from "npm:valibot";
-import { assertEquals } from "jsr:@std/assert";
+import { assertEquals, assertNotEquals } from "jsr:@std/assert";
 import { table } from "../table.ts";
 import * as c from "../columns.ts";
 import { createDbBuilder } from "../database.ts";
 import { PGlite, types } from "npm:@electric-sql/pglite";
-
-function createPgLiteDialect(db: PGlite) {
-    return {
-        createDriver: () =>
-            ({
-                acquireConnection: () => {
-                    return Promise.resolve({
-                        executeQuery: async (compiledQuery) => {
-                            const results = await db.query(
-                                compiledQuery.sql,
-                                compiledQuery.parameters.slice()
-                            );
-                            return {
-                                rows: results.rows as any,
-                                numAffectedRows: BigInt(results.affectedRows ?? 0),
-                                numChangedRows: BigInt(results.affectedRows ?? 0),
-                            } satisfies k.QueryResult<any>;
-                        },
-                        streamQuery: (_compiledQuery, _chunkSize?) => {
-                            throw new Error("streamQuery not implemented");
-                        },
-                    } satisfies k.DatabaseConnection);
-                },
-                beginTransaction: async (connection, settings) => {
-                    await k.PostgresDriver.prototype.beginTransaction(connection, settings);
-                },
-                commitTransaction: async (connection) => {
-                    await k.PostgresDriver.prototype.commitTransaction(connection);
-                },
-                rollbackTransaction: async (connection) => {
-                    await k.PostgresDriver.prototype.rollbackTransaction(connection);
-                },
-                destroy: async () => {},
-                init: async () => {},
-                releaseConnection: async (_connection) => {},
-            } satisfies k.Driver),
-        createAdapter: () => new k.PostgresAdapter(),
-        createQueryCompiler: () => new k.PostgresQueryCompiler(),
-        createIntrospector: (db) => new k.PostgresIntrospector(db),
-    } satisfies k.Dialect;
-}
+import { createPgLiteDialect } from "../utils/pglitekysely.ts";
 
 const TEST_TABLE = table("test_table", {
     bigserial: c.pkAutoInc(),
@@ -109,8 +69,8 @@ Deno.test("create postgres table", () => {
             },
         })
         .build();
-
-    const queries = db.createTables().tables.test_table.compile().sql;
+    const tablesResult = db.createTables();
+    const queries = tablesResult.tables.test_table.compile().sql;
 
     console.log(queries);
 
@@ -143,6 +103,8 @@ Deno.test("create postgres table", () => {
                 "test_created_at" timestamptz default now() not null
             )`.replace(/\s+/g, "")
     );
+
+    console.log(tablesResult.extraSql.map((q) => q.sql).join("\n"));
 });
 
 Deno.test("create postgres table with schema", async () => {
@@ -223,4 +185,13 @@ Deno.test("create postgres table with schema", async () => {
             test_updated_at: results[0].test_updated_at,
         },
     ]);
+
+    const results2 = await kysely
+        .updateTable("test_table")
+        .set({ test_int32: 2 })
+        .returningAll()
+        .execute();
+
+    // Ensure that the updated_at field is updated (by trigger)
+    assertNotEquals(results2[0].test_updated_at, results[0].test_updated_at);
 });
