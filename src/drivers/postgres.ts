@@ -1,79 +1,306 @@
-import type { MapColumnsTo } from "../helpers.ts";
-import type { ColumnDataType } from "npm:kysely";
+import * as k from "npm:kysely";
+import * as v from "npm:valibot";
+import type { MapColumnsToGenerators, TransformSchemas } from "../helpers.ts";
+import type { ColumnType, Params } from "../columns.ts";
+import { Table } from "../table.ts";
+import { OrmerDbDriver } from "../database.ts";
 
-export const POSTGRES_COLUMNS = {
+type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+
+const POSTGRES_COLUMNS = {
     // Primitive types
     int32(params) {
         if (params.autoIncrement) {
-            return "serial";
+            return {
+                datatype: "serial",
+            };
         }
-        return "integer";
+        return {
+            datatype: "integer",
+        };
     },
     int64(params) {
         if (params.autoIncrement) {
-            return "bigserial";
+            return {
+                datatype: "bigserial",
+            };
         }
-        return "bigint";
+        return {
+            datatype: "bigint",
+        };
     },
     bigint() {
-        return "numeric";
+        return {
+            datatype: "numeric",
+        };
     },
     float32() {
-        return "real";
+        return {
+            datatype: "real",
+        };
     },
     float64() {
-        return "double precision";
+        return {
+            datatype: "double precision",
+        };
     },
     decimal(params) {
-        return `decimal(${params.precision}, ${params.scale})`;
+        return {
+            datatype: `decimal(${params.precision}, ${params.scale})`,
+        };
     },
     uuid() {
-        return "uuid";
+        return {
+            datatype: "uuid",
+        };
     },
     string() {
-        return "text";
+        return {
+            datatype: "text",
+        };
     },
     varchar(params) {
-        return `varchar(${params.maxLength})`;
+        return {
+            datatype: `varchar(${params.maxLength})`,
+        };
     },
     boolean() {
-        return "boolean";
+        return {
+            datatype: "boolean",
+        };
     },
     timestamp() {
-        return "timestamp";
+        return {
+            datatype: "timestamp",
+        };
     },
     timestamptz() {
-        return "timestamptz";
+        return {
+            datatype: "timestamptz",
+        };
     },
     datepart() {
-        return "date";
+        return {
+            datatype: "date",
+        };
     },
     timepart() {
-        return "time";
+        return {
+            datatype: "time",
+        };
     },
     jsonb() {
-        return "jsonb";
+        return {
+            datatype: "jsonb",
+        };
     },
     json() {
-        return "json";
+        return {
+            datatype: "json",
+        };
     },
     // Helper types
     rowversion() {
-        return "bigint";
+        return {
+            datatype: "bigint",
+        };
     },
     concurrencyStamp() {
-        return "uuid";
+        return {
+            datatype: "uuid",
+            columnDefinition: (f) => f.defaultTo(k.sql`gen_random_uuid()`),
+        };
     },
     userstring(params) {
-        return `varchar(${params.maxLength})`;
+        return {
+            datatype: `varchar(${params.maxLength})`,
+        };
     },
     email() {
-        return "varchar(320)";
+        return {
+            datatype: "varchar(320)",
+        };
     },
-    updatedAt() {
-        return "timestamp";
+    updatedAt(params) {
+        return {
+            datatype: "timestamptz",
+            columnDefinition: (f) => f.defaultTo(k.sql`now()`),
+            extraSql: (db) => {
+                return [
+                    k.sql`
+                        CREATE FUNCTION upd_trig() RETURNS trigger
+                            LANGUAGE plpgsql AS
+                        $$BEGIN
+                            NEW.${k.sql.ref(params.columnName)} := current_timestamp;
+                            RETURN NEW;
+                        END;$$;
+                    `.compile(db),
+                    k.sql`
+                        CREATE TRIGGER ${k.sql.ref(params.columnName + "_update")}
+                            BEFORE UPDATE ON ${k.sql.ref(params.tableName)}
+                        FOR EACH ROW
+                        EXECUTE FUNCTION upd_trig();
+                    `.compile(db),
+                ];
+            },
+        };
     },
     createdAt() {
-        return "timestamp";
+        return {
+            datatype: "timestamptz",
+            columnDefinition: (f) => f.defaultTo(k.sql`now()`),
+        };
     },
-} satisfies MapColumnsTo<ColumnDataType>;
+} satisfies MapColumnsToGenerators;
+
+const POSTGRES_SERIALIZATION = {
+    // Primitive types
+    int32() {
+        return {
+            from: v.number(),
+            to: v.number(),
+        };
+    },
+    int64() {
+        // Note: JS supports up to 53 bit
+        return {
+            from: v.number(),
+            to: v.number(),
+        };
+    },
+    bigint() {
+        return {
+            from: v.bigint(),
+            to: v.bigint(),
+        };
+    },
+    float32() {
+        return {
+            from: v.number(),
+            to: v.number(),
+        };
+    },
+    float64() {
+        // TODO: Validate JS number limits, https://stackoverflow.com/questions/45929493/node-js-maximum-safe-floating-point-number
+        return {
+            from: v.number(),
+            to: v.number(),
+        };
+    },
+    decimal() {
+        return {
+            from: v.union([
+                v.string(),
+                v.pipe(
+                    v.number(),
+                    v.transform((v) => "" + v)
+                ),
+            ]),
+            to: v.string(),
+        };
+    },
+    uuid() {
+        return {
+            from: v.string(),
+            to: v.string(),
+        };
+    },
+    string() {
+        return {
+            from: v.string(),
+            to: v.string(),
+        };
+    },
+    varchar() {
+        return {
+            from: v.string(),
+            to: v.string(),
+        };
+    },
+    boolean() {
+        return {
+            from: v.boolean(),
+            to: v.boolean(),
+        };
+    },
+    timestamp() {
+        return {
+            from: v.date(),
+            to: v.date(),
+        };
+    },
+    timestamptz() {
+        return {
+            from: v.date(),
+            to: v.date(),
+        };
+    },
+    datepart() {
+        return {
+            from: v.union([
+                v.pipe(
+                    v.date(),
+                    v.transform((d) => d.toISOString().slice(0, 10))
+                ),
+                v.string(),
+            ]),
+            to: v.string(),
+        };
+    },
+    timepart() {
+        return {
+            from: v.string(),
+            to: v.string(),
+        };
+    },
+    jsonb<T extends ValibotSchema>(params: Params<{ schema: T }>) {
+        return {
+            from: params.schema,
+            to: params.schema,
+        };
+    },
+    json<T extends ValibotSchema>(params: Params<{ schema: T }>) {
+        return {
+            from: params.schema,
+            to: params.schema,
+        };
+    },
+    // Helper types
+    rowversion() {
+        return this.int64({});
+    },
+    concurrencyStamp() {
+        return this.uuid({});
+    },
+    userstring() {
+        return {
+            from: v.string(),
+            to: v.string(),
+        };
+    },
+    email() {
+        return {
+            from: v.string(),
+            to: v.string(),
+        };
+    },
+    updatedAt() {
+        return this.timestamptz({});
+    },
+    createdAt() {
+        return this.timestamptz({});
+    },
+} satisfies TransformSchemas;
+
+// function beforeCreateTableHook(
+//     db: k.Kysely<any>,
+//     tables: Table<string, Record<string, ColumnType<string, any>>>[]
+// ) {
+//     return [k.sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`];
+// }
+
+export const POSTGRES_DRIVER = {
+    databaseType: "postgres" as const,
+    columnTypeMap: POSTGRES_COLUMNS,
+    transform: POSTGRES_SERIALIZATION,
+} satisfies OrmerDbDriver<"postgres", typeof POSTGRES_COLUMNS, typeof POSTGRES_SERIALIZATION>;

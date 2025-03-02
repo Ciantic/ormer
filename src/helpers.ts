@@ -1,6 +1,7 @@
 import type * as v from "npm:valibot";
 import type * as c from "./columns.ts";
 import type { SCHEMAS } from "./schemas.ts";
+import type { ColumnSqlGenerator } from "./database.ts";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 
@@ -13,9 +14,13 @@ type TypesDefined = {
 
 export type MapColumnsTo<T> = {
     [K in keyof TypesDefined as TypesDefined[K] extends string ? TypesDefined[K] : never]: (
-        ...params: Parameters<(typeof c)[K]> extends [infer U] ? [U] : [c.Params]
+        ...params: Parameters<(typeof c)[K]> extends [infer U]
+            ? [U & { tableName: string; columnName: string }]
+            : [c.Params & { tableName: string; columnName: string }]
     ) => T;
 };
+
+export type MapColumnsToGenerators = MapColumnsTo<ColumnSqlGenerator>;
 
 export type MapColumnsToSchemas = MapColumnsTo<{
     schema: ValibotSchema;

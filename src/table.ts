@@ -21,8 +21,12 @@ export function table<TableName extends string, Columns extends Record<string, u
     // Assign column names
     const new_columns = Object.entries(columns).reduce((acc, [key, column]) => {
         acc[key] = {
-            ...(column as any),
-            columnName: key,
+            type: (column as any).type,
+            params: {
+                ...(column as any).params,
+                columnName: key,
+                tableName: table,
+            },
         };
         return acc;
     }, {} as any);

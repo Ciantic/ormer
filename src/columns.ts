@@ -21,10 +21,13 @@ export type Params<ExtraProps extends object = {}> = FinalType<
             notUpdatable?: boolean;
             nullable?: boolean;
             default?: unknown;
-            columnName?: string; // Automatically assigned by table()
             foreignKeyTable?: string;
             foreignKeyColumn?: string;
             autoIncrement?: boolean;
+
+            // Should not use these
+            columnName?: string; // Automatically assigned by table()
+            tableName?: string; // Automatically assigned by table()
         } & ExtraProps
     >
 >;
@@ -255,6 +258,7 @@ export function rowversion(): ColumnType<
         notInsertable: true;
         notUpdatable: true;
         updateKey: true;
+        default: 1;
     }
 > {
     return {
@@ -263,6 +267,7 @@ export function rowversion(): ColumnType<
             notInsertable: true,
             notUpdatable: true,
             updateKey: true,
+            default: 1,
         },
     };
 }

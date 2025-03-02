@@ -50,7 +50,7 @@ const foo = o
     .createDbBuilder()
     .withTables([invoiceTable, invoiceRowTable, personTable])
     .withSchemas()
-    .withPostgresTypes()
+    .withPostgres()
     .withKyselyConfig()
     .build();
 
@@ -110,7 +110,7 @@ export function test2(db: Database) {
         .insertInto("invoice")
         .values({
             title: "Invoice 1",
-            foo: Temporal.Now.zonedDateTimeISO(),
+            foo: new Date(),
             // title: "Invoice 1",
             // due_date: new Date(),
         })

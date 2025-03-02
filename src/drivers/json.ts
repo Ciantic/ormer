@@ -129,8 +129,13 @@ export const JSON_SCHEMAS = {
         };
     },
     timestamptz() {
+        return this.timestamp({});
+        /*
+        `timestamptz` in postgres does NOT store the timezone, it always converts to UTC.
+        So we can use the same schema as timestamp.
+
         return {
-            from: v.union([
+            from: v.date(),
                 v.pipe(
                     // yyyy-mm-ddThh:mm:ss.sssZ, yyyy-mm-ddThh:mm:ss.sss±hh:mm, yyyy-mm-ddThh:mm:ss.sss±hhmm
                     v.string(),
@@ -146,14 +151,19 @@ export const JSON_SCHEMAS = {
                         }
                     })
                 ),
-            ]),
             to: v.pipe(
                 v.instance(Temporal.ZonedDateTime),
                 v.transform((d) => d.toString())
             ),
         };
+        */
     },
     datepart() {
+        return {
+            from: v.string(),
+            to: v.string(),
+        };
+        /*
         return {
             from: v.union([
                 v.pipe(
@@ -178,8 +188,14 @@ export const JSON_SCHEMAS = {
                 v.transform((d) => d.toString())
             ),
         };
+        */
     },
     timepart() {
+        return {
+            from: v.string(),
+            to: v.string(),
+        };
+        /*
         return {
             from: v.union([
                 v.pipe(
@@ -204,6 +220,7 @@ export const JSON_SCHEMAS = {
                 v.transform((d) => d.toString())
             ),
         };
+        */
     },
     jsonb<T extends ValibotSchema>(params: Params<{ schema: T }>) {
         return {

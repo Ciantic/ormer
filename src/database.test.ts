@@ -29,13 +29,9 @@ Deno.test("createDbFactory", () => {
     const db = createDbBuilder()
         .withTables([PERSON_TABLE])
         .withSchemas({
-            zoo: () => ({
-                schema: v.string(),
-                fromJson: v.string(),
-                toJson: v.string(),
-            }),
+            zoo: () => v.string(),
         })
-        .withPostgresTypes()
+        .withPostgres()
         .withKyselyConfig()
         .build()
         .getKysely();
@@ -92,7 +88,7 @@ Deno.test("createTables", () => {
         test_default: c.int32({ default: 42 }),
         test_varchar: c.varchar({ maxLength: 255 }),
         test_zoo: {
-            type: "zoo",
+            type: "zoo" as const,
             params: undefined,
         },
     });
@@ -100,15 +96,23 @@ Deno.test("createTables", () => {
     const db = createDbBuilder()
         .withTables([TEST_TABLE])
         .withSchemas({
-            zoo: () => ({
-                schema: v.string(),
-                fromJson: v.string(),
-                toJson: v.string(),
-            }),
+            zoo: () => v.string(),
         })
-        .withPostgresTypes({
-            zoo() {
-                return k.sql`zootype`;
+        .withPostgres({
+            columnTypes: {
+                zoo() {
+                    return {
+                        datatype: k.sql`zootype`,
+                    };
+                },
+            },
+            transforms: {
+                zoo() {
+                    return {
+                        from: v.string(),
+                        to: v.string(),
+                    };
+                },
             },
         })
         .withKyselyConfig()

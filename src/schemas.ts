@@ -52,13 +52,17 @@ export const SCHEMAS = {
         return v.date();
     },
     timestamptz() {
-        return v.instance(Temporal.ZonedDateTime);
+        return v.date();
+        // This does not map to Temporal.ZonedDateTime because postgres does not
+        // store the timezone identifier
     },
     datepart() {
-        return v.instance(Temporal.PlainDate);
+        return v.pipe(v.string(), v.isoDate());
+        // return v.instance(Temporal.PlainDate);
     },
     timepart() {
-        return v.instance(Temporal.PlainTime);
+        return v.pipe(v.string(), v.isoTime());
+        // return v.instance(Temporal.PlainTime);
     },
     jsonb<T extends ValibotSchema>(params: Params<{ schema: T }>) {
         return params.schema;
