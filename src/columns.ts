@@ -26,8 +26,8 @@ export type Params<ExtraProps extends object = {}> = FinalType<
             autoIncrement?: boolean;
 
             // Should not use these
-            columnName?: string; // Automatically assigned by table()
-            tableName?: string; // Automatically assigned by table()
+            // columnName?: string; // Automatically assigned by table()
+            // tableName?: string; // Automatically assigned by table()
         } & ExtraProps
     >
 >;

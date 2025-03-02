@@ -86,32 +86,6 @@ export type InferKyselyTables<
     };
 }>;
 
-type TableProperties<T extends ArrayOfTables> = {
-    [K in T[number]["table"]]: Extract<T[number], Table<K, RecordOfColumnTypes>>;
-};
-
-// export function createKyselyDb<T extends TablesArray>(opts: {
-//     tables: T;
-//     kysely: k.KyselyConfig;
-// }): k.Kysely<InferKyselyTables<T, typeof TYPES_TO_SCHEMAS>>;
-// export function createKyselyDb<
-//     T extends TablesArray,
-//     TypeTable extends Record<string, (params?: any) => ValibotSchema>
-// >(opts: {
-//     tables: T;
-//     kysely: k.KyselyConfig;
-//     types: TypeTable;
-// }): k.Kysely<InferKyselyTables<T, TypeTable>>;
-// export function createKyselyDb(opts: { tables: unknown; kysely: k.KyselyConfig; types?: unknown }) {
-//     const typedefs = opts.types ?? TYPES_TO_SCHEMAS;
-
-//     // TODO: Use types
-//     return new k.Kysely({
-//         ...opts.kysely,
-//         plugins: [],
-//     }) as any;
-// }
-
 /**
  * Create table queries
  *
