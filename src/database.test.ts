@@ -99,20 +99,12 @@ Deno.test("createTables", () => {
             zoo: () => v.string(),
         })
         .withPostgres({
-            columnTypes: {
-                zoo() {
-                    return {
-                        datatype: k.sql`zootype`,
-                    };
-                },
-            },
-            transforms: {
-                zoo() {
-                    return {
-                        from: v.string(),
-                        to: v.string(),
-                    };
-                },
+            zoo() {
+                return {
+                    datatype: k.sql`zootype`,
+                    from: v.string(),
+                    to: v.string(),
+                };
             },
         })
         .withKyselyConfig()

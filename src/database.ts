@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import type * as v from "npm:valibot";
 import * as k from "npm:kysely";
-import type { ColumnType, Params } from "./columns.ts";
+import type { ColumnType } from "./columns.ts";
 import type { Table } from "./table.ts";
 import { SCHEMAS } from "./schemas.ts";
 import { POSTGRES_DRIVER } from "./drivers/postgres.ts";
@@ -11,16 +11,24 @@ type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 type RecordOfColumnTypes = Record<string, ColumnType<string, any>>;
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 type RecordOfSchemas = Record<string, (params?: any) => ValibotSchema>;
-type RecordOfColumnGenerators = Record<string, (params?: any) => ColumnSqlGenerator>;
-type RecordOfTransformSchemas = Record<
-    string,
-    (params?: any) => {
-        from: ValibotSchema;
-        to: ValibotSchema;
-    }
->;
-export type ColumnSqlGenerator = {
+type RecordOfColumnTypeToDriver = Record<string, (params?: any) => ColumnTypeToDriver>;
+type ArrayOfTables = Table<any, RecordOfColumnTypes>[];
+
+export type Transformer = (params?: any) => {
+    from: ValibotSchema;
+    to: ValibotSchema;
+};
+
+export type ColumnTypeToDriver = {
+    // Driver's datatype
     datatype: k.ColumnDataType | k.Expression<any>;
+
+    // Deserialize from driver result
+    from: ValibotSchema;
+
+    // Serialize to driver
+    to: ValibotSchema;
+
     columnDefinition?: (column: k.ColumnDefinitionBuilder) => k.ColumnDefinitionBuilder;
     tableDefinition?: (
         table: k.CreateTableBuilder<never, never>
@@ -28,26 +36,21 @@ export type ColumnSqlGenerator = {
     extraSql?: (db: k.Kysely<any>) => k.CompiledQuery[];
 };
 
-export type OrmerDbDriver<
-    T extends string,
-    Schemas extends RecordOfColumnGenerators,
-    TransformSchemas extends RecordOfTransformSchemas
-> = {
+export type OrmerDbDriver<T extends string, ColumnTypeMap extends RecordOfColumnTypeToDriver> = {
     databaseType: StringLiteral<T>;
-    columnTypeMap: Schemas;
-    transform: TransformSchemas;
-    createTablesBeforeHook?: (db: k.Kysely<any>) => k.CompiledQuery[];
-    createTablesAfterHook?: (db: k.Kysely<any>) => k.CompiledQuery[];
+    columnTypeMap: ColumnTypeMap;
+    createTablesBeforeHook?: (db: k.Kysely<any>, tables: ArrayOfTables) => k.CompiledQuery[];
+    createTablesAfterHook?: (db: k.Kysely<any>, tables: ArrayOfTables) => k.CompiledQuery[];
 };
 
 type ColumnOfTable<
-    T extends Table<any, RecordOfColumnTypes>[],
+    T extends ArrayOfTables,
     K extends string,
     C extends keyof Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"]
 > = Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"][C];
 
 type InferredValue<
-    T extends Table<any, RecordOfColumnTypes>[],
+    T extends ArrayOfTables,
     K extends string,
     C extends keyof Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"],
     TypeTable extends RecordOfSchemas
@@ -60,7 +63,7 @@ type InferredValue<
 >;
 
 export type InferKyselyTables<
-    T extends Table<any, RecordOfColumnTypes>[],
+    T extends ArrayOfTables,
     TypeTable extends RecordOfSchemas
 > = FinalType<{
     [K in T[number]["table"]]: {
@@ -88,16 +91,16 @@ export type InferKyselyTables<
     };
 }>;
 
-type TableProperties<T extends Table<any, RecordOfColumnTypes>[]> = {
+type TableProperties<T extends ArrayOfTables> = {
     [K in T[number]["table"]]: Extract<T[number], Table<K, RecordOfColumnTypes>>;
 };
 
-// export function createKyselyDb<T extends Table<any, RecordOfColumnTypes>[]>(opts: {
+// export function createKyselyDb<T extends TablesArray>(opts: {
 //     tables: T;
 //     kysely: k.KyselyConfig;
 // }): k.Kysely<InferKyselyTables<T, typeof TYPES_TO_SCHEMAS>>;
 // export function createKyselyDb<
-//     T extends Table<any, RecordOfColumnTypes>[],
+//     T extends TablesArray,
 //     TypeTable extends Record<string, (params?: any) => ValibotSchema>
 // >(opts: {
 //     tables: T;
@@ -122,10 +125,9 @@ type TableProperties<T extends Table<any, RecordOfColumnTypes>[]> = {
  * @returns
  */
 function createTables<T extends Table<string, Record<string, ColumnType<string, any>>>[]>(
-    databaseType: string,
     kysely: k.Kysely<any>,
     tables: T,
-    types: RecordOfColumnGenerators = {}
+    driver: OrmerDbDriver<any, any>
 ) {
     const ret: {
         tables: Record<T[number]["table"], k.CreateTableBuilder<any, any>>;
@@ -143,13 +145,18 @@ function createTables<T extends Table<string, Record<string, ColumnType<string, 
     for (const table of tables) {
         let t = kysely.schema.createTable(table.table);
         for (const columnName of Object.keys(table.columns)) {
-            const c = table.columns[columnName];
-            const { datatype, columnDefinition, tableDefinition, extraSql } = types[c.type]?.(
-                c.params ?? {}
+            const columnType = table.columns[columnName];
+            const columnTypeToDriver = driver.columnTypeMap[columnType.type]?.(
+                columnType.params ?? {}
             );
+            if (typeof columnTypeToDriver === "undefined") {
+                throw new Error(`Driver is missing column type: ${columnType.type}`);
+            }
+
+            const { datatype, columnDefinition, tableDefinition, extraSql } = columnTypeToDriver;
 
             if (!datatype) {
-                throw new Error(`Unknown column type: ${c.type}`);
+                throw new Error(`Unknown column type: ${columnType.type}`);
             }
 
             if (tableDefinition) {
@@ -157,24 +164,24 @@ function createTables<T extends Table<string, Record<string, ColumnType<string, 
             }
 
             t = t.addColumn(columnName, datatype as k.ColumnDataType, (p) => {
-                if (!c.params?.nullable) {
+                if (!columnType.params?.nullable) {
                     p = p.notNull();
                 }
-                if (c.params?.unique) {
+                if (columnType.params?.unique) {
                     p = p.unique();
                 }
-                if (c.params?.primaryKey) {
+                if (columnType.params?.primaryKey) {
                     p = p.primaryKey();
                 }
-                if (c.params?.default) {
-                    p = p.defaultTo(c.params.default);
+                if (columnType.params?.default) {
+                    p = p.defaultTo(columnType.params.default);
                 }
-                if (c.params?.foreignKeyTable && c.params?.foreignKeyColumn) {
+                if (columnType.params?.foreignKeyTable && columnType.params?.foreignKeyColumn) {
                     t.addForeignKeyConstraint(
-                        `FOREIGN_KEY_${table.table}_${columnName}_TO_${c.params.foreignKeyTable}_${c.params.foreignKeyColumn}`,
+                        `FOREIGN_KEY_${table.table}_${columnName}_TO_${columnType.params.foreignKeyTable}_${columnType.params.foreignKeyColumn}`,
                         [columnName] as any,
-                        c.params.foreignKeyTable,
-                        [c.params.foreignKeyColumn]
+                        columnType.params.foreignKeyTable,
+                        [columnType.params.foreignKeyColumn]
                     );
                 }
                 if (columnDefinition) {
@@ -194,10 +201,10 @@ function createTables<T extends Table<string, Record<string, ColumnType<string, 
 }
 
 interface DbBuilder {
-    withTables<T extends Table<any, RecordOfColumnTypes>[]>(tables: T): DbBuilderTables<T>;
+    withTables<T extends ArrayOfTables>(tables: T): DbBuilderTables<T>;
 }
 
-interface DbBuilderTables<Tables extends Table<any, RecordOfColumnTypes>[]> {
+interface DbBuilderTables<Tables extends ArrayOfTables> {
     withSchemas(): DbBuilderWithSchemas<Tables, typeof SCHEMAS>;
 
     withSchemas<Schemas extends RecordOfSchemas>(
@@ -205,10 +212,7 @@ interface DbBuilderTables<Tables extends Table<any, RecordOfColumnTypes>[]> {
     ): DbBuilderWithSchemas<Tables, typeof SCHEMAS & Schemas>;
 }
 
-interface DbBuilderWithSchemas<
-    Tables extends Table<any, RecordOfColumnTypes>[],
-    Schemas extends RecordOfSchemas
-> {
+interface DbBuilderWithSchemas<Tables extends ArrayOfTables, Schemas extends RecordOfSchemas> {
     // tables: T;
     // schemas: Schemas;
 
@@ -217,61 +221,40 @@ interface DbBuilderWithSchemas<
         Tables,
         Schemas,
         typeof POSTGRES_DRIVER.columnTypeMap,
-        typeof POSTGRES_DRIVER.transform,
         typeof POSTGRES_DRIVER
     >;
 
-    withPostgres<
-        ColumnTypes extends RecordOfColumnGenerators,
-        Transform extends RecordOfTransformSchemas
-    >(opts: {
-        columnTypes: ColumnTypes;
-        transforms: Transform;
-    }): DbBuilderWithDriver<
+    withPostgres<ColumnTypes extends RecordOfColumnTypeToDriver>(
+        columnTypes: ColumnTypes
+    ): DbBuilderWithDriver<
         "postgres",
         Tables,
         Schemas,
         typeof POSTGRES_DRIVER.columnTypeMap & ColumnTypes,
-        typeof POSTGRES_DRIVER.transform & Transform,
         typeof POSTGRES_DRIVER & {
             columnTypeMap: typeof POSTGRES_DRIVER.columnTypeMap & ColumnTypes;
-            transform: typeof POSTGRES_DRIVER.transform & Transform;
         }
     >;
 }
 
 interface DbBuilderWithDriver<
     DbType extends string,
-    Tables extends Table<any, RecordOfColumnTypes>[],
+    Tables extends ArrayOfTables,
     Schemas extends RecordOfSchemas,
-    ColumnTypes extends RecordOfColumnGenerators,
-    TransformSchemas extends RecordOfTransformSchemas,
-    OrmDriver extends OrmerDbDriver<DbType, ColumnTypes, TransformSchemas>
+    ColumnTypes extends RecordOfColumnTypeToDriver,
+    OrmDriver extends OrmerDbDriver<DbType, ColumnTypes>
 > {
     withKyselyConfig(config?: k.KyselyConfig): {
-        build(): Db<DbType, Tables, Schemas, ColumnTypes, TransformSchemas, OrmDriver>;
+        build(): Db<DbType, Tables, Schemas, ColumnTypes, OrmDriver>;
     };
 }
 
-// interface DbBuilderWithSchemasAndColumnTypes<
-//     DbType extends string,
-//     Tables extends Table<any, RecordOfColumnTypes>[],
-//     Schemas extends RecordOfSchemas,
-//     ColumnTypes extends RecordOfColumnGenerators
-// > {
-//     // databaseType: StringLiteral<D>;
-//     // tables: T;
-//     // schemas: Schemas;
-//     // columnTypes: ColumnTypes;
-// }
-
 interface Db<
     DbType extends string,
-    Tables extends Table<any, RecordOfColumnTypes>[],
+    Tables extends ArrayOfTables,
     Schemas extends RecordOfSchemas,
-    ColumnTypes extends RecordOfColumnGenerators,
-    TransformSchemas extends RecordOfTransformSchemas,
-    OrmDriver extends OrmerDbDriver<DbType, ColumnTypes, TransformSchemas>
+    ColumnTypes extends RecordOfColumnTypeToDriver,
+    OrmDriver extends OrmerDbDriver<DbType, ColumnTypes>
 > {
     databaseType: StringLiteral<DbType>;
     tables: Tables;
@@ -285,12 +268,11 @@ interface Db<
 
 class DbImpl<
     DbType extends string,
-    Tables extends Table<any, RecordOfColumnTypes>[],
+    Tables extends ArrayOfTables,
     Schemas extends RecordOfSchemas,
-    ColumnTypes extends RecordOfColumnGenerators,
-    TransformSchemas extends RecordOfTransformSchemas,
-    OrmDriver extends OrmerDbDriver<DbType, ColumnTypes, TransformSchemas>
-> implements Db<DbType, Tables, Schemas, ColumnTypes, TransformSchemas, OrmDriver>
+    ColumnTypes extends RecordOfColumnTypeToDriver,
+    OrmDriver extends OrmerDbDriver<DbType, ColumnTypes>
+> implements Db<DbType, Tables, Schemas, ColumnTypes, OrmDriver>
 {
     kyselyConfig: k.KyselyConfig;
     kyselyInstance: k.Kysely<InferKyselyTables<Tables, Schemas>>;
@@ -321,25 +303,17 @@ class DbImpl<
         return this.kyselyInstance;
     }
     createTables() {
-        return createTables(
-            this.databaseType,
-            this.getKysely(),
-            this.tables,
-            this.driver.columnTypeMap
-        );
+        return createTables(this.getKysely(), this.tables, this.driver);
     }
 }
 
 export function createDbBuilder(): DbBuilder {
     return {
-        withTables<T extends Table<any, RecordOfColumnTypes>[]>(tables: T) {
+        withTables<T extends ArrayOfTables>(tables: T) {
             return {
                 withSchemas(schemas?: Record<string, (params?: any) => ValibotSchema>) {
                     return {
-                        withPostgres(opts?: {
-                            columnTypes?: RecordOfColumnGenerators;
-                            transforms?: RecordOfTransformSchemas;
-                        }) {
+                        withPostgres(columnTypes?: RecordOfColumnTypeToDriver) {
                             return {
                                 withKyselyConfig(maybeKyselyConfig?: k.KyselyConfig) {
                                     return {
@@ -355,11 +329,7 @@ export function createDbBuilder(): DbBuilder {
                                                     ...POSTGRES_DRIVER,
                                                     columnTypeMap: {
                                                         ...POSTGRES_DRIVER.columnTypeMap,
-                                                        ...opts?.columnTypes,
-                                                    },
-                                                    transform: {
-                                                        ...POSTGRES_DRIVER.transform,
-                                                        ...opts?.transforms,
+                                                        ...columnTypes,
                                                     },
                                                 },
                                                 maybeKyselyConfig
