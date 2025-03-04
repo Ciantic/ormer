@@ -72,8 +72,6 @@ Deno.test("create postgres table", () => {
     const tablesResult = db.createTables();
     const queries = tablesResult.tables.test_table.compile().sql;
 
-    console.log(queries);
-
     assertEquals(
         queries.replace(/\s+/g, ""),
 

@@ -1,6 +1,6 @@
-import type * as v from "npm:valibot";
+import * as v from "npm:valibot";
 import type * as c from "./columns.ts";
-import type { SCHEMAS } from "./schemas.ts";
+import type { Schema, SCHEMAS } from "./schemas.ts";
 import type { ColumnTypeToDriver } from "./database.ts";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
@@ -21,27 +21,49 @@ export type MapColumnsTo<T> = {
 };
 
 export type TransformSchemas<
-    // deno-lint-ignore no-explicit-any
-    Schemas extends Record<string, (params?: any) => ValibotSchema> = typeof SCHEMAS
+    Schemas extends Record<
+        string,
+        // deno-lint-ignore no-explicit-any
+        (params?: any) => Schema<ValibotSchema, ValibotSchema, ValibotSchema>
+    > = typeof SCHEMAS
 > = {
     [K in keyof TypesDefined as TypesDefined[K] extends string ? TypesDefined[K] : never]: (
         ...params: Parameters<(typeof c)[K]> extends [infer U] ? [U] : [c.Params]
     ) => {
-        from: v.BaseSchema<unknown, v.InferOutput<ReturnType<Schemas[K]>>, v.BaseIssue<unknown>>;
-        to: v.BaseSchema<v.InferOutput<ReturnType<Schemas[K]>>, unknown, v.BaseIssue<unknown>>;
+        from: v.BaseSchema<
+            unknown,
+            v.InferOutput<ReturnType<Schemas[K]>["schema"]>,
+            v.BaseIssue<unknown>
+        >;
+        to: v.BaseSchema<
+            v.InferOutput<ReturnType<Schemas[K]>["schema"]>,
+            unknown,
+            v.BaseIssue<unknown>
+        >;
     };
 };
 
 export type OrmdriverColumnTypes<
-    // deno-lint-ignore no-explicit-any
-    Schemas extends Record<string, (params?: any) => ValibotSchema> = typeof SCHEMAS
+    Schemas extends Record<
+        string,
+        // deno-lint-ignore no-explicit-any
+        (params?: any) => Schema<ValibotSchema, ValibotSchema, ValibotSchema>
+    > = typeof SCHEMAS
 > = {
     [K in keyof TypesDefined as TypesDefined[K] extends string ? TypesDefined[K] : never]: (
         ...params: Parameters<(typeof c)[K]> extends [infer U]
             ? [U & { columnName: string; tableName: string }]
             : [c.Params & { columnName: string; tableName: string }]
     ) => ColumnTypeToDriver & {
-        from: v.BaseSchema<unknown, v.InferOutput<ReturnType<Schemas[K]>>, v.BaseIssue<unknown>>;
-        to: v.BaseSchema<v.InferOutput<ReturnType<Schemas[K]>>, unknown, v.BaseIssue<unknown>>;
+        from: v.BaseSchema<
+            unknown,
+            v.InferOutput<ReturnType<Schemas[K]>["schema"]>,
+            v.BaseIssue<unknown>
+        >;
+        to: v.BaseSchema<
+            v.InferOutput<ReturnType<Schemas[K]>["schema"]>,
+            unknown,
+            v.BaseIssue<unknown>
+        >;
     };
 };

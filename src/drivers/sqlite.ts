@@ -1,122 +1,198 @@
-import type * as v from "npm:valibot";
-import { Table } from "../table.ts";
-import { ColumnType } from "../columns.ts";
-import { SCHEMAS } from "../schemas.ts";
+import * as k from "npm:kysely";
+import * as v from "npm:valibot";
+import type { OrmdriverColumnTypes } from "../helpers.ts";
+import type { Params } from "../columns.ts";
+import type { OrmerDbDriver } from "../database.ts";
 
-export function sqliteCreateTables<
-    T extends readonly Table<any, Record<string, ColumnType<any, any>>>[]
->(...tables: T) {
-    return tables.map(buildSqliteCreateTable).join("\n\n");
-}
+type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 
-function buildSqliteCreateTable<T extends Record<string, ColumnType<any, any>>>(
-    table: Table<any, T>
-) {
-    const columns = Object.entries(table.columns)
-        .map(buildSqliteColumn)
-        .map((s) => `    ${s}`)
-        .join(",\n");
-    return `CREATE TABLE ${table.table} (\n${columns}\n);`;
-}
+const SQLITE_COLUMNS = {
+    // Primitive types
+    int32(params) {
+        return {
+            datatype: "integer",
+            from: v.number(),
+            to: v.number(),
+            columnDefinition: (f) => {
+                if (params?.autoIncrement) {
+                    f = f.autoIncrement();
+                }
+                return f;
+            },
+        };
+    },
+    int64(params) {
+        return {
+            datatype: "integer",
+            from: v.number(),
+            to: v.number(),
+            columnDefinition: (f) => {
+                if (params?.autoIncrement) {
+                    f = f.autoIncrement();
+                }
+                return f;
+            },
+        };
+    },
+    bigint() {
+        return {
+            datatype: "text",
+            from: v.pipe(
+                v.string(),
+                v.transform((s) => BigInt(s))
+            ),
+            to: v.pipe(
+                v.bigint(),
+                v.transform((s) => s.toString())
+            ),
+        };
+    },
+    float32() {
+        return {
+            datatype: "real",
+            from: v.number(),
+            to: v.number(),
+        };
+    },
+    float64() {
+        return {
+            datatype: "real",
+            from: v.number(),
+            to: v.number(),
+        };
+    },
+    decimal() {
+        return {
+            datatype: "text",
+            from: v.string(),
+            to: v.string(),
+        };
+    },
+    uuid() {
+        return {
+            datatype: "text",
+            from: v.string(),
+            to: v.string(),
+        };
+    },
+    string() {
+        return {
+            datatype: "text",
+            from: v.string(),
+            to: v.string(),
+        };
+    },
+    varchar() {
+        return {
+            datatype: "text",
+            from: v.string(),
+            to: v.string(),
+        };
+    },
+    boolean() {
+        return {
+            datatype: "integer",
+            from: v.boolean(),
+            to: v.boolean(),
+        };
+    },
+    timestamp() {
+        return {
+            datatype: "text",
+            from: v.date(),
+            to: v.date(),
+        };
+    },
+    timestamptz() {
+        return {
+            datatype: "text",
+            from: v.date(),
+            to: v.date(),
+        };
+    },
+    datepart() {
+        return {
+            datatype: "text",
+            from: v.union([
+                v.pipe(
+                    v.date(),
+                    v.transform((d) => d.toISOString().slice(0, 10))
+                ),
+                v.string(),
+            ]),
+            to: v.string(),
+        };
+    },
+    timepart() {
+        return {
+            datatype: "text",
+            from: v.string(),
+            to: v.string(),
+        };
+    },
+    jsonb<T extends ValibotSchema>(params: Params<{ schema: T }>) {
+        return {
+            from: params.schema,
+            to: params.schema,
+            datatype: "text",
+        };
+    },
+    json<T extends ValibotSchema>(params: Params<{ schema: T }>) {
+        return {
+            from: params.schema,
+            to: params.schema,
+            datatype: "text",
+        };
+    },
+    // Helper types
+    rowversion() {
+        return {
+            datatype: "integer",
+            from: v.number(),
+            to: v.number(),
+        };
+    },
+    concurrencyStamp() {
+        return {
+            datatype: "text",
+            columnDefinition: (f) => f.defaultTo(k.sql`lower(hex(randomblob(16)))`),
+            from: v.string(),
+            to: v.string(),
+        };
+    },
+    userstring(params) {
+        return {
+            datatype: "text",
+            from: v.string(),
+            to: v.string(),
+        };
+    },
+    email() {
+        return {
+            datatype: "text",
+            from: v.string(),
+            to: v.string(),
+        };
+    },
+    updatedAt() {
+        return {
+            datatype: "text",
+            columnDefinition: (f) => f.defaultTo(k.sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`),
+            from: v.date(),
+            to: v.date(),
+        };
+    },
+    createdAt() {
+        return {
+            datatype: "text",
+            columnDefinition: (f) => f.defaultTo(k.sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`),
+            from: v.date(),
+            to: v.date(),
+        };
+    },
+} satisfies OrmdriverColumnTypes;
 
-function buildSqliteColumn([name, column]: [string, ColumnType<any, any>]) {
-    return `"${name}" ${buildSqliteColumnTypeStr(column)}`;
-}
-
-// https://www.sqlite.org/stricttables.html
-const COLUMN_TYPE_MAP = {
-    string: "TEXT",
-    number: "REAL",
-    Date: "TEXT",
-    bigint: "TEXT", // Sqlite supports up to 64-bit integers
-    Object: "TEXT", // JSON
-    Array: "TEXT", // JSON ARRAY
-    boolean: "INTEGER",
-
-    // Non JS types
-    integer: "INTEGER",
-    decimal: "TEXT",
-};
-
-function buildSqliteColumnTypeStrSchema(
-    column: ColumnType<any, any>,
-    schema: v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>,
-    extra: { isOptional?: boolean; isNullable?: boolean } = {}
-) {
-    const { isOptional, isNullable } = extra;
-    const name = column.params.columnName;
-    if (!name) {
-        throw new Error("Column name is required");
-    }
-    let type = schema.expects as keyof typeof COLUMN_TYPE_MAP;
-    let constraints = "";
-    if (schema.type === "optional") {
-        // Kysely doesn't support returning undefined columns, only nullable columns
-        throw new Error("Optional should be handled by nullable");
-
-        // const optschema = schema as v.OptionalSchema<v.AnySchema, undefined>;
-        // type = optschema.wrapped.expects as keyof typeof COLUMN_TYPE_MAP;
-        // return buildSqliteColumnTypeStrSchema(column, name, optschema.wrapped, {
-        //     isOptional: true,
-        // });
-    }
-
-    if (schema.type === "nullable") {
-        const nullschema = schema as v.NullableSchema<v.AnySchema, undefined>;
-        type = nullschema.wrapped.expects as keyof typeof COLUMN_TYPE_MAP;
-        return buildSqliteColumnTypeStrSchema(column, nullschema.wrapped, {
-            isNullable: true,
-        });
-    }
-
-    if ("pipe" in schema) {
-        const pipeschema = schema as unknown as v.SchemaWithPipe<[any, ...any]>;
-        schema = pipeschema.pipe[0];
-
-        // If pipe contains integer
-        if (pipeschema.pipe.some((p) => p.type === "integer")) {
-            type = "integer";
-        }
-
-        const minLengthValidation: v.MinLengthAction<any, any, any> | undefined =
-            pipeschema.pipe.find((p) => p.type === "max_length");
-        if (minLengthValidation) {
-            constraints = `CHECK (length("${name}") <= ${minLengthValidation.requirement})`;
-        }
-    }
-
-    const columnTypeStr = COLUMN_TYPE_MAP[type];
-    if (!columnTypeStr) {
-        throw new Error(`Error sqliteColumnType is not known: ${type}`);
-    }
-
-    if (type === "Object") {
-        constraints = `CHECK (json_valid("${name}"))`;
-    }
-
-    if (type === "Array") {
-        constraints = `CHECK (json_valid("${name}") AND json_type("${name}") = 'array')`;
-    }
-
-    const primaryKeyStr = column.params.primaryKey ? "PRIMARY KEY" : "";
-    const autoIncStr =
-        column.type === "serial" || column.type === "bigserial" ? "AUTOINCREMENT" : "";
-    const nullnessStr = isOptional || isNullable ? "" : "NOT NULL";
-
-    return [columnTypeStr, nullnessStr, primaryKeyStr, autoIncStr, constraints]
-        .filter((f) => f)
-        .join(" ");
-}
-
-function buildSqliteColumnTypeStr(column: ColumnType<any, any>) {
-    // return buildSqliteColumnTypeStrSchema(column, column, {});
-}
-
-/*
-    TODO for SQLITE:
-    CREATE TRIGGER update_row_version_on_update
-    AFTER UPDATE ON your_table
-    BEGIN
-    UPDATE your_table SET row_version = row_version + 1 WHERE id = NEW.id;
-    END;
-    */
+export const SQLITE_DRIVER = {
+    databaseType: "sqlite" as const,
+    columnTypeMap: SQLITE_COLUMNS,
+} satisfies OrmerDbDriver<"sqlite", typeof SQLITE_COLUMNS>;

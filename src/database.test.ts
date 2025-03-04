@@ -4,6 +4,7 @@ import * as c from "./columns.ts";
 import { createDbBuilder } from "./database.ts";
 import { table } from "./table.ts";
 import { assert, assertEquals } from "jsr:@std/assert";
+import { schema } from "./schemas.ts";
 
 type Expect<T extends true> = T;
 type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
@@ -29,7 +30,12 @@ Deno.test("createDbFactory", () => {
     const db = createDbBuilder()
         .withTables([PERSON_TABLE])
         .withSchemas({
-            zoo: () => v.string(),
+            zoo: () =>
+                schema({
+                    schema: v.string(),
+                    fromJson: v.string(),
+                    toJson: v.string(),
+                }),
         })
         .withPostgres()
         .withKyselyConfig()
@@ -96,7 +102,12 @@ Deno.test("createTables", () => {
     const db = createDbBuilder()
         .withTables([TEST_TABLE])
         .withSchemas({
-            zoo: () => v.string(),
+            zoo: () =>
+                schema({
+                    schema: v.string(),
+                    fromJson: v.string(),
+                    toJson: v.string(),
+                }),
         })
         .withPostgres({
             zoo() {

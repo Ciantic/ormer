@@ -3,14 +3,17 @@ import type * as v from "npm:valibot";
 import * as k from "npm:kysely";
 import type { ColumnType } from "./columns.ts";
 import type { Table } from "./table.ts";
-import { SCHEMAS } from "./schemas.ts";
+import { Schema, SCHEMAS } from "./schemas.ts";
 import { POSTGRES_DRIVER } from "./drivers/postgres.ts";
 
 type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 type RecordOfColumnTypes = Record<string, ColumnType<string, any>>;
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
-type RecordOfSchemas = Record<string, (params?: any) => ValibotSchema>;
+type RecordOfSchemas = Record<
+    string,
+    (params?: any) => Schema<ValibotSchema, ValibotSchema, ValibotSchema>
+>;
 type RecordOfColumnTypeToDriver = Record<string, (params?: any) => ColumnTypeToDriver>;
 type ArrayOfTables = Table<any, RecordOfColumnTypes>[];
 
@@ -54,7 +57,7 @@ type InferredValue<
     // Or value from TypeTable (usually TYPES_TO_SCHEMAS)
     ColumnOfTable<T, K, C>["params"]["schema"] extends ValibotSchema
         ? ColumnOfTable<T, K, C>["params"]["schema"]
-        : ReturnType<TypeTable[ColumnOfTable<T, K, C>["type"]]>
+        : ReturnType<TypeTable[ColumnOfTable<T, K, C>["type"]]>["schema"]
 >;
 
 export type InferKyselyTables<

@@ -3,7 +3,7 @@ import { assertEquals, assertThrows } from "jsr:@std/assert";
 import { SCHEMAS } from "./schemas.ts";
 
 Deno.test("int32", () => {
-    const schema = SCHEMAS.int32();
+    const { schema } = SCHEMAS.int32();
     assertEquals(v.parse(schema, 123), 123);
 
     assertThrows(() => v.parse(schema, 123.5), "Decimals not allowed");
@@ -13,7 +13,7 @@ Deno.test("int32", () => {
 });
 
 Deno.test("int64", () => {
-    const schema = SCHEMAS.int64();
+    const { schema } = SCHEMAS.int64();
 
     assertEquals(v.parse(schema, 123), 123);
 
@@ -24,7 +24,7 @@ Deno.test("int64", () => {
 });
 
 Deno.test("bigint", () => {
-    const schema = SCHEMAS.bigint();
+    const { schema } = SCHEMAS.bigint();
 
     // Normal schema is just bigint
     assertEquals(v.parse(schema, 12345n), 12345n);
@@ -36,7 +36,7 @@ Deno.test("bigint", () => {
 });
 
 Deno.test("float32", () => {
-    const schema = SCHEMAS.float32();
+    const { schema } = SCHEMAS.float32();
     assertEquals(v.parse(schema, 123.5), 123.5);
 
     assertThrows(() => v.parse(schema, Infinity), "Number too large");
@@ -45,7 +45,7 @@ Deno.test("float32", () => {
 });
 
 Deno.test("float64", () => {
-    const schema = SCHEMAS.float64();
+    const { schema } = SCHEMAS.float64();
     assertEquals(v.parse(schema, 123.5), 123.5);
 
     assertThrows(() => v.parse(schema, Infinity), "Number too large");
@@ -54,7 +54,7 @@ Deno.test("float64", () => {
 });
 
 Deno.test("decimal", () => {
-    const schema = SCHEMAS.decimal({
+    const { schema } = SCHEMAS.decimal({
         precision: 5,
         scale: 3,
     });
@@ -71,7 +71,7 @@ Deno.test("decimal", () => {
 });
 
 Deno.test("uuid", () => {
-    const schema = SCHEMAS.uuid();
+    const { schema } = SCHEMAS.uuid();
     assertEquals(
         v.parse(schema, "2703b08e-d93c-4fd0-8aca-30a9f22d4d79"),
         "2703b08e-d93c-4fd0-8aca-30a9f22d4d79"
@@ -83,14 +83,14 @@ Deno.test("uuid", () => {
 });
 
 Deno.test("string", () => {
-    const schema = SCHEMAS.string();
+    const { schema } = SCHEMAS.string();
     assertEquals(v.parse(schema, "hello"), "hello");
 
     assertThrows(() => v.parse(schema, 123), "Expected string");
 });
 
 Deno.test("varchar", () => {
-    const schema = SCHEMAS.varchar({
+    const { schema } = SCHEMAS.varchar({
         maxLength: 5,
     });
     assertEquals(v.parse(schema, "hello"), "hello");
@@ -100,7 +100,7 @@ Deno.test("varchar", () => {
 });
 
 Deno.test("boolean", () => {
-    const schema = SCHEMAS.boolean();
+    const { schema } = SCHEMAS.boolean();
     assertEquals(v.parse(schema, true), true);
 
     assertThrows(() => v.parse(schema, 123), "Expected boolean");

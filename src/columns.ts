@@ -13,7 +13,7 @@ type R<T, B> = {
 // deno-lint-ignore ban-types
 export type Params<ExtraProps extends object = {}> = FinalType<
     Readonly<
-        {
+        ExtraProps & {
             primaryKey?: boolean;
             unique?: boolean;
             updateKey?: boolean;
@@ -28,7 +28,7 @@ export type Params<ExtraProps extends object = {}> = FinalType<
             // Should not use these
             // columnName?: string; // Automatically assigned by table()
             // tableName?: string; // Automatically assigned by table()
-        } & ExtraProps
+        }
     >
 >;
 export type ColumnType<Type extends string, Params> = {
