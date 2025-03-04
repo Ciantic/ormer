@@ -81,7 +81,7 @@ Deno.test("boolean", () => {
 });
 
 Deno.test("timestamp", () => {
-    const timestamp = SCHEMAS.timestamp();
+    const timestamp = SCHEMAS.timestamp({});
 
     // From JSON
     assertEquals(v.parse(timestamp.fromJson, "2025-02-28T12:00"), new Date("2025-02-28T12:00:00Z"));
@@ -108,8 +108,8 @@ Deno.test("timestamp", () => {
 });
 
 Deno.test("timestamptz", () => {
-    const timestamptz = SCHEMAS.timestamptz();
-    const timestamp = SCHEMAS.timestamp();
+    const timestamptz = SCHEMAS.timestamptz({});
+    const timestamp = SCHEMAS.timestamp({});
 
     assertEquals(timestamptz.fromJson.expects, timestamp.fromJson.expects);
     assertEquals(timestamptz.toJson.expects, timestamp.toJson.expects);

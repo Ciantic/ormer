@@ -133,52 +133,6 @@ const POSTGRES_COLUMNS = {
             datatype: "json",
         };
     },
-    // Helper types
-    rowversion() {
-        return {
-            datatype: "bigint",
-            from: v.number(),
-            to: v.number(),
-        };
-    },
-    concurrencyStamp() {
-        return {
-            datatype: "uuid",
-            columnDefinition: (f) => f.defaultTo(k.sql`gen_random_uuid()`),
-            from: v.string(),
-            to: v.string(),
-        };
-    },
-    userstring(params) {
-        return {
-            datatype: `varchar(${params.maxLength})`,
-            from: v.string(),
-            to: v.string(),
-        };
-    },
-    email() {
-        return {
-            datatype: "varchar(320)",
-            from: v.string(),
-            to: v.string(),
-        };
-    },
-    updatedAt() {
-        return {
-            datatype: "timestamptz",
-            columnDefinition: (f) => f.defaultTo(k.sql`now()`),
-            from: v.date(),
-            to: v.date(),
-        };
-    },
-    createdAt() {
-        return {
-            datatype: "timestamptz",
-            columnDefinition: (f) => f.defaultTo(k.sql`now()`),
-            from: v.date(),
-            to: v.date(),
-        };
-    },
 } satisfies OrmdriverColumnTypes;
 
 export const POSTGRES_DRIVER = {
@@ -188,10 +142,25 @@ export const POSTGRES_DRIVER = {
     createTablesAfterHook(db, tables) {
         return updatedAtTriggers(db, tables);
     },
+    createTablesColumnHook(builder, column) {
+        if (column.params.default === "now") {
+            builder = builder.defaultTo(k.sql`current_timestamp`);
+        } else if (column.params.default === "generate") {
+            builder = builder.defaultTo(k.sql`gen_random_uuid()`);
+        } else if (
+            typeof column.params.default === "string" ||
+            typeof column.params.default === "number"
+        ) {
+            builder = builder.defaultTo(k.sql.raw("" + column.params.default));
+        } else if (column.params.default !== undefined) {
+            throw new Error("Invalid default value: " + column.params.default);
+        }
+        return builder;
+    },
 } satisfies OrmerDbDriver<"postgres", typeof POSTGRES_COLUMNS>;
 
 /**
- * Generate triggers for updatedAt columns
+ * Generate triggers for auto-updated timestamp columns
  *
  * @param db
  * @param tables
@@ -201,7 +170,10 @@ function updatedAtTriggers(db: k.Kysely<unknown>, tables: Table[]) {
     const updatedAtColumns = [] as [string, string][];
     for (const table of tables) {
         for (const [columnName, def] of Object.entries(table.columns)) {
-            if (def.type === "updatedAt") {
+            if (
+                (def.type === "timestamptz" || def.type === "timestamp") &&
+                def.params.onUpdateSet
+            ) {
                 updatedAtColumns.push([table.table, columnName]);
             }
         }

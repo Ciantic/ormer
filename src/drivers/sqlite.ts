@@ -144,52 +144,6 @@ const SQLITE_COLUMNS = {
             datatype: "text",
         };
     },
-    // Helper types
-    rowversion() {
-        return {
-            datatype: "integer",
-            from: v.number(),
-            to: v.number(),
-        };
-    },
-    concurrencyStamp() {
-        return {
-            datatype: "text",
-            columnDefinition: (f) => f.defaultTo(k.sql`lower(hex(randomblob(16)))`),
-            from: v.string(),
-            to: v.string(),
-        };
-    },
-    userstring(params) {
-        return {
-            datatype: "text",
-            from: v.string(),
-            to: v.string(),
-        };
-    },
-    email() {
-        return {
-            datatype: "text",
-            from: v.string(),
-            to: v.string(),
-        };
-    },
-    updatedAt() {
-        return {
-            datatype: "text",
-            columnDefinition: (f) => f.defaultTo(k.sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`),
-            from: v.date(),
-            to: v.date(),
-        };
-    },
-    createdAt() {
-        return {
-            datatype: "text",
-            columnDefinition: (f) => f.defaultTo(k.sql`strftime('%Y-%m-%dT%H:%M:%fZ', 'now')`),
-            from: v.date(),
-            to: v.date(),
-        };
-    },
 } satisfies OrmdriverColumnTypes;
 
 export const SQLITE_DRIVER = {

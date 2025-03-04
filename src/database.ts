@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-explicit-any
 import type * as v from "npm:valibot";
 import * as k from "npm:kysely";
-import type { ColumnType } from "./columns.ts";
+import type { ColumnType, Params } from "./columns.ts";
 import type { Table } from "./table.ts";
 import { Schema, SCHEMAS } from "./schemas.ts";
 import { POSTGRES_DRIVER } from "./drivers/postgres.ts";
@@ -37,7 +37,11 @@ export type ColumnTypeToDriver = {
 export type OrmerDbDriver<T extends string, ColumnTypeMap extends RecordOfColumnTypeToDriver> = {
     databaseType: StringLiteral<T>;
     columnTypeMap: ColumnTypeMap;
-    // createTablesBeforeHook?: (db: k.Kysely<any>, tables: ArrayOfTables) => k.CompiledQuery[];
+    createTablesColumnHook?: (
+        builder: k.ColumnDefinitionBuilder,
+        column: ColumnType<string, Params>,
+        tables: ArrayOfTables
+    ) => k.ColumnDefinitionBuilder;
     createTablesAfterHook?: (db: k.Kysely<any>, tables: ArrayOfTables) => k.CompiledQuery[];
 };
 
@@ -149,9 +153,10 @@ function createTables<T extends Table<string, Record<string, ColumnType<string, 
                 if (columnType.params?.primaryKey) {
                     p = p.primaryKey();
                 }
-                if (columnType.params?.default) {
-                    p = p.defaultTo(columnType.params.default);
-                }
+                // Driver should handle this
+                // if (columnType.params?.default) {
+                //     p = p.defaultTo(columnType.params.default);
+                // }
                 if (columnType.params?.foreignKeyTable && columnType.params?.foreignKeyColumn) {
                     t.addForeignKeyConstraint(
                         `FOREIGN_KEY_${table.table}_${columnName}_TO_${columnType.params.foreignKeyTable}_${columnType.params.foreignKeyColumn}`,
@@ -162,6 +167,9 @@ function createTables<T extends Table<string, Record<string, ColumnType<string, 
                 }
                 if (columnDefinition) {
                     p = columnDefinition(p);
+                }
+                if (driver.createTablesColumnHook) {
+                    p = driver.createTablesColumnHook(p, columnType, tables);
                 }
                 if (extraSql) {
                     ret.extraSql.push(...extraSql(kysely));

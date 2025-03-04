@@ -1,4 +1,5 @@
 import * as o from "./columns.ts";
+import * as h from "./columnhelpers.ts";
 import { assertEquals } from "jsr:@std/assert";
 
 type Expect<T extends true> = T;
@@ -34,8 +35,8 @@ Deno.test("integer signature", () => {
 Deno.test("pkAutoInc signature", () => {
     // INFERENCE TEST!
 
-    const TEST_INTEGER1 = o.pkAutoInc();
-    const TEST_INTEGER2 = o.pkAutoInc({
+    const TEST_INTEGER1 = h.pkAutoInc();
+    const TEST_INTEGER2 = h.pkAutoInc({
         primaryKey: false,
     });
 

@@ -1,4 +1,4 @@
-import type * as v from "npm:valibot";
+import * as v from "npm:valibot";
 import { Table } from "./table.ts";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
@@ -24,6 +24,7 @@ export type Params<ExtraProps extends object = {}> = FinalType<
             foreignKeyTable?: string;
             foreignKeyColumn?: string;
             autoIncrement?: boolean;
+            schema?: ValibotSchema;
 
             // Should not use these
             // columnName?: string; // Automatically assigned by table()
@@ -93,8 +94,11 @@ export function decimal<T extends DecimalCol>(params: R<T, DecimalCol>): ColumnT
     };
 }
 
+export type UuidCol = Params<{
+    default?: "generate";
+}>;
 export function uuid(): ColumnType<"uuid", undefined>;
-export function uuid<T extends Params>(params: R<T, Params>): ColumnType<"uuid", T>;
+export function uuid<T extends UuidCol>(params: R<T, UuidCol>): ColumnType<"uuid", T>;
 export function uuid(params?: unknown) {
     return {
         type: "uuid",
@@ -163,8 +167,16 @@ export function boolean(params?: unknown) {
     };
 }
 
+export type TimestampCol = Params<{
+    onInsertSet?: boolean;
+    onUpdateSet?: boolean;
+    default?: "now";
+}>;
+
 export function timestamp(): ColumnType<"timestamp", undefined>;
-export function timestamp<T extends Params>(params: R<T, Params>): ColumnType<"timestamp", T>;
+export function timestamp<T extends TimestampCol>(
+    params: R<T, TimestampCol>
+): ColumnType<"timestamp", T>;
 export function timestamp(params?: unknown) {
     return {
         type: "timestamp",
@@ -173,7 +185,9 @@ export function timestamp(params?: unknown) {
 }
 
 export function timestamptz(): ColumnType<"timestamptz", undefined>;
-export function timestamptz<T extends Params>(params: R<T, Params>): ColumnType<"timestamptz", T>;
+export function timestamptz<T extends TimestampCol>(
+    params: R<T, TimestampCol>
+): ColumnType<"timestamptz", T>;
 export function timestamptz(params?: unknown) {
     return {
         type: "timestamptz",
@@ -214,132 +228,5 @@ export function json<Schema extends ValibotSchema, T extends Params<{ schema: Sc
     return {
         type: "json",
         params,
-    };
-}
-// ----------------------------------------------------------------------------
-// Helper types
-// ----------------------------------------------------------------------------
-
-/**
- * Primary key column with auto increment
- *
- * BIGSERIAL or PRIMARY KEY AUTOINCREMENT
- */
-export function pkAutoInc(): ColumnType<
-    "int64",
-    {
-        autoIncrement: true;
-        primaryKey: true;
-        notInsertable: true;
-        notUpdatable: true;
-    }
->;
-export function pkAutoInc<T extends Params>(params: R<T, Params>): ColumnType<"int64", T>;
-export function pkAutoInc(params?: unknown) {
-    return {
-        type: "int64",
-        params: params ?? {
-            primaryKey: true,
-            notInsertable: true,
-            notUpdatable: true,
-            autoIncrement: true,
-        },
-    };
-}
-
-/**
- * Used as an update key to avoid concurrency issues
- *
- * Implementation can be an integer which is incremented on each update
- */
-export function rowversion(): ColumnType<
-    "rowversion",
-    {
-        notInsertable: true;
-        notUpdatable: true;
-        updateKey: true;
-        default: 1;
-    }
-> {
-    return {
-        type: "rowversion",
-        params: {
-            notInsertable: true,
-            notUpdatable: true,
-            updateKey: true,
-            default: 1,
-        },
-    };
-}
-
-/**
- * Concurrency stamp, used like rowversion but is randomized UUID
- *
- * Typically used in .NET applications
- *
- * @returns
- */
-export function concurrencyStamp(): ColumnType<
-    "concurrencyStamp",
-    {
-        notInsertable: true;
-        notUpdatable: true;
-        updateKey: true;
-    }
-> {
-    return {
-        type: "concurrencyStamp",
-        params: {
-            notInsertable: true,
-            notUpdatable: true,
-            updateKey: true,
-        },
-    };
-}
-
-export type UserStringCol = Params<{ minLength?: number; maxLength: number }>;
-
-/**
- * User input string, typically used for names, addresses, etc.
- *
- * This is automatically trimmed and validated for length
- *
- * @param params
- */
-export function userstring<T extends UserStringCol>(
-    params: R<T, UserStringCol>
-): ColumnType<"userstring", T> {
-    return {
-        type: "userstring",
-        params,
-    };
-}
-
-export function email(): ColumnType<"email", undefined>;
-export function email<T extends Params>(params: R<T, Params>): ColumnType<"email", T>;
-export function email(params?: unknown) {
-    return {
-        type: "email",
-        params: params,
-    };
-}
-
-export function updatedAt(): ColumnType<"updatedAt", { notInsertable: true; notUpdatable: true }> {
-    return {
-        type: "updatedAt",
-        params: {
-            notInsertable: true,
-            notUpdatable: true,
-        },
-    };
-}
-
-export function createdAt(): ColumnType<"createdAt", { notInsertable: true; notUpdatable: true }> {
-    return {
-        type: "createdAt",
-        params: {
-            notInsertable: true,
-            notUpdatable: true,
-        },
     };
 }

@@ -1,4 +1,5 @@
 export * from "./src/columns.ts";
+export * from "./src/columnhelpers.ts";
 export * from "./src/table.ts";
 export * from "./src/database.ts";
 export * from "./src/getters.ts";

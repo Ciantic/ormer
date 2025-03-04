@@ -1,5 +1,6 @@
 import * as v from "npm:valibot";
 import * as o from "./columns.ts";
+import * as h from "./columnhelpers.ts";
 import * as g from "./getters.ts";
 import { table } from "./table.ts";
 import { assertEquals } from "jsr:@std/assert";
@@ -20,16 +21,16 @@ function humbug(): o.ColumnType<"humbug", undefined> {
 
 const PERSON_TABLE = table("person", {
     // humbug: humbug(),
-    id: o.pkAutoInc(),
+    id: h.pkAutoInc(),
     publicId: o.uuid({ unique: true, notUpdatable: true }),
-    name: o.userstring({ maxLength: 300, default: "Alice" as const }),
+    name: h.userstring({ maxLength: 300, schema: v.string() }),
     ssn: o.varchar({ maxLength: 10 }),
     notes: o.string(),
-    email: o.email(),
+    email: h.email(),
     age: o.int32(),
     price: o.decimal({ precision: 10, scale: 2 }),
-    createdAt: o.createdAt(),
-    updatedAt: o.updatedAt(),
+    createdAt: h.createdAt(),
+    updatedAt: h.updatedAt(),
     billingAddress: o.jsonb({
         schema: v.object({
             street: v.string(),
@@ -45,8 +46,8 @@ const PERSON_TABLE = table("person", {
         }),
         nullable: true,
     }),
-    stamp: o.concurrencyStamp(),
-    version: o.rowversion(),
+    stamp: h.concurrencyStamp(),
+    version: h.rowversion(),
     isActive: o.boolean(),
 });
 
@@ -89,8 +90,8 @@ Deno.test("getUpdateKeyColumns", () => {
     true satisfies Expect<Equal<keyof typeof columns, "version" | "stamp">>;
 
     assertEquals(Object.keys(columns).length, 2);
-    assertEquals(columns.version.type, "rowversion");
-    assertEquals(columns.stamp.type, "concurrencyStamp");
+    assertEquals(columns.version.type, "int64");
+    assertEquals(columns.stamp.type, "uuid");
 });
 
 Deno.test("getPatchColumns", () => {

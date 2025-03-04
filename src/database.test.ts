@@ -1,6 +1,7 @@
 import * as v from "npm:valibot";
 import * as k from "npm:kysely";
 import * as c from "./columns.ts";
+import * as h from "./columnhelpers.ts";
 import { createDbBuilder } from "./database.ts";
 import { table } from "./table.ts";
 import { assert, assertEquals } from "jsr:@std/assert";
@@ -88,7 +89,7 @@ Deno.test("createDbFactory", () => {
 
 Deno.test("createTables", () => {
     const TEST_TABLE = table("test_table", {
-        bigserial: c.pkAutoInc(),
+        bigserial: h.pkAutoInc(),
         test_int32: c.int32(),
         test_nullable: c.int32({ nullable: true }),
         test_default: c.int32({ default: 42 }),

@@ -105,7 +105,7 @@ export const SCHEMAS = {
             toJson: v.string(),
         });
     },
-    varchar(params: Params<{ maxLength: number }>) {
+    varchar(params) {
         return schema({
             schema: v.pipe(v.string(), v.maxLength(params.maxLength)),
             fromJson: v.string(),
@@ -119,7 +119,7 @@ export const SCHEMAS = {
             toJson: v.boolean(),
         });
     },
-    timestamp() {
+    timestamp(params) {
         return schema({
             schema: v.date(),
             fromJson: v.union([
@@ -154,7 +154,7 @@ export const SCHEMAS = {
             ),
         });
     },
-    timestamptz() {
+    timestamptz(params) {
         return schema({
             schema: v.date(),
             fromJson: v.union([
@@ -215,109 +215,6 @@ export const SCHEMAS = {
             schema: params.schema,
             fromJson: params.schema,
             toJson: params.schema,
-        });
-    },
-    rowversion() {
-        return schema({
-            schema: v.pipe(v.number(), v.integer()),
-            fromJson: v.number(),
-            toJson: v.number(),
-        });
-    },
-    concurrencyStamp() {
-        return schema({
-            schema: v.pipe(v.string(), v.uuid()),
-            fromJson: v.string(),
-            toJson: v.string(),
-        });
-    },
-    userstring(params: Params<{ minLength?: number; maxLength: number }>) {
-        return schema({
-            schema: v.pipe(
-                v.string(),
-                v.trim(),
-                v.minLength(params.minLength ?? 0),
-                v.maxLength(params.maxLength)
-            ),
-            fromJson: v.string(),
-            toJson: v.string(),
-        });
-    },
-    email() {
-        return schema({
-            schema: v.pipe(v.string(), v.trim(), v.email(), v.maxLength(320)),
-            fromJson: v.string(),
-            toJson: v.string(),
-        });
-    },
-    updatedAt() {
-        return schema({
-            schema: v.date(),
-            fromJson: v.union([
-                v.pipe(
-                    // yyyy-mm-ddThh:mm
-                    v.string(),
-                    v.isoDateTime(),
-                    v.transform((s) => new Date(s + "Z"))
-                ),
-                v.pipe(
-                    // yyyy-mm-ddThh:mm:ss.sssZ, yyyy-mm-ddThh:mm:ss.sss±hh:mm, yyyy-mm-ddThh:mm:ss.sss±hhmm
-                    v.string(),
-                    v.isoTimestamp(),
-                    v.transform((s) => new Date(s))
-                ),
-                v.pipe(
-                    // Unix time in seconds
-                    v.number(),
-                    v.transform((i) => {
-                        // Milliseconds
-                        if (i > 9999999999) {
-                            return new Date(i);
-                        }
-                        // Seconds
-                        return new Date(i * 1000);
-                    })
-                ),
-            ]),
-            toJson: v.pipe(
-                v.date(),
-                v.transform((d) => d.toISOString())
-            ),
-        });
-    },
-    createdAt() {
-        return schema({
-            schema: v.date(),
-            fromJson: v.union([
-                v.pipe(
-                    // yyyy-mm-ddThh:mm
-                    v.string(),
-                    v.isoDateTime(),
-                    v.transform((s) => new Date(s + "Z"))
-                ),
-                v.pipe(
-                    // yyyy-mm-ddThh:mm:ss.sssZ, yyyy-mm-ddThh:mm:ss.sss±hh:mm, yyyy-mm-ddThh:mm:ss.sss±hhmm
-                    v.string(),
-                    v.isoTimestamp(),
-                    v.transform((s) => new Date(s))
-                ),
-                v.pipe(
-                    // Unix time in seconds
-                    v.number(),
-                    v.transform((i) => {
-                        // Milliseconds
-                        if (i > 9999999999) {
-                            return new Date(i);
-                        }
-                        // Seconds
-                        return new Date(i * 1000);
-                    })
-                ),
-            ]),
-            toJson: v.pipe(
-                v.date(),
-                v.transform((d) => d.toISOString())
-            ),
         });
     },
 } satisfies MapColumnsTo<Schema<ValibotSchema, ValibotSchema, ValibotSchema>>;

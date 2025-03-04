@@ -9,7 +9,7 @@ const invoiceTable = o.table("invoice", {
         nullable: true,
     }),
     due_date: o.timestamp({
-        default: () => new Date(),
+        default: "now",
     }),
     foo: o.timestamptz(),
     rowversion: o.rowversion(),

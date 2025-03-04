@@ -3,12 +3,13 @@ import * as v from "npm:valibot";
 import { assertEquals, assertNotEquals } from "jsr:@std/assert";
 import { table } from "../table.ts";
 import * as c from "../columns.ts";
+import * as h from "../columnhelpers.ts";
 import { createDbBuilder } from "../database.ts";
 import { PGlite, types } from "npm:@electric-sql/pglite";
 import { createPgLiteDialect } from "../utils/pglitekysely.ts";
 
 const TEST_TABLE = table("test_table", {
-    bigserial: c.pkAutoInc(),
+    bigserial: h.pkAutoInc(),
     test_int32: c.int32(),
     test_int64: c.int64(),
     test_bigint: c.bigint(),
@@ -47,12 +48,12 @@ const TEST_TABLE = table("test_table", {
             }),
         }),
     }),
-    test_rowversion: c.rowversion(),
-    test_concurrencyStamp: c.concurrencyStamp(),
-    test_userstring: c.userstring({ maxLength: 255 }),
-    test_email: c.email(),
-    test_updated_at: c.updatedAt(),
-    test_created_at: c.createdAt(),
+    test_rowversion: h.rowversion(),
+    test_concurrencyStamp: h.concurrencyStamp(),
+    test_userstring: h.userstring({ schema: v.pipe(v.string(), v.maxLength(255)), maxLength: 255 }),
+    test_email: h.email(),
+    test_updated_at: h.updatedAt(),
+    test_created_at: h.createdAt(),
 });
 
 Deno.test("create postgres table", () => {
@@ -97,8 +98,8 @@ Deno.test("create postgres table", () => {
                 "test_concurrencyStamp" uuid default gen_random_uuid() not null,
                 "test_userstring" varchar(255) not null,
                 "test_email" varchar(320) not null,
-                "test_updated_at" timestamptz default now() not null,
-                "test_created_at" timestamptz default now() not null
+                "test_updated_at" timestamptz default current_timestamp not null,
+                "test_created_at" timestamptz default current_timestamp not null
             )`.replace(/\s+/g, "")
     );
 

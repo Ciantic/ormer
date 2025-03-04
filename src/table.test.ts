@@ -1,6 +1,7 @@
 import { assertEquals } from "jsr:@std/assert/equals";
 import { table } from "./table.ts";
 import * as c from "./columns.ts";
+import * as h from "./columnhelpers.ts";
 
 type Expect<T extends true> = T;
 type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
@@ -9,16 +10,16 @@ type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ?
 
 Deno.test("Test inference", () => {
     const invoiceTable = table("invoice", {
-        id: c.pkAutoInc(),
+        id: h.pkAutoInc(),
         title: c.string(),
         description: c.string({
             nullable: true,
         }),
         due_date: c.timestamp({
-            default: () => new Date(),
+            default: "now",
         }),
         foo: c.timestamptz(),
-        rowversion: c.rowversion(),
+        rowversion: h.rowversion(),
     });
 
     true satisfies Expect<
@@ -49,7 +50,7 @@ Deno.test("Test inference", () => {
     true satisfies Expect<
         Equal<
             (typeof invoiceTable.columns)["due_date"],
-            c.ColumnType<"timestamp", { default: () => Date }>
+            c.ColumnType<"timestamp", { default: "now" }>
         >
     >;
 
@@ -60,8 +61,9 @@ Deno.test("Test inference", () => {
         Equal<
             (typeof invoiceTable.columns)["rowversion"],
             c.ColumnType<
-                "rowversion",
+                "int64",
                 {
+                    rowversion: true;
                     notInsertable: true;
                     notUpdatable: true;
                     updateKey: true;
