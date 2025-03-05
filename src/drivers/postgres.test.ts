@@ -7,6 +7,7 @@ import * as h from "../columnhelpers.ts";
 import { createDbBuilder } from "../database.ts";
 import { PGlite, types } from "npm:@electric-sql/pglite";
 import { createPgLiteDialect } from "../utils/pglitekysely.ts";
+import { ORMER_POSTGRES_DRIVER } from "./postgres.ts";
 
 const TEST_TABLE = table("test_table", {
     bigserial: h.pkAutoInc(),
@@ -60,7 +61,7 @@ Deno.test("create postgres table", () => {
     const db = createDbBuilder()
         .withTables([TEST_TABLE])
         .withSchemas()
-        .withPostgres()
+        .withDriver(ORMER_POSTGRES_DRIVER)
         .withKyselyConfig({
             dialect: {
                 createDriver: () => new k.DummyDriver(),
@@ -106,11 +107,11 @@ Deno.test("create postgres table", () => {
     console.log(tablesResult.extraSql.map((q) => q.sql).join("\n"));
 });
 
-Deno.test("create postgres table with schema", async () => {
+Deno.test("create postgres table, insert and update updatedAt", async () => {
     const db = createDbBuilder()
         .withTables([TEST_TABLE])
         .withSchemas()
-        .withPostgres()
+        .withDriver(ORMER_POSTGRES_DRIVER)
         .withKyselyConfig({
             dialect: createPgLiteDialect(
                 new PGlite({

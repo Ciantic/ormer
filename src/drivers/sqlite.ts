@@ -146,7 +146,62 @@ const SQLITE_COLUMNS = {
     },
 } satisfies OrmdriverColumnTypes;
 
-export const SQLITE_DRIVER = {
+export const $SQLITE_UUID_GEN = `
+    (LOWER(
+    printf('%s-%s-4%s-%s%s-%s',
+        hex(randomblob(4)),
+        hex(randomblob(2)),
+        substr(hex(randomblob(2)), 2, 3),
+        substr('89ab', abs(random()) % 4 + 1, 1),
+        substr(hex(randomblob(2)), 2, 3),
+        hex(randomblob(6))
+    )
+))`;
+
+export const ORMER_SQLITE_DRIVER = {
     databaseType: "sqlite" as const,
     columnTypeMap: SQLITE_COLUMNS,
+
+    createTablesColumnHook: (builder, column) => {
+        if (column.params.default === "now") {
+            builder = builder.defaultTo(k.sql.raw("CURRENT_TIMESTAMP"));
+        } else if (column.params.default === "generate") {
+            builder = builder.defaultTo(k.sql.raw($SQLITE_UUID_GEN));
+        } else if (column.params.default !== undefined) {
+            builder = builder.defaultTo(column.params.default);
+        }
+        return builder;
+    },
+
+    createTablesAfterHook(db, tables) {
+        const queries = [];
+        for (const table of tables) {
+            for (const [columnName, column] of Object.entries(table.columns)) {
+                if (column.params.default === "generate") {
+                    // TODO: Does not work for 'WITHOUT ROWID' tables
+                    queries.push(
+                        k.sql`CREATE TRIGGER ${k.sql.ref(`${table.table}_generate_${columnName}`)}
+                        BEFORE UPDATE ON ${k.sql.ref(table.table)}
+                        BEGIN
+                            UPDATE ${k.sql.ref(table.table)}
+                            SET ${k.sql.ref(columnName)} = ${k.sql.raw($SQLITE_UUID_GEN)}
+                            WHERE rowid = NEW.rowid;
+                        END;`.compile(db)
+                    );
+                } else if (column.params.default === "now") {
+                    queries.push(
+                        k.sql`CREATE TRIGGER ${k.sql.ref(`${table.table}_generate_${columnName}`)}
+                        BEFORE UPDATE ON ${k.sql.ref(table.table)}
+                        BEGIN
+                            UPDATE ${k.sql.ref(table.table)}
+                            SET ${k.sql.ref(columnName)} = datetime('subsec')
+                            WHERE rowid = NEW.rowid;
+                        END;`.compile(db)
+                    );
+                }
+            }
+        }
+
+        return queries;
+    },
 } satisfies OrmerDbDriver<"sqlite", typeof SQLITE_COLUMNS>;

@@ -4,7 +4,6 @@ import * as k from "npm:kysely";
 import type { ColumnType, Params } from "./columns.ts";
 import type { Table } from "./table.ts";
 import { Schema, SCHEMAS } from "./schemas.ts";
-import { POSTGRES_DRIVER } from "./drivers/postgres.ts";
 
 type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
@@ -34,16 +33,19 @@ export type ColumnTypeToDriver = {
     extraSql?: (db: k.Kysely<any>) => k.CompiledQuery[];
 };
 
-export type OrmerDbDriver<T extends string, ColumnTypeMap extends RecordOfColumnTypeToDriver> = {
-    databaseType: StringLiteral<T>;
-    columnTypeMap: ColumnTypeMap;
-    createTablesColumnHook?: (
+export interface OrmerDbDriver<T extends string, ColumnTypeMap extends RecordOfColumnTypeToDriver> {
+    readonly databaseType: StringLiteral<T>;
+    readonly columnTypeMap: ColumnTypeMap;
+    readonly createTablesColumnHook?: (
         builder: k.ColumnDefinitionBuilder,
         column: ColumnType<string, Params>,
         tables: ArrayOfTables
     ) => k.ColumnDefinitionBuilder;
-    createTablesAfterHook?: (db: k.Kysely<any>, tables: ArrayOfTables) => k.CompiledQuery[];
-};
+    readonly createTablesAfterHook?: (
+        db: k.Kysely<any>,
+        tables: ArrayOfTables
+    ) => k.CompiledQuery[];
+}
 
 type ColumnOfTable<
     T extends ArrayOfTables,
@@ -202,27 +204,39 @@ interface DbBuilderTables<Tables extends ArrayOfTables> {
 }
 
 interface DbBuilderWithSchemas<Tables extends ArrayOfTables, Schemas extends RecordOfSchemas> {
-    // tables: T;
-    // schemas: Schemas;
-
-    withPostgres(): DbBuilderWithDriver<
-        "postgres",
+    /**
+     * Create a new database with the given driver
+     *
+     * @param driver Use "ORMER_POSTGRES_DRIVER" for Postgres, or "ORMER_SQLITE_DRIVER" for SQLite
+     */
+    withDriver<DbType extends string, ColumnTypes extends RecordOfColumnTypeToDriver>(
+        driver: OrmerDbDriver<DbType, ColumnTypes>
+    ): DbBuilderWithDriver<
+        DbType,
         Tables,
         Schemas,
-        typeof POSTGRES_DRIVER.columnTypeMap,
-        typeof POSTGRES_DRIVER
+        ColumnTypes,
+        OrmerDbDriver<DbType, ColumnTypes>
     >;
 
-    withPostgres<ColumnTypes extends RecordOfColumnTypeToDriver>(
-        columnTypes: ColumnTypes
+    /**
+     * Create a new database with the given driver and additional column types
+     *
+     * @param driver Use "ORMER_POSTGRES_DRIVER" for Postgres, or "ORMER_SQLITE_DRIVER" for SQLite
+     */
+    withDriver<
+        DbType extends string,
+        ColumnTypes extends RecordOfColumnTypeToDriver,
+        AdditionalColumnTypes extends RecordOfColumnTypeToDriver
+    >(
+        driver: OrmerDbDriver<DbType, ColumnTypes>,
+        columnTypes: AdditionalColumnTypes
     ): DbBuilderWithDriver<
-        "postgres",
+        DbType,
         Tables,
         Schemas,
-        typeof POSTGRES_DRIVER.columnTypeMap & ColumnTypes,
-        typeof POSTGRES_DRIVER & {
-            columnTypeMap: typeof POSTGRES_DRIVER.columnTypeMap & ColumnTypes;
-        }
+        ColumnTypes,
+        OrmerDbDriver<DbType, ColumnTypes & AdditionalColumnTypes>
     >;
 }
 
@@ -245,7 +259,6 @@ interface Db<
     ColumnTypes extends RecordOfColumnTypeToDriver,
     OrmDriver extends OrmerDbDriver<DbType, ColumnTypes>
 > {
-    databaseType: StringLiteral<DbType>;
     tables: Tables;
     schemas: Schemas;
     driver: OrmDriver;
@@ -267,20 +280,30 @@ class DbImpl<
     kyselyInstance: k.Kysely<InferKyselyTables<Tables, Schemas>>;
 
     constructor(
-        public databaseType: StringLiteral<DbType>,
         public tables: Tables,
         public schemas: Schemas,
         public driver: OrmDriver,
         kyselyConfig?: k.KyselyConfig
     ) {
-        this.kyselyConfig = kyselyConfig ?? {
-            dialect: {
-                createAdapter: () => new k.PostgresAdapter(),
-                createDriver: () => new k.DummyDriver(),
-                createIntrospector: (db) => new k.PostgresIntrospector(db),
-                createQueryCompiler: () => new k.PostgresQueryCompiler(),
-            },
-        };
+        if (driver.databaseType === "postgres") {
+            this.kyselyConfig = kyselyConfig ?? {
+                dialect: {
+                    createAdapter: () => new k.PostgresAdapter(),
+                    createDriver: () => new k.DummyDriver(),
+                    createIntrospector: (db) => new k.PostgresIntrospector(db),
+                    createQueryCompiler: () => new k.PostgresQueryCompiler(),
+                },
+            };
+        } else {
+            this.kyselyConfig = kyselyConfig ?? {
+                dialect: {
+                    createAdapter: () => new k.SqliteAdapter(),
+                    createDriver: () => new k.DummyDriver(),
+                    createIntrospector: (db) => new k.SqliteIntrospector(db),
+                    createQueryCompiler: () => new k.SqliteQueryCompiler(),
+                },
+            };
+        }
 
         this.kyselyInstance = new k.Kysely({
             ...this.kyselyConfig,
@@ -302,23 +325,25 @@ export function createDbBuilder(): DbBuilder {
             return {
                 withSchemas(schemas?: Record<string, (params?: any) => ValibotSchema>) {
                     return {
-                        withPostgres(columnTypes?: RecordOfColumnTypeToDriver) {
+                        withDriver(
+                            driver: OrmerDbDriver<any, any>,
+                            additional?: RecordOfColumnTypeToDriver
+                        ) {
                             return {
                                 withKyselyConfig(maybeKyselyConfig?: k.KyselyConfig) {
                                     return {
                                         build() {
                                             return new DbImpl(
-                                                "postgres",
                                                 tables,
                                                 {
                                                     ...SCHEMAS,
                                                     ...schemas,
                                                 },
                                                 {
-                                                    ...POSTGRES_DRIVER,
+                                                    ...driver,
                                                     columnTypeMap: {
-                                                        ...POSTGRES_DRIVER.columnTypeMap,
-                                                        ...columnTypes,
+                                                        ...driver.columnTypeMap,
+                                                        ...additional,
                                                     },
                                                 },
                                                 maybeKyselyConfig

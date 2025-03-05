@@ -50,7 +50,7 @@ const foo = o
     .createDbBuilder()
     .withTables([invoiceTable, invoiceRowTable, personTable])
     .withSchemas()
-    .withPostgres()
+    .withDriver(o.ORMER_POSTGRES_DRIVER)
     .withKyselyConfig()
     .build();
 

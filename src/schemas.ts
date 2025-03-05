@@ -119,7 +119,7 @@ export const SCHEMAS = {
             toJson: v.boolean(),
         });
     },
-    timestamp(params) {
+    timestamp() {
         return schema({
             schema: v.date(),
             fromJson: v.union([
@@ -154,7 +154,7 @@ export const SCHEMAS = {
             ),
         });
     },
-    timestamptz(params) {
+    timestamptz() {
         return schema({
             schema: v.date(),
             fromJson: v.union([

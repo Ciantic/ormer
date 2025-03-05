@@ -1,7 +1,7 @@
 import * as k from "npm:kysely";
 import * as v from "npm:valibot";
 import type { OrmdriverColumnTypes } from "../helpers.ts";
-import type { Params } from "../columns.ts";
+import type { ColumnType, Params } from "../columns.ts";
 import type { OrmerDbDriver } from "../database.ts";
 import type { Table } from "../table.ts";
 
@@ -135,7 +135,7 @@ const POSTGRES_COLUMNS = {
     },
 } satisfies OrmdriverColumnTypes;
 
-export const POSTGRES_DRIVER = {
+export const ORMER_POSTGRES_DRIVER = {
     databaseType: "postgres" as const,
     columnTypeMap: POSTGRES_COLUMNS,
 
@@ -147,13 +147,8 @@ export const POSTGRES_DRIVER = {
             builder = builder.defaultTo(k.sql`current_timestamp`);
         } else if (column.params.default === "generate") {
             builder = builder.defaultTo(k.sql`gen_random_uuid()`);
-        } else if (
-            typeof column.params.default === "string" ||
-            typeof column.params.default === "number"
-        ) {
-            builder = builder.defaultTo(k.sql.raw("" + column.params.default));
         } else if (column.params.default !== undefined) {
-            throw new Error("Invalid default value: " + column.params.default);
+            builder = builder.defaultTo(column.params.default);
         }
         return builder;
     },

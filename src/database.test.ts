@@ -6,6 +6,7 @@ import { createDbBuilder } from "./database.ts";
 import { table } from "./table.ts";
 import { assert, assertEquals } from "jsr:@std/assert";
 import { schema } from "./schemas.ts";
+import { ORMER_POSTGRES_DRIVER } from "../mod.ts";
 
 type Expect<T extends true> = T;
 type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
@@ -38,7 +39,15 @@ Deno.test("createDbFactory", () => {
                     toJson: v.string(),
                 }),
         })
-        .withPostgres()
+        .withDriver(ORMER_POSTGRES_DRIVER, {
+            zoo() {
+                return {
+                    datatype: k.sql`zootype`,
+                    from: v.string(),
+                    to: v.string(),
+                };
+            },
+        })
         .withKyselyConfig()
         .build()
         .getKysely();
@@ -110,7 +119,7 @@ Deno.test("createTables", () => {
                     toJson: v.string(),
                 }),
         })
-        .withPostgres({
+        .withDriver(ORMER_POSTGRES_DRIVER, {
             zoo() {
                 return {
                     datatype: k.sql`zootype`,
