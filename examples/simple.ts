@@ -8,10 +8,10 @@ const invoiceTable = o.table("invoice", {
     description: o.string({
         nullable: true,
     }),
-    due_date: o.timestamp({
+    due_date: o.datetime({
         default: "now",
     }),
-    foo: o.timestamptz(),
+    foo: o.datetime(),
     rowversion: o.rowversion(),
     created_at: o.createdAt(),
     updated_at: o.updatedAt(),

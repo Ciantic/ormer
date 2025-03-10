@@ -96,6 +96,7 @@ export function decimal<T extends DecimalCol>(params: R<T, DecimalCol>): ColumnT
 
 export type UuidCol = Params<{
     default?: "generate";
+    onUpdateSet?: boolean;
 }>;
 export function uuid(): ColumnType<"uuid", undefined>;
 export function uuid<T extends UuidCol>(params: R<T, UuidCol>): ColumnType<"uuid", T>;
@@ -167,30 +168,29 @@ export function boolean(params?: unknown) {
     };
 }
 
-export type TimestampCol = Params<{
-    onInsertSet?: boolean;
+export type DateTimeCol = Params<{
     onUpdateSet?: boolean;
     default?: "now";
+    sqlite?: {
+        type: "datetime" | "integer" | "real" | "text";
+        format:
+            | "unixepoch()"
+            | "unixepoch('subsec')"
+            | "datetime('now')"
+            | "datetime('now', 'subsec')";
+    };
+    postgres?: {
+        type: "timestamp" | "timestamptz";
+    };
 }>;
 
-export function timestamp(): ColumnType<"timestamp", undefined>;
-export function timestamp<T extends TimestampCol>(
-    params: R<T, TimestampCol>
-): ColumnType<"timestamp", T>;
-export function timestamp(params?: unknown) {
+export function datetime(): ColumnType<"datetime", undefined>;
+export function datetime<T extends DateTimeCol>(
+    params: R<T, DateTimeCol>
+): ColumnType<"datetime", T>;
+export function datetime(params?: unknown) {
     return {
-        type: "timestamp",
-        params: params,
-    };
-}
-
-export function timestamptz(): ColumnType<"timestamptz", undefined>;
-export function timestamptz<T extends TimestampCol>(
-    params: R<T, TimestampCol>
-): ColumnType<"timestamptz", T>;
-export function timestamptz(params?: unknown) {
-    return {
-        type: "timestamptz",
+        type: "datetime",
         params: params,
     };
 }

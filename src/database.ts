@@ -36,15 +36,19 @@ export type ColumnTypeToDriver = {
 export interface OrmerDbDriver<T extends string, ColumnTypeMap extends RecordOfColumnTypeToDriver> {
     readonly databaseType: StringLiteral<T>;
     readonly columnTypeMap: ColumnTypeMap;
+
     readonly createTablesColumnHook?: (
         builder: k.ColumnDefinitionBuilder,
         column: ColumnType<string, Params>,
         tables: ArrayOfTables
     ) => k.ColumnDefinitionBuilder;
+
     readonly createTablesAfterHook?: (
         db: k.Kysely<any>,
         tables: ArrayOfTables
     ) => k.CompiledQuery[];
+
+    readonly getKyselyPlugins?: () => k.KyselyPlugin[];
 }
 
 type ColumnOfTable<
@@ -173,11 +177,12 @@ function createTables<T extends Table<string, Record<string, ColumnType<string, 
                 if (driver.createTablesColumnHook) {
                     p = driver.createTablesColumnHook(p, columnType, tables);
                 }
-                if (extraSql) {
-                    ret.extraSql.push(...extraSql(kysely));
-                }
                 return p;
             });
+
+            if (extraSql) {
+                ret.extraSql.push(...extraSql(kysely));
+            }
 
             (ret.tables as any)[table.table] = t;
         }
@@ -307,7 +312,7 @@ class DbImpl<
 
         this.kyselyInstance = new k.Kysely({
             ...this.kyselyConfig,
-            plugins: [],
+            plugins: this.driver.getKyselyPlugins?.() ?? [],
         });
     }
 

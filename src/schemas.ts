@@ -119,42 +119,7 @@ export const SCHEMAS = {
             toJson: v.boolean(),
         });
     },
-    timestamp() {
-        return schema({
-            schema: v.date(),
-            fromJson: v.union([
-                v.pipe(
-                    // yyyy-mm-ddThh:mm
-                    v.string(),
-                    v.isoDateTime(),
-                    v.transform((s) => new Date(s + "Z"))
-                ),
-                v.pipe(
-                    // yyyy-mm-ddThh:mm:ss.sssZ, yyyy-mm-ddThh:mm:ss.sss±hh:mm, yyyy-mm-ddThh:mm:ss.sss±hhmm
-                    v.string(),
-                    v.isoTimestamp(),
-                    v.transform((s) => new Date(s))
-                ),
-                v.pipe(
-                    // Unix time in seconds
-                    v.number(),
-                    v.transform((i) => {
-                        // Milliseconds
-                        if (i > 9999999999) {
-                            return new Date(i);
-                        }
-                        // Seconds
-                        return new Date(i * 1000);
-                    })
-                ),
-            ]),
-            toJson: v.pipe(
-                v.date(),
-                v.transform((d) => d.toISOString())
-            ),
-        });
-    },
-    timestamptz() {
+    datetime() {
         return schema({
             schema: v.date(),
             fromJson: v.union([

@@ -1,5 +1,5 @@
 import * as v from "npm:valibot";
-import { ColumnType, Params } from "./columns.ts";
+import { ColumnType, Params, DateTimeCol } from "./columns.ts";
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 // Restrict record T to only keys from record B
 type R<T, B> = {
@@ -71,7 +71,7 @@ export function concurrencyStamp(): ColumnType<
     "uuid",
     {
         default: "generate";
-        concurrencyStamp: true;
+        onUpdateSet: true;
         notInsertable: true;
         notUpdatable: true;
         updateKey: true;
@@ -81,7 +81,7 @@ export function concurrencyStamp(): ColumnType<
         type: "uuid",
         params: {
             default: "generate",
-            concurrencyStamp: true,
+            onUpdateSet: true,
             notInsertable: true,
             notUpdatable: true,
             updateKey: true,
@@ -126,31 +126,34 @@ export function email(params?: unknown): unknown {
 }
 
 export function updatedAt(): ColumnType<
-    "timestamptz",
+    "datetime",
     { notInsertable: true; notUpdatable: true; onUpdateSet: true; default: "now" }
 > {
     return {
-        type: "timestamptz",
+        type: "datetime",
         params: {
             notInsertable: true,
             notUpdatable: true,
             onUpdateSet: true,
             default: "now",
-        },
+        } satisfies DateTimeCol,
     };
 }
 
 export function createdAt(): ColumnType<
-    "timestamptz",
-    { notInsertable: true; notUpdatable: true; onInsertSet: true; default: "now" }
+    "datetime",
+    {
+        notInsertable: true;
+        notUpdatable: true;
+        default: "now";
+    }
 > {
     return {
-        type: "timestamptz",
+        type: "datetime",
         params: {
             notInsertable: true,
             notUpdatable: true,
-            onInsertSet: true,
             default: "now",
-        },
+        } satisfies DateTimeCol,
     };
 }

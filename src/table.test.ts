@@ -15,10 +15,10 @@ Deno.test("Test inference", () => {
         description: c.string({
             nullable: true,
         }),
-        due_date: c.timestamp({
+        due_date: c.datetime({
             default: "now",
         }),
-        foo: c.timestamptz(),
+        foo: c.datetime(),
         rowversion: h.rowversion(),
     });
 
@@ -50,12 +50,12 @@ Deno.test("Test inference", () => {
     true satisfies Expect<
         Equal<
             (typeof invoiceTable.columns)["due_date"],
-            c.ColumnType<"timestamp", { default: "now" }>
+            c.ColumnType<"datetime", { default: "now" }>
         >
     >;
 
     true satisfies Expect<
-        Equal<(typeof invoiceTable.columns)["foo"], c.ColumnType<"timestamptz", undefined>>
+        Equal<(typeof invoiceTable.columns)["foo"], c.ColumnType<"datetime", undefined>>
     >;
     true satisfies Expect<
         Equal<

@@ -21,8 +21,12 @@ const TEST_TABLE = table("test_table", {
     test_string: c.string(),
     test_varchar: c.varchar({ maxLength: 255 }),
     test_boolean: c.boolean(),
-    test_timestamp: c.timestamp(),
-    test_timestamptz: c.timestamptz(),
+    test_datetime: c.datetime(),
+    test_datetime2: c.datetime({
+        postgres: {
+            type: "timestamp",
+        },
+    }),
     test_datepart: c.datepart(),
     test_timepart: c.timepart(),
     test_jsonb: c.jsonb({
@@ -89,8 +93,8 @@ Deno.test("create postgres table", () => {
                 "test_string" text not null,
                 "test_varchar" varchar(255) not null,
                 "test_boolean" boolean not null,
-                "test_timestamp" timestamp not null,
-                "test_timestamptz" timestamptz not null,
+                "test_datetime" timestamptz not null,
+                "test_datetime2" timestamp not null,
                 "test_datepart" date not null,
                 "test_timepart" time not null,
                 "test_jsonb" jsonb not null,
@@ -145,8 +149,8 @@ Deno.test("create postgres table, insert and update updatedAt", async () => {
         test_boolean: true,
         test_string: "test",
         test_varchar: "test",
-        test_timestamp: new Date(),
-        test_timestamptz: new Date(),
+        test_datetime: new Date(),
+        test_datetime2: new Date(),
         test_datepart: "2021-01-01",
         test_timepart: "12:00:00",
         test_jsonb: {

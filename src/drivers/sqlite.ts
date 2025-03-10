@@ -68,11 +68,28 @@ const SQLITE_COLUMNS = {
             to: v.string(),
         };
     },
-    uuid() {
+    uuid(params) {
         return {
             datatype: "text",
             from: v.string(),
             to: v.string(),
+            extraSql: (db) => {
+                if (params.onUpdateSet) {
+                    const columnName = params.columnName;
+                    const tableName = params.tableName;
+                    return [
+                        k.sql`CREATE TRIGGER ${k.sql.ref(`${tableName}_generate_${columnName}`)}
+                    BEFORE UPDATE ON ${k.sql.ref(tableName)}
+                    BEGIN
+                        UPDATE ${k.sql.ref(tableName)}
+                        SET ${k.sql.ref(columnName)} = ${k.sql.raw($SQLITE_UUID_GEN)}
+                        WHERE rowid = NEW.rowid;
+                    END;`.compile(db),
+                    ];
+                }
+
+                return [];
+            },
         };
     },
     string() {
@@ -96,18 +113,32 @@ const SQLITE_COLUMNS = {
             to: v.boolean(),
         };
     },
-    timestamp() {
+    datetime(params) {
         return {
             datatype: "text",
             from: v.date(),
             to: v.date(),
-        };
-    },
-    timestamptz() {
-        return {
-            datatype: "text",
-            from: v.date(),
-            to: v.date(),
+            columnDefinition: (f) => {
+                if (params.default === "now") {
+                    f = f.defaultTo(k.sql.raw("CURRENT_TIMESTAMP"));
+                }
+                return f;
+            },
+            extraSql: (db) => {
+                const queries = [];
+                if (params.onUpdateSet)
+                    queries.push(
+                        k.sql`
+                    CREATE TRIGGER ${k.sql.ref(`${params.tableName}_generate_${params.columnName}`)}
+                    BEFORE UPDATE ON ${k.sql.ref(params.tableName)}
+                    BEGIN
+                        UPDATE ${k.sql.ref(params.tableName)}
+                        SET ${k.sql.ref(params.columnName)} = datetime('subsec')
+                        WHERE rowid = NEW.rowid;
+                    END;`.compile(db)
+                    );
+                return queries;
+            },
         };
     },
     datepart() {
@@ -173,35 +204,59 @@ export const ORMER_SQLITE_DRIVER = {
         return builder;
     },
 
-    createTablesAfterHook(db, tables) {
-        const queries = [];
-        for (const table of tables) {
-            for (const [columnName, column] of Object.entries(table.columns)) {
-                if (column.params.default === "generate") {
-                    // TODO: Does not work for 'WITHOUT ROWID' tables
-                    queries.push(
-                        k.sql`CREATE TRIGGER ${k.sql.ref(`${table.table}_generate_${columnName}`)}
-                        BEFORE UPDATE ON ${k.sql.ref(table.table)}
-                        BEGIN
-                            UPDATE ${k.sql.ref(table.table)}
-                            SET ${k.sql.ref(columnName)} = ${k.sql.raw($SQLITE_UUID_GEN)}
-                            WHERE rowid = NEW.rowid;
-                        END;`.compile(db)
-                    );
-                } else if (column.params.default === "now") {
-                    queries.push(
-                        k.sql`CREATE TRIGGER ${k.sql.ref(`${table.table}_generate_${columnName}`)}
-                        BEFORE UPDATE ON ${k.sql.ref(table.table)}
-                        BEGIN
-                            UPDATE ${k.sql.ref(table.table)}
-                            SET ${k.sql.ref(columnName)} = datetime('subsec')
-                            WHERE rowid = NEW.rowid;
-                        END;`.compile(db)
-                    );
-                }
-            }
-        }
-
-        return queries;
+    getKyselyPlugins() {
+        const transformer = new Transformer();
+        const plugin = {
+            transformQuery: (args) => {
+                return transformer.transformNode(args.node);
+            },
+            transformResult: (args) => {
+                // console.log("TRANSFORM BACK", args);
+                return Promise.resolve(args.result);
+            },
+        } satisfies k.KyselyPlugin;
+        return [plugin];
     },
 } satisfies OrmerDbDriver<"sqlite", typeof SQLITE_COLUMNS>;
+
+// https://github.com/kysely-org/kysely/issues/133#issuecomment-1209458503
+
+class Transformer extends k.OperationNodeTransformer {
+    protected override transformPrimitiveValueList(
+        node: k.PrimitiveValueListNode
+    ): k.PrimitiveValueListNode {
+        console.log(node);
+        return node;
+    }
+
+    protected override transformValue(node: k.ValueNode): k.ValueNode {
+        console.log(node);
+        return node;
+    }
+
+    protected override transformColumnUpdate(node: k.ColumnUpdateNode): k.ColumnUpdateNode {
+        // Note: Used in UPDATE and ON CONFLICT UPDATE
+        console.log(node);
+        return node;
+    }
+
+    protected override transformInsertQuery(node: k.InsertQueryNode): k.InsertQueryNode {
+        console.log(node);
+        return node;
+    }
+
+    protected override transformUpdateQuery(node: k.UpdateQueryNode): k.UpdateQueryNode {
+        console.log(node);
+        return node;
+    }
+
+    // override transformNode<T extends k.OperationNode | undefined>(node: T): T {
+    //     console.log(node);
+    //     return node;
+    // }
+
+    // protected override transformSetOperation(node: k.SetOperationNode): k.SetOperationNode {
+    //     console.log(node);
+    //     return node;
+    // }
+}

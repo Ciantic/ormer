@@ -80,8 +80,8 @@ Deno.test("boolean", () => {
     assertEquals(v.parse(boolean.toJson, true), true);
 });
 
-Deno.test("timestamp", () => {
-    const timestamp = SCHEMAS.timestamp();
+Deno.test("datetime", () => {
+    const timestamp = SCHEMAS.datetime();
 
     // From JSON
     assertEquals(v.parse(timestamp.fromJson, "2025-02-28T12:00"), new Date("2025-02-28T12:00:00Z"));
@@ -105,35 +105,6 @@ Deno.test("timestamp", () => {
         v.parse(timestamp.toJson, new Date("2025-02-28T12:00:00Z")),
         "2025-02-28T12:00:00.000Z"
     );
-});
-
-Deno.test("timestamptz", () => {
-    const timestamptz = SCHEMAS.timestamptz();
-    const timestamp = SCHEMAS.timestamp();
-
-    assertEquals(timestamptz.fromJson.expects, timestamp.fromJson.expects);
-    assertEquals(timestamptz.toJson.expects, timestamp.toJson.expects);
-
-    /*
-    // From JSON
-    assertEquals(
-        v.parse(timestamp.fromJson, "2025-02-28T11:00:00.123[-01:00]"),
-        Temporal.ZonedDateTime.fromJson("2025-02-28T11:00:00.123[-01:00]")
-    );
-    assertEquals(
-        v.parse(timestamp.fromJson, "2025-02-28T11:00:00.123+02:00[Europe/Helsinki]"),
-        Temporal.ZonedDateTime.fromJson("2025-02-28T11:00:00.123+02:00[Europe/Helsinki]")
-    );
-
-    // To JSON
-    assertEquals(
-        v.parse(
-            timestamp.toJson,
-            Temporal.ZonedDateTime.fromJson("2025-02-28T11:00:00.123[Europe/Helsinki]")
-        ),
-        "2025-02-28T11:00:00.123+02:00[Europe/Helsinki]"
-    );
-    */
 });
 
 Deno.test("datepart", () => {

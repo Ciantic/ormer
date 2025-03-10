@@ -85,16 +85,9 @@ const POSTGRES_COLUMNS = {
             to: v.boolean(),
         };
     },
-    timestamp() {
+    datetime(params) {
         return {
-            datatype: "timestamp",
-            from: v.date(),
-            to: v.date(),
-        };
-    },
-    timestamptz() {
-        return {
-            datatype: "timestamptz",
+            datatype: params.postgres?.type ?? "timestamptz",
             from: v.date(),
             to: v.date(),
         };
@@ -165,10 +158,7 @@ function updatedAtTriggers(db: k.Kysely<unknown>, tables: Table[]) {
     const updatedAtColumns = [] as [string, string][];
     for (const table of tables) {
         for (const [columnName, def] of Object.entries(table.columns)) {
-            if (
-                (def.type === "timestamptz" || def.type === "timestamp") &&
-                def.params.onUpdateSet
-            ) {
+            if (def.type === "datetime" && def.params.onUpdateSet) {
                 updatedAtColumns.push([table.table, columnName]);
             }
         }

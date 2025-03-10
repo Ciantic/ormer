@@ -21,8 +21,7 @@ const TEST_TABLE = table("test_table", {
     test_string: c.string(),
     test_varchar: c.varchar({ maxLength: 255 }),
     test_boolean: c.boolean(),
-    test_timestamp: c.timestamp(),
-    test_timestamptz: c.timestamptz(),
+    test_datetime: c.datetime(),
     test_datepart: c.datepart(),
     test_timepart: c.timepart(),
     test_jsonb: c.jsonb({
@@ -89,8 +88,7 @@ Deno.test("create sqlite table", () => {
                 "test_string" text not null,
                 "test_varchar" text not null,
                 "test_boolean" integer not null,
-                "test_timestamp" text not null,
-                "test_timestamptz" text not null,
+                "test_datetime" text not null,
                 "test_datepart" text not null,
                 "test_timepart" text not null,
                 "test_jsonb" text not null,
@@ -128,8 +126,7 @@ Deno.test("create sqlite table, insert and update updatedAt", async () => {
         test_boolean: true,
         test_string: "test",
         test_varchar: "test",
-        test_timestamp: new Date(),
-        test_timestamptz: new Date(),
+        test_datetime: new Date(),
         test_datepart: "2021-01-01",
         test_timepart: "12:00:00",
         test_jsonb: {
@@ -170,9 +167,9 @@ Deno.test("create sqlite table, insert and update updatedAt", async () => {
     //         bigserial: 1,
     //         ...insertValue,
     //         test_rowversion: 1,
-    //         test_concurrencyStamp: results[0].test_concurrencyStamp,
-    //         test_created_at: results[0].test_created_at,
-    //         test_updated_at: results[0].test_updated_at,
+    //         test_concurrencyStamp: insertResult[0].test_concurrencyStamp,
+    //         test_created_at: insertResult[0].test_created_at,
+    //         test_updated_at: insertResult[0].test_updated_at,
     //     },
     // ]);
 
