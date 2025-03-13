@@ -48,7 +48,7 @@ export interface OrmerDbDriver<T extends string, ColumnTypeMap extends RecordOfC
         tables: ArrayOfTables
     ) => k.CompiledQuery[];
 
-    readonly getKyselyPlugins?: () => k.KyselyPlugin[];
+    readonly getKyselyPlugins?: (tables: Table[]) => k.KyselyPlugin[];
 }
 
 type ColumnOfTable<
@@ -312,7 +312,7 @@ class DbImpl<
 
         this.kyselyInstance = new k.Kysely({
             ...this.kyselyConfig,
-            plugins: this.driver.getKyselyPlugins?.() ?? [],
+            plugins: this.driver.getKyselyPlugins?.(tables) ?? [],
         });
     }
 

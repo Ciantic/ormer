@@ -1,9 +1,11 @@
 import * as k from "npm:kysely";
 import * as v from "npm:valibot";
 import type { OrmdriverColumnTypes } from "../helpers.ts";
-import type { ColumnType, Params } from "../columns.ts";
+import type { Params } from "../columns.ts";
 import type { OrmerDbDriver } from "../database.ts";
 import type { Table } from "../table.ts";
+import { TransformerKyselyPlugin } from "../utils/transformerkyselyplugin.ts";
+import { getDatabaseSerializers } from "../getters.ts";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 
@@ -135,6 +137,7 @@ export const ORMER_POSTGRES_DRIVER = {
     createTablesAfterHook(db, tables) {
         return updatedAtTriggers(db, tables);
     },
+
     createTablesColumnHook(builder, column) {
         if (column.params.default === "now") {
             builder = builder.defaultTo(k.sql`current_timestamp`);
@@ -144,6 +147,10 @@ export const ORMER_POSTGRES_DRIVER = {
             builder = builder.defaultTo(column.params.default);
         }
         return builder;
+    },
+
+    getKyselyPlugins(tables) {
+        return [new TransformerKyselyPlugin(getDatabaseSerializers(tables, this.columnTypeMap))];
     },
 } satisfies OrmerDbDriver<"postgres", typeof POSTGRES_COLUMNS>;
 

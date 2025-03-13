@@ -3,6 +3,8 @@ import * as v from "npm:valibot";
 import type { OrmdriverColumnTypes } from "../helpers.ts";
 import type { Params } from "../columns.ts";
 import type { OrmerDbDriver } from "../database.ts";
+import { TransformerKyselyPlugin } from "../utils/transformerkyselyplugin.ts";
+import { getDatabaseSerializers } from "../getters.ts";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 
@@ -193,7 +195,7 @@ export const ORMER_SQLITE_DRIVER = {
     databaseType: "sqlite" as const,
     columnTypeMap: SQLITE_COLUMNS,
 
-    createTablesColumnHook: (builder, column) => {
+    createTablesColumnHook(builder, column) {
         if (column.params.default === "now") {
             builder = builder.defaultTo(k.sql.raw("CURRENT_TIMESTAMP"));
         } else if (column.params.default === "generate") {
@@ -204,59 +206,9 @@ export const ORMER_SQLITE_DRIVER = {
         return builder;
     },
 
-    getKyselyPlugins() {
-        const transformer = new Transformer();
-        const plugin = {
-            transformQuery: (args) => {
-                return transformer.transformNode(args.node);
-            },
-            transformResult: (args) => {
-                // console.log("TRANSFORM BACK", args);
-                return Promise.resolve(args.result);
-            },
-        } satisfies k.KyselyPlugin;
-        return [plugin];
+    getKyselyPlugins(tables) {
+        const serializers = getDatabaseSerializers(tables, this.columnTypeMap);
+        const columnNameBasedSerializer = new TransformerKyselyPlugin(serializers);
+        return [columnNameBasedSerializer];
     },
 } satisfies OrmerDbDriver<"sqlite", typeof SQLITE_COLUMNS>;
-
-// https://github.com/kysely-org/kysely/issues/133#issuecomment-1209458503
-
-class Transformer extends k.OperationNodeTransformer {
-    protected override transformPrimitiveValueList(
-        node: k.PrimitiveValueListNode
-    ): k.PrimitiveValueListNode {
-        console.log(node);
-        return node;
-    }
-
-    protected override transformValue(node: k.ValueNode): k.ValueNode {
-        console.log(node);
-        return node;
-    }
-
-    protected override transformColumnUpdate(node: k.ColumnUpdateNode): k.ColumnUpdateNode {
-        // Note: Used in UPDATE and ON CONFLICT UPDATE
-        console.log(node);
-        return node;
-    }
-
-    protected override transformInsertQuery(node: k.InsertQueryNode): k.InsertQueryNode {
-        console.log(node);
-        return node;
-    }
-
-    protected override transformUpdateQuery(node: k.UpdateQueryNode): k.UpdateQueryNode {
-        console.log(node);
-        return node;
-    }
-
-    // override transformNode<T extends k.OperationNode | undefined>(node: T): T {
-    //     console.log(node);
-    //     return node;
-    // }
-
-    // protected override transformSetOperation(node: k.SetOperationNode): k.SetOperationNode {
-    //     console.log(node);
-    //     return node;
-    // }
-}

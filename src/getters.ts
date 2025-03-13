@@ -3,9 +3,11 @@ import type * as v from "npm:valibot";
 import type { ColumnType } from "./columns.ts";
 import type { Table } from "./table.ts";
 import { Schema } from "./schemas.ts";
+import { ColumnTypeToDriver } from "./database.ts";
 
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+type RecordOfColumnTypes = Record<string, ColumnType<string, any>>;
 type RecordOfSchemas = Record<
     string,
     (params?: any) => Schema<ValibotSchema, ValibotSchema, ValibotSchema>
@@ -124,4 +126,52 @@ export function getSchemasFromColumns<
         acc[key] = schema;
         return acc;
     }, {} as any);
+}
+
+type RecordOfColumnTypeToDriver = Record<string, (params?: any) => ColumnTypeToDriver>;
+type ArrayOfTables = Table<any, RecordOfColumnTypes>[];
+
+export function getDatabaseSerializers<
+    Tables extends ArrayOfTables,
+    ColumnTypes extends RecordOfColumnTypeToDriver
+>(
+    tables: Tables,
+    columnTypes: ColumnTypes
+): {
+    [K in Tables[number]["table"]]: {
+        [C in keyof Extract<Tables[number], Table<K, RecordOfColumnTypes>>["columns"]]: {
+            from: ReturnType<
+                ColumnTypes[Extract<
+                    Tables[number],
+                    Table<K, RecordOfColumnTypes>
+                >["columns"][C]["type"]]
+            >["from"];
+            to: ReturnType<
+                ColumnTypes[Extract<
+                    Tables[number],
+                    Table<K, RecordOfColumnTypes>
+                >["columns"][C]["type"]]
+            >["to"];
+        };
+    };
+} {
+    const serializers = {} as any;
+
+    for (const table of tables) {
+        const tableName = table.table;
+        serializers[tableName] = {};
+
+        for (const columnName in table.columns) {
+            const column = table.columns[columnName];
+            const columnType = column.type;
+            const serializer = columnTypes[columnType](column.params);
+
+            serializers[tableName][columnName] = {
+                from: serializer.from,
+                to: serializer.to,
+            };
+        }
+    }
+
+    return serializers;
 }
