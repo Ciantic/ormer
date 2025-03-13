@@ -30,7 +30,8 @@ export type ColumnTypeToDriver = {
     tableDefinition?: (
         table: k.CreateTableBuilder<never, never>
     ) => k.CreateTableBuilder<never, never>;
-    extraSql?: (db: k.Kysely<any>) => k.CompiledQuery[];
+    prependSql?: (db: k.Kysely<any>) => k.CompiledQuery[];
+    appendSql?: (db: k.Kysely<any>) => k.CompiledQuery[];
 };
 
 export interface OrmerDbDriver<T extends string, ColumnTypeMap extends RecordOfColumnTypeToDriver> {
@@ -113,17 +114,23 @@ function createTables<T extends Table<string, Record<string, ColumnType<string, 
 ) {
     const ret: {
         tables: Record<T[number]["table"], k.CreateTableBuilder<any, any>>;
-        extraSql: k.CompiledQuery[];
+        appendSql: k.CompiledQuery[];
+        prependSql: k.CompiledQuery[];
         execute: () => Promise<void>;
     } = {
         tables: {} as any,
-        extraSql: [],
+        appendSql: [],
+        prependSql: [],
         execute: async () => {
+            for (const query of ret.prependSql) {
+                await kysely.executeQuery(query);
+            }
+
             for (const table of Object.values(ret.tables)) {
                 await (table as k.CreateTableBuilder<any, any>).execute();
             }
 
-            for (const query of ret.extraSql) {
+            for (const query of ret.appendSql) {
                 await kysely.executeQuery(query);
             }
         },
@@ -139,7 +146,8 @@ function createTables<T extends Table<string, Record<string, ColumnType<string, 
                 throw new Error(`Driver is missing column type: ${columnType.type}`);
             }
 
-            const { datatype, columnDefinition, tableDefinition, extraSql } = columnTypeToDriver;
+            const { datatype, columnDefinition, tableDefinition, prependSql, appendSql } =
+                columnTypeToDriver;
 
             if (!datatype) {
                 throw new Error(`Unknown column type: ${columnType.type}`);
@@ -180,8 +188,12 @@ function createTables<T extends Table<string, Record<string, ColumnType<string, 
                 return p;
             });
 
-            if (extraSql) {
-                ret.extraSql.push(...extraSql(kysely));
+            if (appendSql) {
+                ret.appendSql.push(...appendSql(kysely));
+            }
+
+            if (prependSql) {
+                ret.prependSql.push(...prependSql(kysely));
             }
 
             (ret.tables as any)[table.table] = t;
@@ -190,7 +202,7 @@ function createTables<T extends Table<string, Record<string, ColumnType<string, 
     }
 
     if (driver.createTablesAfterHook) {
-        ret.extraSql.push(...driver.createTablesAfterHook(kysely, tables));
+        ret.appendSql.push(...driver.createTablesAfterHook(kysely, tables));
     }
 
     return ret;

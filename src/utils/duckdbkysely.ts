@@ -14,7 +14,7 @@ export function createDuckDbDialect(db: DuckDBInstance) {
                                 compiledQuery.sql,
                                 compiledQuery.parameters.slice() as any
                             );
-                            const rows = results.getRowObjects();
+                            const rows = results.getRowObjectsJson();
 
                             return {
                                 rows: rows as any,

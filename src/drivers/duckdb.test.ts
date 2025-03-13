@@ -5,12 +5,12 @@ import { table } from "../table.ts";
 import * as c from "../columns.ts";
 import * as h from "../columnhelpers.ts";
 import { createDbBuilder } from "../database.ts";
-import { PGlite, types } from "npm:@electric-sql/pglite";
-import { createPgLiteDialect } from "../utils/pglitekysely.ts";
-import { ORMER_POSTGRES_DRIVER } from "./postgres.ts";
+import { ORMER_DUCKDB_DRIVER } from "./duckdb.ts";
+import { createDuckDbDialect } from "../utils/duckdbkysely.ts";
+import { DuckDBInstance, DuckDBConnection } from "npm:@duckdb/node-api";
 
 const TEST_TABLE = table("test_table", {
-    bigserial: h.pkAutoInc(),
+    pk_auto_inc: h.pkAutoInc(),
     test_int32: c.int32(),
     test_int64: c.int64(),
     test_bigint: c.bigint(),
@@ -22,11 +22,7 @@ const TEST_TABLE = table("test_table", {
     test_varchar: c.varchar({ maxLength: 255 }),
     test_boolean: c.boolean(),
     test_datetime: c.datetime(),
-    test_datetime2: c.datetime({
-        postgres: {
-            type: "timestamp",
-        },
-    }),
+    test_datetime2: c.datetime(),
     test_datepart: c.datepart(),
     test_timepart: c.timepart(),
     test_jsonb: c.jsonb({
@@ -65,7 +61,7 @@ Deno.test("create postgres table", () => {
     const db = createDbBuilder()
         .withTables([TEST_TABLE])
         .withSchemas()
-        .withDriver(ORMER_POSTGRES_DRIVER)
+        .withDriver(ORMER_DUCKDB_DRIVER)
         .withKyselyConfig({
             dialect: {
                 createDriver: () => new k.DummyDriver(),
@@ -82,24 +78,24 @@ Deno.test("create postgres table", () => {
         queries.replace(/\s+/g, ""),
 
         `create table "test_table" (
-                "bigserial" bigserial not null primary key,
-                "test_int32" integer not null,
-                "test_int64" bigint not null,
+                "pk_auto_inc" int8 default 1 not null primary key,
+                "test_int32" int4 not null,
+                "test_int64" int8 not null,
                 "test_bigint" numeric not null,
                 "test_float32" real not null,
-                "test_float64" double precision not null,
+                "test_float64" float8 not null,
                 "test_decimal" decimal(10, 2) not null,
                 "test_uuid" uuid not null,
                 "test_string" text not null,
                 "test_varchar" varchar(255) not null,
                 "test_boolean" boolean not null,
                 "test_datetime" timestamptz not null,
-                "test_datetime2" timestamp not null,
+                "test_datetime2" timestamptz not null,
                 "test_datepart" date not null,
                 "test_timepart" time not null,
-                "test_jsonb" jsonb not null,
+                "test_jsonb" json not null,
                 "test_json" json not null,
-                "test_rowversion" bigint default 1 not null,
+                "test_rowversion" int8 default 1 not null,
                 "test_concurrencyStamp" uuid default gen_random_uuid() not null,
                 "test_userstring" varchar(255) not null,
                 "test_email" varchar(320) not null,
@@ -112,31 +108,13 @@ Deno.test("create postgres table", () => {
 });
 
 Deno.test("create postgres table, insert and update updatedAt", async () => {
+    const instance = await DuckDBInstance.create(":memory:");
     const db = createDbBuilder()
         .withTables([TEST_TABLE])
         .withSchemas()
-        .withDriver(ORMER_POSTGRES_DRIVER)
+        .withDriver(ORMER_DUCKDB_DRIVER)
         .withKyselyConfig({
-            dialect: createPgLiteDialect(
-                new PGlite({
-                    parsers: {
-                        [types.TIMESTAMP]: (value) => {
-                            // Parse timestamps as UTC
-                            return new Date(value + "Z");
-                        },
-                        [types.NUMERIC]: (value) => {
-                            try {
-                                return BigInt(value);
-                            } catch (_e) {
-                                return value;
-                            }
-                        },
-                        [types.DATE]: (value) => {
-                            return value;
-                        },
-                    },
-                })
-            ),
+            dialect: createDuckDbDialect(instance),
         })
         .build();
 
@@ -181,7 +159,7 @@ Deno.test("create postgres table, insert and update updatedAt", async () => {
 
     assertEquals(results, [
         {
-            bigserial: 1,
+            pk_auto_inc: 1,
             ...insertValue,
             test_rowversion: 1,
             test_concurrencyStamp: results[0].test_concurrencyStamp,

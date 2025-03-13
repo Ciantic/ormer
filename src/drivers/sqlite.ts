@@ -75,7 +75,7 @@ const SQLITE_COLUMNS = {
             datatype: "text",
             from: v.string(),
             to: v.string(),
-            extraSql: (db) => {
+            appendSql: (db) => {
                 if (params.onUpdateSet) {
                     const columnName = params.columnName;
                     const tableName = params.tableName;
@@ -126,7 +126,7 @@ const SQLITE_COLUMNS = {
                 }
                 return f;
             },
-            extraSql: (db) => {
+            appendSql: (db) => {
                 const queries = [];
                 if (params.onUpdateSet)
                     queries.push(

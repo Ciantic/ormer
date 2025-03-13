@@ -102,7 +102,7 @@ Deno.test("create sqlite table", () => {
             )`.replace(/\s+/g, "")
     );
 
-    console.log(tablesResult.extraSql.map((q) => q.sql).join("\n"));
+    console.log(tablesResult.appendSql.map((q) => q.sql).join("\n"));
 });
 
 Deno.test("create sqlite table, insert and update updatedAt", async () => {
