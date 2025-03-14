@@ -2,13 +2,38 @@ import * as k from "npm:kysely";
 import * as v from "npm:valibot";
 import type { OrmdriverColumnTypes } from "../helpers.ts";
 import type { Params } from "../columns.ts";
-import type { OrmerDbDriver } from "../database.ts";
+import type { ColumnTypeToDriver, OrmerDbDriver } from "../database.ts";
 import type { Table } from "../table.ts";
 import { TransformerKyselyPlugin } from "../utils/transformerkyselyplugin.ts";
 import { getDatabaseSerializers } from "../getters.ts";
 import { DuckDBDateValue, DuckDBTimestampTZValue, DuckDBTimeValue } from "npm:@duckdb/node-api";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+
+function autoIncrement(params: Params & { columnName: string; tableName: string }) {
+    return {
+        columnDefinition: (c) => {
+            if (params.autoIncrement) {
+                c = c.defaultTo(
+                    k.sql`nextval(${k.sql.lit(`${params.tableName}_${params.columnName}_seq`)})`
+                );
+            }
+
+            return c;
+        },
+        prependSql(db) {
+            const sql = [] as k.CompiledQuery[];
+            if (params.autoIncrement) {
+                sql.push(
+                    k.sql`CREATE SEQUENCE ${k.sql.ref(
+                        `${params.tableName}_${params.columnName}_seq`
+                    )};`.compile(db)
+                );
+            }
+            return sql;
+        },
+    } satisfies Partial<ColumnTypeToDriver>;
+}
 
 const DUCKDB_COLUMNS = {
     // Primitive types
@@ -17,58 +42,26 @@ const DUCKDB_COLUMNS = {
             datatype: "int4",
             from: v.number(),
             to: v.number(),
-            columnDefinition: (c) => {
-                if (params.autoIncrement) {
-                    c = c.defaultTo(
-                        k.sql`nextval(${k.sql.lit(`${params.tableName}_${params.columnName}_seq`)})`
-                    );
-                }
-
-                return c;
-            },
-            prependSql(db) {
-                const sql = [] as k.CompiledQuery[];
-                if (params.autoIncrement) {
-                    sql.push(
-                        k.sql`CREATE SEQUENCE ${k.sql.ref(
-                            `${params.tableName}_${params.columnName}_seq`
-                        )};`.compile(db)
-                    );
-                }
-                return sql;
-            },
+            ...autoIncrement(params),
         };
     },
     int64(params) {
         return {
             datatype: "int8",
-            from: v.number(),
+            from: v.union([
+                v.pipe(
+                    v.string(),
+                    v.transform((v) => +v)
+                ),
+                v.number(),
+            ]),
             to: v.number(),
-            columnDefinition: (c) => {
-                if (params.autoIncrement) {
-                    c = c.defaultTo(
-                        k.sql`nextval(${k.sql.lit(`${params.tableName}_${params.columnName}_seq`)})`
-                    );
-                }
-
-                return c;
-            },
-            prependSql(db) {
-                const sql = [] as k.CompiledQuery[];
-                if (params.autoIncrement) {
-                    sql.push(
-                        k.sql`CREATE SEQUENCE ${k.sql.ref(
-                            `${params.tableName}_${params.columnName}_seq`
-                        )};`.compile(db)
-                    );
-                }
-                return sql;
-            },
+            ...autoIncrement(params),
         };
     },
     bigint() {
         return {
-            datatype: "numeric",
+            datatype: k.sql`hugeint`,
             from: v.bigint(),
             to: v.bigint(),
         };

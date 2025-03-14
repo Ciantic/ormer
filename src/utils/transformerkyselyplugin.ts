@@ -19,7 +19,7 @@ type DatabaseSerializerMapping = Record<
 export class TransformerKyselyPlugin implements k.KyselyPlugin {
     private transformer: Transformer;
 
-    constructor(mapping: DatabaseSerializerMapping) {
+    constructor(private mapping: DatabaseSerializerMapping) {
         this.transformer = new Transformer(mapping);
     }
 
@@ -28,6 +28,8 @@ export class TransformerKyselyPlugin implements k.KyselyPlugin {
     }
 
     transformResult(args: k.PluginTransformResultArgs): Promise<k.QueryResult<k.UnknownRow>> {
+        // TODO: Use the mapping to transform the result
+        // Field `from`
         return Promise.resolve(args.result);
     }
 }

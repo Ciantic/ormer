@@ -57,7 +57,7 @@ const TEST_TABLE = table("test_table", {
     test_created_at: h.createdAt(),
 });
 
-Deno.test("create postgres table", () => {
+Deno.test("create duckdb table", () => {
     const db = createDbBuilder()
         .withTables([TEST_TABLE])
         .withSchemas()
@@ -78,10 +78,10 @@ Deno.test("create postgres table", () => {
         queries.replace(/\s+/g, ""),
 
         `create table "test_table" (
-                "pk_auto_inc" int8 default 1 not null primary key,
+                "pk_auto_inc" int8 default nextval('test_table_pk_auto_inc_seq') not null primary key,
                 "test_int32" int4 not null,
                 "test_int64" int8 not null,
-                "test_bigint" numeric not null,
+                "test_bigint" hugeint not null,
                 "test_float32" real not null,
                 "test_float64" float8 not null,
                 "test_decimal" decimal(10, 2) not null,
@@ -107,7 +107,7 @@ Deno.test("create postgres table", () => {
     console.log(tablesResult.appendSql.map((q) => q.sql).join("\n"));
 });
 
-Deno.test("create postgres table, insert and update updatedAt", async () => {
+Deno.test("create duckdb table, insert and update updatedAt", async () => {
     const instance = await DuckDBInstance.create(":memory:");
     const db = createDbBuilder()
         .withTables([TEST_TABLE])
