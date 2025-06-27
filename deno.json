@@ -1,7 +1,8 @@
 {
     "exports": "./mod.ts",
     "tasks": {
-        "dev": "deno run --watch main.ts"
+        "dev": "deno run --watch main.ts",
+        "test": "deno test --allow-ffi --allow-env --allow-read"
     },
     "compilerOptions": {
         "exactOptionalPropertyTypes": true
