@@ -1,4 +1,4 @@
-import * as v from "npm:valibot";
+import * as v from "valibot";
 import { ColumnType, Params, DateTimeCol } from "./columns.ts";
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 // Restrict record T to only keys from record B

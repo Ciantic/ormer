@@ -1,12 +1,12 @@
-import * as k from "npm:kysely";
-import * as v from "npm:valibot";
+import * as k from "kysely";
+import * as v from "valibot";
 import type { OrmdriverColumnTypes } from "../helpers.ts";
 import type { Params } from "../columns.ts";
 import type { ColumnTypeToDriver, OrmerDbDriver } from "../database.ts";
 import type { Table } from "../table.ts";
 import { TransformerKyselyPlugin } from "../utils/transformerkyselyplugin.ts";
 import { getDatabaseSerializers } from "../getters.ts";
-import { DuckDBDateValue, DuckDBTimestampTZValue, DuckDBTimeValue } from "npm:@duckdb/node-api";
+import { DuckDBDateValue, DuckDBTimestampTZValue, DuckDBTimeValue } from "@duckdb/node-api";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 

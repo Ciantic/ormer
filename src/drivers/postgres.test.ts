@@ -1,11 +1,11 @@
-import * as k from "npm:kysely";
-import * as v from "npm:valibot";
+import * as k from "kysely";
+import * as v from "valibot";
 import { assertEquals, assertNotEquals } from "jsr:@std/assert";
 import { table } from "../table.ts";
 import * as c from "../columns.ts";
 import * as h from "../columnhelpers.ts";
 import { createDbBuilder } from "../database.ts";
-import { PGlite, types } from "npm:@electric-sql/pglite";
+import { PGlite, types } from "@electric-sql/pglite";
 import { createPgLiteDialect } from "../utils/pglitekysely.ts";
 import { ORMER_POSTGRES_DRIVER } from "./postgres.ts";
 

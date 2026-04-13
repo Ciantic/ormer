@@ -1,5 +1,5 @@
-import { jsonArrayFrom } from "npm:kysely/helpers/sqlite";
-import * as v from "npm:valibot";
+import { jsonArrayFrom } from "kysely/helpers/sqlite";
+import * as v from "valibot";
 import * as o from "../mod.ts";
 
 const invoiceTable = o.table("invoice", {

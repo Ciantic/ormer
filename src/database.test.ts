@@ -1,5 +1,5 @@
-import * as v from "npm:valibot";
-import * as k from "npm:kysely";
+import * as v from "valibot";
+import * as k from "kysely";
 import * as c from "./columns.ts";
 import * as h from "./columnhelpers.ts";
 import { createDbBuilder } from "./database.ts";

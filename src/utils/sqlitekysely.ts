@@ -1,5 +1,5 @@
 // deno-lint-ignore-file
-import * as k from "npm:kysely";
+import * as k from "kysely";
 import type { Database } from "jsr:@db/sqlite";
 
 export function createSqliteDialect(db: Database) {

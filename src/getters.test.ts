@@ -1,4 +1,4 @@
-import * as v from "npm:valibot";
+import * as v from "valibot";
 import * as o from "./columns.ts";
 import * as h from "./columnhelpers.ts";
 import * as g from "./getters.ts";

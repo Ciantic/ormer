@@ -1,4 +1,4 @@
-import * as v from "npm:valibot";
+import * as v from "valibot";
 import type { MapColumnsTo } from "./helpers.ts";
 import type { Params } from "./columns.ts";
 

@@ -1,4 +1,4 @@
-import * as v from "npm:valibot";
+import * as v from "valibot";
 import { assertEquals } from "jsr:@std/assert";
 import { SCHEMAS } from "./schemas.ts";
 

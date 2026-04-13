@@ -1,4 +1,4 @@
-import * as v from "npm:valibot";
+import * as v from "valibot";
 import { Table } from "./table.ts";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;

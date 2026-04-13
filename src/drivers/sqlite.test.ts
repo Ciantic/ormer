@@ -1,5 +1,5 @@
-import * as k from "npm:kysely";
-import * as v from "npm:valibot";
+import * as k from "kysely";
+import * as v from "valibot";
 import { Database } from "jsr:@db/sqlite";
 import { assertEquals, assertNotEquals } from "jsr:@std/assert";
 import { table } from "../table.ts";

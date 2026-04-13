@@ -1,0 +1,22 @@
+{
+  "name": "ormer",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.22.0",
+  "devDependencies": {
+    "vitest": "^4.1.4"
+  },
+  "dependencies": {
+    "@duckdb/node-api": "1.5.1-r.2",
+    "@electric-sql/pglite": "^0.4.4",
+    "kysely": "^0.28.16",
+    "valibot": "^1.3.1"
+  }
+}

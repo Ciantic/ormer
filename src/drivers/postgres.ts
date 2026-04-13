@@ -1,5 +1,5 @@
-import * as k from "npm:kysely";
-import * as v from "npm:valibot";
+import * as k from "kysely";
+import * as v from "valibot";
 import type { OrmdriverColumnTypes } from "../helpers.ts";
 import type { Params } from "../columns.ts";
 import type { OrmerDbDriver } from "../database.ts";

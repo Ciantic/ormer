@@ -1,5 +1,5 @@
-import * as k from "npm:kysely";
-import * as v from "npm:valibot";
+import * as k from "kysely";
+import * as v from "valibot";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 type TableName = string;

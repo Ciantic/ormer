@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
-import type * as v from "npm:valibot";
+import type * as v from "valibot";
 import type { ColumnType } from "./columns.ts";
 import type { Table } from "./table.ts";
 import { Schema } from "./schemas.ts";

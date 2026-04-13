@@ -1,6 +1,6 @@
 // deno-lint-ignore-file
-import * as k from "npm:kysely";
-import { PGlite } from "npm:@electric-sql/pglite";
+import * as k from "kysely";
+import { PGlite } from "@electric-sql/pglite";
 
 export function createPgLiteDialect(db: PGlite) {
     return {

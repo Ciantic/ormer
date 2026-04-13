@@ -1,6 +1,6 @@
 // deno-lint-ignore-file
-import * as k from "npm:kysely";
-import type { DuckDBInstance, DuckDBConnection } from "npm:@duckdb/node-api";
+import * as k from "kysely";
+import type { DuckDBInstance, DuckDBConnection } from "@duckdb/node-api";
 
 export function createDuckDbDialect(db: DuckDBInstance) {
     return {
