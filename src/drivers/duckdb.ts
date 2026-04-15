@@ -187,7 +187,6 @@ export const ORMER_DUCKDB_DRIVER = {
 
     createTablesAfterHook(db, tables) {
         return [];
-        // return updatedAtTriggers(db, tables);
     },
 
     createTablesColumnHook(builder, column) {
@@ -205,56 +204,3 @@ export const ORMER_DUCKDB_DRIVER = {
         return [new TransformerKyselyPlugin(getDatabaseSerializers(tables, this.columnTypeMap))];
     },
 } satisfies OrmerDbDriver<"duckdb", typeof DUCKDB_COLUMNS>;
-
-/**
- * Generate triggers for auto-updated timestamp columns
- *
- * @param db
- * @param tables
- */
-function updatedAtTriggers(db: k.Kysely<unknown>, tables: Table[]) {
-    const results = [] as k.CompiledQuery[];
-    const updatedAtColumns = [] as [string, string][];
-    for (const table of tables) {
-        for (const [columnName, def] of Object.entries(table.columns)) {
-            if (def.type === "datetime" && def.params.onUpdateSet) {
-                updatedAtColumns.push([table.table, columnName]);
-            }
-        }
-    }
-    if (updatedAtColumns.length > 0) {
-        // For all unique updatedAt column names, create function
-        const uniqueColumnNames = new Set(updatedAtColumns.map(([, columnName]) => columnName));
-        for (const columnName of uniqueColumnNames) {
-            results.push(
-                k.sql`
-                    CREATE FUNCTION onupdate_set_timestamp_${k.sql.raw(
-                        columnName
-                    )}() RETURNS trigger
-                        LANGUAGE plpgsql AS
-                    $$BEGIN
-                        -- Set only if the value has not changed
-                        IF NEW.${k.sql.ref(columnName)} = OLD.${k.sql.ref(columnName)} THEN
-                            NEW.${k.sql.ref(columnName)} := current_timestamp;
-                        END IF;
-                        RETURN NEW;
-                    END;$$;
-                `.compile(db)
-            );
-        }
-
-        // Create the trigger for each table
-        for (const [tableName, columnName] of updatedAtColumns) {
-            results.push(
-                // Create the trigger
-                k.sql`
-                    CREATE TRIGGER ${k.sql.ref(tableName + "_" + columnName + "_update")}
-                        BEFORE UPDATE ON ${k.sql.table(tableName)}
-                    FOR EACH ROW
-                    EXECUTE FUNCTION onupdate_set_timestamp_${k.sql.raw(columnName)}();
-                `.compile(db)
-            );
-        }
-    }
-    return results;
-}
