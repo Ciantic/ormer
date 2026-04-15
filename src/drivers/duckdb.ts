@@ -6,7 +6,7 @@ import type { ColumnTypeToDriver, OrmerDbDriver } from "../database.ts";
 import type { Table } from "../table.ts";
 import { TransformerKyselyPlugin } from "../utils/transformerkyselyplugin.ts";
 import { getDatabaseSerializers } from "../getters.ts";
-import { DuckDBDateValue, DuckDBTimestampTZValue, DuckDBTimeValue } from "@duckdb/node-api";
+import { DuckDBTimestampTZValue } from "@duckdb/node-api";
 
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
 
@@ -141,20 +141,22 @@ const DUCKDB_COLUMNS = {
                 ),
                 v.string(),
             ]),
-            to: v.pipe(
-                v.string(),
-                v.transform((v) => new DuckDBDateValue(0))
-            ),
+            to: v.string(),
+            // to: v.pipe(
+            //     v.string(),
+            //     v.transform((v) => new DuckDBDateValue(...))
+            // ),
         };
     },
     timepart() {
         return {
             datatype: "time",
             from: v.string(),
-            to: v.pipe(
-                v.string(),
-                v.transform((v) => new DuckDBTimeValue(0n))
-            ),
+            to: v.string(),
+            // to: v.pipe(
+            //     v.string(),
+            //     v.transform((v) => new DuckDBTimeValue(...))
+            // ),
         };
     },
     jsonb<T extends ValibotSchema>(params: Params<{ schema: T }>) {

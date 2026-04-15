@@ -2,18 +2,19 @@ import * as v from "valibot";
 import * as k from "kysely";
 import * as c from "./columns.ts";
 import * as h from "./columnhelpers.ts";
+import { describe, it, expect } from "vitest";
 import { createDbBuilder } from "./database.ts";
 import { table } from "./table.ts";
-import { assert, assertEquals } from "jsr:@std/assert";
 import { schema } from "./schemas.ts";
-import { ORMER_POSTGRES_DRIVER } from "../mod.ts";
+import { ORMER_POSTGRES_DRIVER } from "./drivers/postgres.ts";
 
 type Expect<T extends true> = T;
 type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
     ? true
     : false;
 
-Deno.test("createDbFactory", () => {
+describe("database", () => {
+  it("createDbFactory", () => {
     const PERSON_TABLE = table("person", {
         someNullable: c.string({ nullable: true }),
         someDefault: c.string({ default: "foo" }),
@@ -93,10 +94,10 @@ Deno.test("createDbFactory", () => {
         >
     >;
 
-    assert(db instanceof k.Kysely);
+    expect(db instanceof k.Kysely).toBe(true);
 });
 
-Deno.test("createTables", () => {
+it("createTables", () => {
     const TEST_TABLE = table("test_table", {
         bigserial: h.pkAutoInc(),
         test_int32: c.int32(),
@@ -133,8 +134,8 @@ Deno.test("createTables", () => {
 
     const sql = db.createTables().tables.test_table.compile().sql;
 
-    assertEquals(
-        sql,
+    expect(sql).toBe(
         `create table "test_table" ("bigserial" bigserial not null primary key, "test_int32" integer not null, "test_nullable" integer, "test_default" integer default 42 not null, "test_varchar" varchar(255) not null, "test_zoo" zootype not null)`
     );
+  });
 });

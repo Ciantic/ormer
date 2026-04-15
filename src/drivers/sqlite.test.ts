@@ -1,13 +1,13 @@
 import * as k from "kysely";
 import * as v from "valibot";
-import { Database } from "jsr:@db/sqlite";
-import { assertEquals, assertNotEquals } from "jsr:@std/assert";
+import { describe, it, expect } from "vitest";
 import { table } from "../table.ts";
 import * as c from "../columns.ts";
 import * as h from "../columnhelpers.ts";
 import { createDbBuilder } from "../database.ts";
 import { $SQLITE_UUID_GEN, ORMER_SQLITE_DRIVER } from "./sqlite.ts";
-import { createSqliteDialect } from "../utils/sqlitekysely.ts";
+import Database from "libsql";
+// import Database from "better-sqlite3";
 
 const TEST_TABLE = table("test_table", {
     bigserial: h.pkAutoInc(),
@@ -56,7 +56,8 @@ const TEST_TABLE = table("test_table", {
     test_created_at: h.createdAt(),
 });
 
-Deno.test("create sqlite table", () => {
+describe("sqlite", () => {
+  it("create sqlite table", () => {
     const db = createDbBuilder()
         .withTables([TEST_TABLE])
         .withSchemas()
@@ -73,9 +74,9 @@ Deno.test("create sqlite table", () => {
     const tablesResult = db.createTables();
     const queries = tablesResult.tables.test_table.compile().sql;
 
-    assertEquals(
+    expect(
         queries.replace(/\s+/g, ""),
-
+    ).toBe(
         `create table "test_table" (
                 "bigserial" integer not null primary key autoincrement,
                 "test_int32" integer not null,
@@ -102,10 +103,10 @@ Deno.test("create sqlite table", () => {
             )`.replace(/\s+/g, "")
     );
 
-    console.log(tablesResult.appendSql.map((q) => q.sql).join("\n"));
-});
+    // console.log(tablesResult.appendSql.map((q) => q.sql).join("\n"));
+  });
 
-Deno.test("create sqlite table, insert and update updatedAt", async () => {
+  it("create sqlite table, insert and update updatedAt", async () => {
     const sqlite = new Database(":memory:");
 
     const db = createDbBuilder()
@@ -113,7 +114,9 @@ Deno.test("create sqlite table, insert and update updatedAt", async () => {
         .withSchemas()
         .withDriver(ORMER_SQLITE_DRIVER)
         .withKyselyConfig({
-            dialect: createSqliteDialect(sqlite),
+            dialect: new k.SqliteDialect({
+                database: sqlite,
+            }),
         })
         .build();
 
@@ -126,28 +129,28 @@ Deno.test("create sqlite table, insert and update updatedAt", async () => {
         test_boolean: true,
         test_string: "test",
         test_varchar: "test",
-        test_datetime: new Date(),
+        test_datetime: "2021-01-01 12:00:00",
         test_datepart: "2021-01-01",
         test_timepart: "12:00:00",
-        test_jsonb: {
+        test_jsonb: JSON.stringify({
             somestring: "test",
             someint: 1,
             somebool: true,
             somearray: ["foo", "bar"],
             someobject: { foo: "bar", bar: 1 },
-        },
+        }) as any,
         test_decimal: "1.23",
         test_email: "john@example.com",
         test_float32: 1.23,
         test_float64: 1.23,
         test_int64: 3,
-        test_json: {
+        test_json: JSON.stringify({
             somestring: "test",
             someint: 1,
             somebool: true,
             somearray: ["foo", "bar"],
             someobject: { foo: "bar", bar: 1 },
-        },
+        }) as any,
         test_userstring: "test",
         test_uuid: "3aa2d82f-241f-4a31-a364-99736dd49d96",
     };
@@ -156,22 +159,29 @@ Deno.test("create sqlite table, insert and update updatedAt", async () => {
         .values(insertValue)
         .returningAll()
         .execute();
-
-    // Ensure concurrency stamp was generated
-    assertNotEquals(insertResult[0].test_concurrencyStamp, null);
-    assertEquals(insertResult[0].test_concurrencyStamp.length, 36);
+        
+    if (!insertResult[0]) {
+        throw new Error("Insert failed");
+    }
 
     // Ensure datatype deserialization works
-    // assertEquals(insertResult, [
-    //     {
-    //         bigserial: 1,
-    //         ...insertValue,
-    //         test_rowversion: 1,
-    //         test_concurrencyStamp: insertResult[0].test_concurrencyStamp,
-    //         test_created_at: insertResult[0].test_created_at,
-    //         test_updated_at: insertResult[0].test_updated_at,
-    //     },
-    // ]);
+    expect(insertResult).toEqual([
+        {
+            bigserial: 1,
+            ...insertValue,
+            test_bigint: "3",
+            test_rowversion: 1,
+            test_boolean: 1,
+            test_concurrencyStamp: insertResult[0].test_concurrencyStamp,
+            test_created_at: insertResult[0].test_created_at,
+            test_updated_at: insertResult[0].test_updated_at,
+        },
+    ]);
+
+    // Ensure concurrency stamp was generated
+    expect(insertResult[0].test_concurrencyStamp).not.toBe(null);
+    expect(insertResult[0].test_concurrencyStamp.length).toBe(36);
+
 
     const updateResult = await kysely
         .updateTable("test_table")
@@ -179,9 +189,11 @@ Deno.test("create sqlite table, insert and update updatedAt", async () => {
         .returningAll()
         .execute();
 
-    // Ensure that the concurrency stamp is updated
-    assertNotEquals(insertResult[0].test_concurrencyStamp, updateResult[0].test_concurrencyStamp);
+    if (!updateResult[0]) {
+        throw new Error("Update failed");
+    }
 
-    // Ensure that the updated_at field is updated (by trigger)
-    assertNotEquals(updateResult[0].test_updated_at, insertResult[0].test_updated_at);
+    expect(updateResult[0].test_concurrencyStamp).not.toBe(insertResult[0].test_concurrencyStamp);
+    expect(updateResult[0].test_updated_at).not.toBe(insertResult[0].test_updated_at);
+  });
 });

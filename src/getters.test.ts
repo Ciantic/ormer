@@ -3,8 +3,8 @@ import * as o from "./columns.ts";
 import * as h from "./columnhelpers.ts";
 import * as g from "./getters.ts";
 import { table } from "./table.ts";
-import { assertEquals } from "jsr:@std/assert";
 import { SCHEMAS } from "./schemas.ts";
+import { describe, it, expect } from "vitest";
 
 type Expect<T extends true> = T;
 type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
@@ -50,19 +50,19 @@ const PERSON_TABLE = table("person", {
     version: h.rowversion(),
     isActive: o.boolean(),
 });
-
-Deno.test("getPrimaryKeyColumns", () => {
+describe("getters", () => {
+it("getPrimaryKeyColumns", () => {
     const columns = g.getPrimaryKeyColumns(PERSON_TABLE);
 
     // Pure type level test
     true satisfies Expect<Equal<keyof typeof columns, "id">>;
 
     // Runtime test
-    assertEquals(Object.keys(columns).length, 1);
-    assertEquals(columns.id.type, "int64");
+    expect(Object.keys(columns).length).toBe(1);
+    expect(columns.id.type).toBe("int64");
 });
 
-Deno.test("getInsertColumns", () => {
+it("getInsertColumns", () => {
     const columns = g.getInsertColumns(PERSON_TABLE);
     const expected_keys = [
         "publicId",
@@ -79,22 +79,22 @@ Deno.test("getInsertColumns", () => {
 
     true satisfies Expect<Equal<keyof typeof columns, (typeof expected_keys)[number]>>;
 
-    assertEquals(Object.keys(columns).length, expected_keys.length);
-    assertEquals(new Set(Object.keys(columns)), new Set(expected_keys));
+    expect(Object.keys(columns).length).toBe(expected_keys.length);
+    expect(new Set(Object.keys(columns))).toEqual(new Set(expected_keys));
 });
 
-Deno.test("getUpdateKeyColumns", () => {
+it("getUpdateKeyColumns", () => {
     const columns = g.getUpdateKeyColumns(PERSON_TABLE);
 
     // Pure type level test
     true satisfies Expect<Equal<keyof typeof columns, "version" | "stamp">>;
 
-    assertEquals(Object.keys(columns).length, 2);
-    assertEquals(columns.version.type, "int64");
-    assertEquals(columns.stamp.type, "uuid");
+    expect(Object.keys(columns).length).toBe(2);
+    expect(columns.version.type).toBe("int64");
+    expect(columns.stamp.type).toBe("uuid");
 });
 
-Deno.test("getPatchColumns", () => {
+it("getPatchColumns", () => {
     const columns = g.getPatchColumns(PERSON_TABLE);
     const expected_keys = [
         "name",
@@ -111,11 +111,11 @@ Deno.test("getPatchColumns", () => {
     // Pure type level test
     true satisfies Expect<Equal<keyof typeof columns, (typeof expected_keys)[number]>>;
 
-    assertEquals(Object.keys(columns).length, 9);
-    assertEquals(new Set(Object.keys(columns)), new Set(expected_keys));
+    expect(Object.keys(columns).length).toBe(9);
+    expect(new Set(Object.keys(columns))).toEqual(new Set(expected_keys));
 });
 
-Deno.test("getSchemasFromColumns", () => {
+it("getSchemasFromColumns", () => {
     const columns = g.getSchemasFromColumns(PERSON_TABLE.columns, SCHEMAS);
 
     // Pure type level test
@@ -123,5 +123,6 @@ Deno.test("getSchemasFromColumns", () => {
 
     columns.billingAddress;
 
-    assertEquals(Object.keys(columns).length, Object.keys(PERSON_TABLE.columns).length);
+    expect(Object.keys(columns).length).toBe(Object.keys(PERSON_TABLE.columns).length);
+});
 });

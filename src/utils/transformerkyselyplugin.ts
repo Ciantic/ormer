@@ -18,8 +18,10 @@ type DatabaseSerializerMapping = Record<
 
 export class TransformerKyselyPlugin implements k.KyselyPlugin {
     private transformer: Transformer;
+    private mapping: DatabaseSerializerMapping;
 
-    constructor(private mapping: DatabaseSerializerMapping) {
+    constructor(mapping: DatabaseSerializerMapping) {
+        this.mapping = mapping;
         this.transformer = new Transformer(mapping);
     }
 
@@ -43,26 +45,27 @@ function debugLogValue(value: unknown) {
 }
 
 class Transformer extends k.OperationNodeTransformer {
-    constructor(private mapping: DatabaseSerializerMapping) {
-        // console.log(mapping);
+    private mapping: DatabaseSerializerMapping;
+    constructor(mapping: DatabaseSerializerMapping) {
         super();
+        this.mapping = mapping;
     }
 
     protected override transformPrimitiveValueList(
         node: k.PrimitiveValueListNode
     ): k.PrimitiveValueListNode {
-        console.log(node);
+        // console.log(node);
         return node;
     }
 
     protected override transformValue(node: k.ValueNode): k.ValueNode {
-        console.log(node);
+        // console.log(node);
         return node;
     }
 
     protected override transformColumnUpdate(node: k.ColumnUpdateNode): k.ColumnUpdateNode {
         // Note: Used in UPDATE and ON CONFLICT UPDATE
-        console.log(node);
+        // console.log(node);
         return node;
     }
 
@@ -71,9 +74,9 @@ class Transformer extends k.OperationNodeTransformer {
         if (schema) {
             const res = v.safeParse(schema, value);
             if (res.success) {
-                console.info(
-                    `Value ${debugLogValue(value)} mapped to ${debugLogValue(res.output)}`
-                );
+                // console.info(
+                //     `Value ${debugLogValue(value)} mapped to ${debugLogValue(res.output)}`
+                // );
                 return res.output;
             } else {
                 console.error(res.issues);
@@ -97,7 +100,7 @@ class Transformer extends k.OperationNodeTransformer {
                 }
 
                 const newValues = primitiveList.values.map((value, i) => {
-                    const columnName = node.columns?.[i].column.name;
+                    const columnName = node.columns?.[i]?.column.name;
 
                     if (tableName && columnName) {
                         return this.mapValue(tableName, columnName, value);
@@ -117,7 +120,7 @@ class Transformer extends k.OperationNodeTransformer {
     }
 
     protected override transformUpdateQuery(node: k.UpdateQueryNode): k.UpdateQueryNode {
-        console.log(node);
+        // console.log(node);
         return node;
     }
 

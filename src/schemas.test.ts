@@ -1,108 +1,106 @@
 import * as v from "valibot";
-import { assertEquals, assertThrows } from "jsr:@std/assert";
+import { describe, it, expect } from "vitest";
 import { SCHEMAS } from "./schemas.ts";
 
-Deno.test("int32", () => {
+describe("schemas", () => {
+  it("int32", () => {
     const { schema } = SCHEMAS.int32();
-    assertEquals(v.parse(schema, 123), 123);
+    expect(v.parse(schema, 123)).toBe(123);
 
-    assertThrows(() => v.parse(schema, 123.5), "Decimals not allowed");
-    assertThrows(() => v.parse(schema, 2147483648), "Number too large");
-    assertThrows(() => v.parse(schema, -2147483649), "Number too small");
-    assertThrows(() => v.parse(schema, "12345"), "Expected number");
-});
+    expect(() => v.parse(schema, 123.5)).toThrow("Invalid integer");
+    expect(() => v.parse(schema, 2147483648)).toThrow("Invalid value");
+    expect(() => v.parse(schema, -2147483649)).toThrow("Invalid value");
+    expect(() => v.parse(schema, "12345")).toThrow("Expected number");
+  });
 
-Deno.test("int64", () => {
+  it("int64", () => {
     const { schema } = SCHEMAS.int64();
 
-    assertEquals(v.parse(schema, 123), 123);
+    expect(v.parse(schema, 123)).toBe(123);
 
-    assertThrows(() => v.parse(schema, 123.5), "Decimals not allowed");
-    assertThrows(() => v.parse(schema, Number.MAX_SAFE_INTEGER + 1), "Number too large");
-    assertThrows(() => v.parse(schema, Number.MIN_SAFE_INTEGER - 1), "Number too small");
-    assertThrows(() => v.parse(schema, "12345"), "Expected number");
-});
+    expect(() => v.parse(schema, 123.5)).toThrow("Invalid integer");
+    expect(() => v.parse(schema, Number.MAX_SAFE_INTEGER + 1)).toThrow("Invalid value");
+    expect(() => v.parse(schema, Number.MIN_SAFE_INTEGER - 1)).toThrow("Invalid value");
+    expect(() => v.parse(schema, "12345")).toThrow("Expected number");
+  });
 
-Deno.test("bigint", () => {
+  it("bigint", () => {
     const { schema } = SCHEMAS.bigint();
 
-    // Normal schema is just bigint
-    assertEquals(v.parse(schema, 12345n), 12345n);
+    expect(v.parse(schema, 12345n)).toBe(12345n);
 
-    assertThrows(() => v.parse(schema, 123.5), "Decimals not allowed");
-    assertThrows(() => v.parse(schema, Infinity), "Number too large");
-    assertThrows(() => v.parse(schema, -Infinity), "Number too small");
-    assertThrows(() => v.parse(schema, "not_a_number"), "Expected number");
-});
+    expect(() => v.parse(schema, 123.5)).toThrow("Invalid type");
+    expect(() => v.parse(schema, Infinity)).toThrow("Invalid type");
+    expect(() => v.parse(schema, -Infinity)).toThrow("Invalid type");
+    expect(() => v.parse(schema, "1.23")).toThrow("Invalid type");
+  });
 
-Deno.test("float32", () => {
+  it("float32", () => {
     const { schema } = SCHEMAS.float32();
-    assertEquals(v.parse(schema, 123.5), 123.5);
+    expect(v.parse(schema, 123.5)).toBe(123.5);
 
-    assertThrows(() => v.parse(schema, Infinity), "Number too large");
-    assertThrows(() => v.parse(schema, -Infinity), "Number too small");
-    assertThrows(() => v.parse(schema, "1.23"), "Expected number");
-});
+    expect(() => v.parse(schema, Infinity)).toThrow("Invalid value");
+    expect(() => v.parse(schema, -Infinity)).toThrow("Invalid value");
+    expect(() => v.parse(schema, "1.23")).toThrow("Expected number");
+  });
 
-Deno.test("float64", () => {
+  it("float64", () => {
     const { schema } = SCHEMAS.float64();
-    assertEquals(v.parse(schema, 123.5), 123.5);
+    expect(v.parse(schema, 123.5)).toBe(123.5);
 
-    assertThrows(() => v.parse(schema, Infinity), "Number too large");
-    assertThrows(() => v.parse(schema, -Infinity), "Number too small");
-    assertThrows(() => v.parse(schema, "1.23"), "Expected number");
-});
+    expect(() => v.parse(schema, Infinity)).toThrow("Invalid value");
+    expect(() => v.parse(schema, -Infinity)).toThrow("Invalid value");
+    expect(() => v.parse(schema, "1.23")).toThrow("Expected number");
+  });
 
-Deno.test("decimal", () => {
+  it("decimal", () => {
     const { schema } = SCHEMAS.decimal({
-        precision: 5,
-        scale: 3,
+      precision: 5,
+      scale: 3,
     });
-    assertEquals(v.parse(schema, "12345.123"), "12345.123");
+    expect(v.parse(schema, "12345.123")).toBe("12345.123");
 
-    assertThrows(() => v.parse(schema, Infinity), "Number too large");
-    assertThrows(() => v.parse(schema, -Infinity), "Number too small");
-    assertThrows(() => v.parse(schema, "not_a_number"), "Invalid decimal");
-    assertThrows(() => v.parse(schema, "123456.123"), "Length too large");
-    assertThrows(() => v.parse(schema, "12345.1234"), "Length too large");
+    expect(() => v.parse(schema, Infinity)).toThrow("Invalid type");
+    expect(() => v.parse(schema, -Infinity)).toThrow("Invalid type");
+    expect(() => v.parse(schema, "invalid")).toThrow("Invalid decimal");
+    expect(() => v.parse(schema, "123456.123")).toThrow("Invalid length");
+    expect(() => v.parse(schema, "12345.1234")).toThrow("Invalid length");
+    expect(() => v.parse(schema, 1234.123)).toThrow("Expected string");
+  });
 
-    // TODO: Maybe allow?
-    assertThrows(() => v.parse(schema, 1234.123), "Expected string");
-});
-
-Deno.test("uuid", () => {
+  it("uuid", () => {
     const { schema } = SCHEMAS.uuid();
-    assertEquals(
-        v.parse(schema, "2703b08e-d93c-4fd0-8aca-30a9f22d4d79"),
-        "2703b08e-d93c-4fd0-8aca-30a9f22d4d79"
-    );
+    expect(
+      v.parse(schema, "2703b08e-d93c-4fd0-8aca-30a9f22d4d79")
+    ).toBe("2703b08e-d93c-4fd0-8aca-30a9f22d4d79");
 
-    assertThrows(() => v.parse(schema, "not_a_uuid"), "Invalid UUID");
-    assertThrows(() => v.parse(schema, 123), "Expected string");
-    assertThrows(() => v.parse(schema, 123n), "Expected string");
-});
+    expect(() => v.parse(schema, "not_a_uuid")).toThrow("Invalid UUID");
+    expect(() => v.parse(schema, 123)).toThrow("Expected string");
+    expect(() => v.parse(schema, 123n)).toThrow("Expected string");
+  });
 
-Deno.test("string", () => {
+  it("string", () => {
     const { schema } = SCHEMAS.string();
-    assertEquals(v.parse(schema, "hello"), "hello");
+    expect(v.parse(schema, "hello")).toBe("hello");
 
-    assertThrows(() => v.parse(schema, 123), "Expected string");
-});
+    expect(() => v.parse(schema, 123)).toThrow("Expected string");
+  });
 
-Deno.test("varchar", () => {
+  it("varchar", () => {
     const { schema } = SCHEMAS.varchar({
-        maxLength: 5,
+      maxLength: 5,
     });
-    assertEquals(v.parse(schema, "hello"), "hello");
+    expect(v.parse(schema, "hello")).toBe("hello");
 
-    assertThrows(() => v.parse(schema, "123456"), "Length too large");
-    assertThrows(() => v.parse(schema, 123), "Expected string");
-});
+    expect(() => v.parse(schema, "123456")).toThrow("Invalid length");
+    expect(() => v.parse(schema, 123)).toThrow("Expected string");
+  });
 
-Deno.test("boolean", () => {
+  it("boolean", () => {
     const { schema } = SCHEMAS.boolean();
-    assertEquals(v.parse(schema, true), true);
+    expect(v.parse(schema, true)).toBe(true);
 
-    assertThrows(() => v.parse(schema, 123), "Expected boolean");
-    assertThrows(() => v.parse(schema, "true"), "Expected boolean");
+    expect(() => v.parse(schema, 123)).toThrow("Expected boolean");
+    expect(() => v.parse(schema, "true")).toThrow("Expected boolean");
+  });
 });

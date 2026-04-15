@@ -39,7 +39,7 @@ export function createDuckDbDialect(db: DuckDBInstance) {
                 destroy: async () => {},
                 init: async () => {},
                 releaseConnection: async (_connection) => {
-                    (_connection as any).connection.close();
+                    (_connection as any).connection.closeSync();
                 },
             } satisfies k.Driver),
         createAdapter: () => new k.PostgresAdapter(),
