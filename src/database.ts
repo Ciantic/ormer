@@ -3,7 +3,8 @@ import type * as v from "valibot";
 import * as k from "kysely";
 import type { ColumnType, Params } from "./columns.ts";
 import type { Table } from "./table.ts";
-import { Schema, SCHEMAS } from "./schemas.ts";
+import type { Schema } from "./schemas.ts";
+import { SCHEMAS } from "./schemas.ts";
 
 type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
@@ -138,7 +139,7 @@ function createTables<T extends Table<string, Record<string, ColumnType<string, 
     for (const table of tables) {
         let t = kysely.schema.createTable(table.table);
         for (const columnName of Object.keys(table.columns)) {
-            const columnType = table.columns[columnName];
+            const columnType = table.columns[columnName]!;
             const columnTypeToDriver = driver.columnTypeMap[columnType.type]?.(
                 columnType.params ?? {}
             );
@@ -295,13 +296,19 @@ class DbImpl<
 {
     kyselyConfig: k.KyselyConfig;
     kyselyInstance: k.Kysely<InferKyselyTables<Tables, Schemas>>;
+    tables: Tables;
+    schemas: Schemas;
+    driver: OrmDriver;
 
     constructor(
-        public tables: Tables,
-        public schemas: Schemas,
-        public driver: OrmDriver,
+        tables: Tables,
+        schemas: Schemas,
+        driver: OrmDriver,
         kyselyConfig?: k.KyselyConfig
     ) {
+        this.tables = tables;
+        this.schemas = schemas;
+        this.driver = driver;
         if (driver.databaseType === "postgres") {
             this.kyselyConfig = kyselyConfig ?? {
                 dialect: {

@@ -119,7 +119,23 @@ const SQLITE_COLUMNS = {
         return {
             datatype: "text",
             from: v.date(),
-            to: v.date(),
+            to: v.pipe(v.date(), v.transform((d) => d.toISOString())),
+            /*
+            from: v.union([
+                v.pipe(
+                    v.string(),
+                    v.transform((s) => new Date(s))
+                ),
+                v.date()
+            ]),
+            to: v.union([
+                v.pipe(
+                    v.date(),
+                    v.transform((d) => d.toISOString())
+                ),
+                v.string()
+            ]),
+            */
             columnDefinition: (f) => {
                 if (params.default === "now") {
                     f = f.defaultTo(k.sql.raw("CURRENT_TIMESTAMP"));

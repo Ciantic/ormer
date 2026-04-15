@@ -2,8 +2,8 @@
 import type * as v from "valibot";
 import type { ColumnType } from "./columns.ts";
 import type { Table } from "./table.ts";
-import { Schema } from "./schemas.ts";
-import { ColumnTypeToDriver } from "./database.ts";
+import type { Schema } from "./schemas.ts";
+import type { ColumnTypeToDriver } from "./database.ts";
 
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
@@ -26,7 +26,7 @@ export function getPrimaryKeyColumns<Columns extends Record<string, ColumnType<s
 } {
     return Object.keys(table.columns).reduce((acc, key) => {
         const column = table.columns[key];
-        if (column.params?.primaryKey === true) {
+        if (column?.params?.primaryKey === true) {
             acc[key] = column;
         }
         return acc;
@@ -48,7 +48,7 @@ export function getInsertColumns<Columns extends Record<string, ColumnType<strin
 } {
     return Object.keys(table.columns).reduce((acc, key) => {
         const column = table.columns[key];
-        if (column.params?.notInsertable !== true) {
+        if (column?.params?.notInsertable !== true) {
             acc[key] = column;
         }
         return acc;
@@ -72,7 +72,7 @@ export function getUpdateKeyColumns<Columns extends Record<string, ColumnType<st
 }> {
     return Object.keys(table.columns).reduce((acc, key) => {
         const column = table.columns[key];
-        if (column.params?.updateKey === true) {
+        if (column?.params?.updateKey === true) {
             acc[key] = column;
         }
         return acc;
@@ -94,7 +94,7 @@ export function getPatchColumns<Columns extends Record<string, ColumnType<string
 } {
     return Object.keys(table.columns).reduce((acc, key) => {
         const column = table.columns[key];
-        if (column.params?.notUpdatable !== true) {
+        if (column?.params?.notUpdatable !== true) {
             acc[key] = column;
         }
         return acc;
@@ -121,7 +121,7 @@ export function getSchemasFromColumns<
         : ReturnType<TypeTable[Columns[K]["type"]]>["schema"];
 } {
     return Object.keys(columns).reduce((acc, key) => {
-        const column = columns[key];
+        const column = columns[key]!;
         const schema = (types as any)[column.type](column.params ?? {})["schema"];
         acc[key] = schema;
         return acc;
@@ -162,9 +162,9 @@ export function getDatabaseSerializers<
         serializers[tableName] = {};
 
         for (const columnName in table.columns) {
-            const column = table.columns[columnName];
+            const column = table.columns[columnName]!;
             const columnType = column.type;
-            const serializer = columnTypes[columnType](column.params);
+            const serializer = columnTypes[columnType]!(column.params);
 
             serializers[tableName][columnName] = {
                 from: serializer.from,

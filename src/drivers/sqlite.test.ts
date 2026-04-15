@@ -129,7 +129,7 @@ describe("sqlite", () => {
         test_boolean: true,
         test_string: "test",
         test_varchar: "test",
-        test_datetime: "2021-01-01 12:00:00",
+        test_datetime: new Date("2021-01-01T12:00:00Z"),
         test_datepart: "2021-01-01",
         test_timepart: "12:00:00",
         test_jsonb: JSON.stringify({
@@ -169,6 +169,7 @@ describe("sqlite", () => {
         {
             bigserial: 1,
             ...insertValue,
+            test_datetime: "2021-01-01T12:00:00.000Z",
             test_bigint: "3",
             test_rowversion: 1,
             test_boolean: 1,

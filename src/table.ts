@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 
-import { ColumnType } from "./columns.ts";
+import type { ColumnType } from "./columns.ts";
 
 type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
 
