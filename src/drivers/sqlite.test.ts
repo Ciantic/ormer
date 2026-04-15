@@ -107,7 +107,7 @@ describe("sqlite", () => {
   });
 
   it("create sqlite table, insert and update updatedAt", async () => {
-    const sqlite = new Database(":memory:");
+    const sqlite = new Database(":memory:", {});
 
     const db = createDbBuilder()
         .withTables([TEST_TABLE])
