@@ -7,7 +7,7 @@ import * as h from "../columnhelpers.ts";
 import { createDbBuilder } from "../database.ts";
 import { ORMER_DUCKDB_DRIVER } from "./duckdb.ts";
 import { createDuckDbDialect } from "../utils/duckdbkysely.ts";
-import { DuckDBInstance, DuckDBConnection, dateValue, timeValue } from "@duckdb/node-api";
+import { DuckDBInstance } from "@duckdb/node-api";
 
 const TEST_TABLE = table("test_table", {
   pk_auto_inc: h.pkAutoInc(),

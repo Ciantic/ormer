@@ -1,5 +1,5 @@
 import * as k from "kysely";
-import * as v from "valibot";
+import * as s from "../simplevalidation.ts";
 import type { OrmdriverColumnTypes } from "../helpers.ts";
 import type { Params } from "../columns.ts";
 import type { OrmerDbDriver } from "../database.ts";
@@ -15,104 +15,92 @@ const POSTGRES_COLUMNS = {
     int32(params) {
         return {
             datatype: params.autoIncrement ? "serial" : "integer",
-            from: v.number(),
-            to: v.number(),
+            from: s.number,
+            to: s.number,
         };
     },
     int64(params) {
         return {
             datatype: params.autoIncrement ? "bigserial" : "bigint",
-            from: v.number(),
-            to: v.number(),
+            from: s.number,
+            to: s.number,
         };
     },
     bigint() {
         return {
             datatype: "numeric",
-            from: v.bigint(),
-            to: v.bigint(),
+            from: s.bigint,
+            to: s.bigint,
         };
     },
     float32() {
         return {
             datatype: "real",
-            from: v.number(),
-            to: v.number(),
+            from: s.number,
+            to: s.number,
         };
     },
     float64() {
         return {
             datatype: "double precision",
-            from: v.number(),
-            to: v.number(),
+            from: s.number,
+            to: s.number,
         };
     },
     decimal(params) {
         return {
             datatype: `decimal(${params.precision}, ${params.scale})`,
-            from: v.union([
-                v.string(),
-                v.pipe(
-                    v.number(),
-                    v.transform((v) => "" + v)
-                ),
-            ]),
-            to: v.string(),
+            from: s.decimalFromJson,
+            to: s.string,
         };
     },
     uuid() {
         return {
             datatype: "uuid",
-            from: v.string(),
-            to: v.string(),
+            from: s.string,
+            to: s.string,
         };
     },
     string() {
         return {
             datatype: "text",
-            from: v.string(),
-            to: v.string(),
+            from: s.string,
+            to: s.string,
         };
     },
     varchar(params) {
         return {
             datatype: `varchar(${params.maxLength})`,
-            from: v.string(),
-            to: v.string(),
+            from: s.string,
+            to: s.string,
         };
     },
     boolean() {
         return {
             datatype: "boolean",
-            from: v.boolean(),
-            to: v.boolean(),
+            from: s.boolean,
+            to: s.boolean,
         };
     },
     datetime(params) {
         return {
             datatype: params.postgres?.type ?? "timestamptz",
-            from: v.date(),
-            to: v.date(),
+            from: s.datetime,
+            to: s.datetime,
         };
     },
     datepart() {
         return {
             datatype: "date",
-            from: v.union([
-                v.pipe(
-                    v.date(),
-                    v.transform((d) => d.toISOString().slice(0, 10))
-                ),
-                v.string(),
-            ]),
-            to: v.string(),
+            from: s.datepartCoerced,
+            to: s.string,
         };
     },
     timepart() {
         return {
             datatype: "time",
-            from: v.string(),
-            to: v.string(),
+            from: s.string,
+            to: s.string,
         };
     },
     jsonb<T extends UnknownSchema>(params: Params<{ schema: T }>) {

@@ -78,14 +78,13 @@ class Transformer extends k.OperationNodeTransformer {
                 throw new Error("Async validation not supported yet");
             }
 
-
             if (!res.issues) {
                 // console.info(
                 //     `Value ${debugLogValue(value)} mapped to ${debugLogValue(res.output)}`
                 // );
                 return res.value
             } else {
-                console.error(res.issues);
+                console.error("Errors found", res.issues);
             }
         } else {
             console.warn(`Table "${tableName}" or column "${columnName}" not found`);

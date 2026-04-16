@@ -1,5 +1,5 @@
 import * as k from "kysely";
-import * as v from "valibot";
+import * as s from "../simplevalidation.ts";
 import type { OrmdriverColumnTypes } from "../helpers.ts";
 import type { Params } from "../columns.ts";
 import type { OrmerDbDriver } from "../database.ts";
@@ -14,8 +14,8 @@ const SQLITE_COLUMNS = {
     int32(params) {
         return {
             datatype: "integer",
-            from: v.number(),
-            to: v.number(),
+            from: s.number,
+            to: s.number,
             columnDefinition: (f) => {
                 if (params?.autoIncrement) {
                     f = f.autoIncrement();
@@ -27,8 +27,8 @@ const SQLITE_COLUMNS = {
     int64(params) {
         return {
             datatype: "integer",
-            from: v.number(),
-            to: v.number(),
+            from: s.number,
+            to: s.number,
             columnDefinition: (f) => {
                 if (params?.autoIncrement) {
                     f = f.autoIncrement();
@@ -40,42 +40,36 @@ const SQLITE_COLUMNS = {
     bigint() {
         return {
             datatype: "text",
-            from: v.pipe(
-                v.string(),
-                v.transform((s) => BigInt(s))
-            ),
-            to: v.pipe(
-                v.bigint(),
-                v.transform((s) => s.toString())
-            ),
+            from: s.bigintFromText,
+            to: s.bigintToText,
         };
     },
     float32() {
         return {
             datatype: "real",
-            from: v.number(),
-            to: v.number(),
+            from: s.number,
+            to: s.number,
         };
     },
     float64() {
         return {
             datatype: "real",
-            from: v.number(),
-            to: v.number(),
+            from: s.number,
+            to: s.number,
         };
     },
     decimal() {
         return {
             datatype: "text",
-            from: v.string(),
-            to: v.string(),
+            from: s.string,
+            to: s.string,
         };
     },
     uuid(params) {
         return {
             datatype: "text",
-            from: v.string(),
-            to: v.string(),
+            from: s.string,
+            to: s.string,
             appendSql: (db) => {
                 if (params.onUpdateSet) {
                     const columnName = params.columnName;
@@ -98,45 +92,29 @@ const SQLITE_COLUMNS = {
     string() {
         return {
             datatype: "text",
-            from: v.string(),
-            to: v.string(),
+            from: s.string,
+            to: s.string,
         };
     },
     varchar() {
         return {
             datatype: "text",
-            from: v.string(),
-            to: v.string(),
+            from: s.string,
+            to: s.string,
         };
     },
     boolean() {
         return {
             datatype: "integer",
-            from: v.boolean(),
-            to: v.boolean(),
+            from: s.boolean,
+            to: s.boolean,
         };
     },
     datetime(params) {
         return {
             datatype: "text",
-            from: v.date(),
-            to: v.pipe(v.date(), v.transform((d) => d.toISOString())),
-            /*
-            from: v.union([
-                v.pipe(
-                    v.string(),
-                    v.transform((s) => new Date(s))
-                ),
-                v.date()
-            ]),
-            to: v.union([
-                v.pipe(
-                    v.date(),
-                    v.transform((d) => d.toISOString())
-                ),
-                v.string()
-            ]),
-            */
+            from: s.datetime,
+            to: s.datetimeToJson,
             columnDefinition: (f) => {
                 if (params.default === "now") {
                     f = f.defaultTo(k.sql.raw("CURRENT_TIMESTAMP"));
@@ -163,21 +141,15 @@ const SQLITE_COLUMNS = {
     datepart() {
         return {
             datatype: "text",
-            from: v.union([
-                v.pipe(
-                    v.date(),
-                    v.transform((d) => d.toISOString().slice(0, 10))
-                ),
-                v.string(),
-            ]),
-            to: v.string(),
+            from: s.datepartCoerced,
+            to: s.string,
         };
     },
     timepart() {
         return {
             datatype: "text",
-            from: v.string(),
-            to: v.string(),
+            from: s.string,
+            to: s.string,
         };
     },
     jsonb<T extends UnknownSchema>(params: Params<{ schema: T }>) {

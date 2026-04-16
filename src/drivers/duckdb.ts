@@ -1,9 +1,8 @@
 import * as k from "kysely";
-import * as v from "valibot";
+import * as s from "../simplevalidation.ts";
 import type { OrmdriverColumnTypes } from "../helpers.ts";
 import type { Params } from "../columns.ts";
 import type { ColumnTypeToDriver, OrmerDbDriver } from "../database.ts";
-import type { Table } from "../table.ts";
 import { TransformerKyselyPlugin } from "../utils/transformerkyselyplugin.ts";
 import { getDatabaseSerializers } from "../getters.ts";
 import { DuckDBTimestampTZValue } from "@duckdb/node-api";
@@ -41,144 +40,112 @@ const DUCKDB_COLUMNS = {
     int32(params) {
         return {
             datatype: "int4",
-            from: v.number(),
-            to: v.number(),
+            from: s.number,
+            to: s.number,
             ...autoIncrement(params),
         };
     },
     int64(params) {
         return {
             datatype: "int8",
-            from: v.union([
-                v.pipe(
-                    v.string(),
-                    v.transform((v) => +v)
-                ),
-                v.number(),
-            ]),
-            to: v.number(),
+            from: s.numberCoerced,
+            to: s.number,
             ...autoIncrement(params),
         };
     },
     bigint() {
         return {
             datatype: k.sql`hugeint`,
-            from: v.bigint(),
-            to: v.bigint(),
+            from: s.bigint,
+            to: s.bigint,
         };
     },
     float32() {
         return {
             datatype: "real",
-            from: v.number(),
-            to: v.number(),
+            from: s.number,
+            to: s.number,
         };
     },
     float64() {
         return {
             datatype: "float8",
-            from: v.number(),
-            to: v.number(),
+            from: s.number,
+            to: s.number,
         };
     },
     decimal(params) {
         return {
             datatype: `decimal(${params.precision}, ${params.scale})`,
-            from: v.union([
-                v.string(),
-                v.pipe(
-                    v.number(),
-                    v.transform((v) => "" + v)
-                ),
-            ]),
-            to: v.string(),
+            from: s.decimalFromJson,
+            to: s.string,
         };
     },
     uuid() {
         return {
             datatype: "uuid",
-            from: v.string(),
-            to: v.string(),
+            from: s.string,
+            to: s.string,
         };
     },
     string() {
         return {
             datatype: "text",
-            from: v.string(),
-            to: v.string(),
+            from: s.string,
+            to: s.string,
         };
     },
     varchar(params) {
         return {
             datatype: `varchar(${params.maxLength})`,
-            from: v.string(),
-            to: v.string(),
+            from: s.string,
+            to: s.string,
         };
     },
     boolean() {
         return {
             datatype: "boolean",
-            from: v.boolean(),
-            to: v.boolean(),
+            from: s.boolean,
+            to: s.boolean,
         };
     },
     datetime() {
         return {
             datatype: "timestamptz",
-            from: v.date(),
-            to: v.pipe(
-                v.date(),
-                v.transform((v) => new DuckDBTimestampTZValue(BigInt(v.getTime()) * 1000n))
-            ),
+            from: s.datetime,
+            to: s.makeValidator<Date, DuckDBTimestampTZValue>((value) => {
+                if (!(value instanceof Date)) {
+                    throw new Error("Expected Date");
+                }
+                return new DuckDBTimestampTZValue(BigInt(value.getTime()) * 1000n);
+            }),
         };
     },
     datepart() {
         return {
             datatype: "date",
-            from: v.union([
-                v.pipe(
-                    v.date(),
-                    v.transform((d) => d.toISOString().slice(0, 10))
-                ),
-                v.string(),
-            ]),
-            to: v.string(),
-            // to: v.pipe(
-            //     v.string(),
-            //     v.transform((v) => new DuckDBDateValue(...))
-            // ),
+            from: s.datepartCoerced,
+            to: s.string,
         };
     },
     timepart() {
         return {
             datatype: "time",
-            from: v.string(),
-            to: v.string(),
-            // to: v.pipe(
-            //     v.string(),
-            //     v.transform((v) => new DuckDBTimeValue(...))
-            // ),
+            from: s.string,
+            to: s.string,
         };
     },
     jsonb<T extends UnknownSchema>(params: Params<{ schema: T }>) {
         return {
             from: params.schema,
-            // to: params.schema,
-            to: v.pipe(
-                v.any(),
-                v.transform((v) => JSON.stringify(v))
-            ),
+            to: s.makeValidator<unknown, string>((value) => JSON.stringify(value)),
             datatype: "json",
         };
     },
     json<T extends UnknownSchema>(params: Params<{ schema: T }>) {
         return {
             from: params.schema,
-            // to: params.schema,
-            to: v.pipe(
-                v.any(),
-                v.transform((v) => JSON.stringify(v))
-            ),
+            to: s.makeValidator<unknown, string>((value) => JSON.stringify(value)),
             datatype: "json",
         };
     },

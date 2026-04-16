@@ -1,6 +1,7 @@
 import { jsonArrayFrom } from "kysely/helpers/sqlite";
 import * as v from "valibot";
 import * as o from "../src/index.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec"
 
 const invoiceTable = o.table("invoice", {
     id: o.pkAutoInc(),
@@ -69,10 +70,10 @@ type Database = typeof kysely;
 const invoiceInsertSchema = o.getInsertColumns(invoiceTable);
 const patchUpdateSchema = o.getSchemasFromColumns(o.getPatchColumns(invoiceTable), o.SCHEMAS);
 const updateKeySchema = o.getSchemasFromColumns(o.getUpdateKeyColumns(invoiceTable), o.SCHEMAS);
-const update = v.intersect([v.object(updateKeySchema), v.object(patchUpdateSchema)]);
+// const update = v.intersect([v.object(updateKeySchema), v.object(patchUpdateSchema)]);
 
 const insertPersonSchema = o.getInsertColumns(personTable);
-// type InsertPerson = v.InferInput<typeof insertPersonSchema>;
+type InsertPerson = v.InferInput<typeof insertPersonSchema>;
 
 // type UpdateWithPatch = v.InferInput<typeof update>;
 

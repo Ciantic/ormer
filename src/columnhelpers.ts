@@ -1,4 +1,4 @@
-import * as v from "valibot";
+import * as s from "./simplevalidation.ts";
 import type { ColumnType, Params, DateTimeCol } from "./columns.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
@@ -122,7 +122,7 @@ export function email(params?: unknown): unknown {
         params: {
             ...(params ?? {}),
             maxLength: 320,
-            schema: v.pipe(v.string(), v.trim(), v.email(), v.maxLength(320)),
+            schema: s.email,
         },
     };
 }
