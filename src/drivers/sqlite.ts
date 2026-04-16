@@ -114,7 +114,7 @@ const SQLITE_COLUMNS = {
         return {
             datatype: "text",
             from: s.datetime,
-            to: s.datetimeToJson,
+            to: s.datetimeToIsoString,
             columnDefinition: (f) => {
                 if (params.default === "now") {
                     f = f.defaultTo(k.sql.raw("CURRENT_TIMESTAMP"));

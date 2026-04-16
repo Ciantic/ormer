@@ -113,12 +113,7 @@ const DUCKDB_COLUMNS = {
         return {
             datatype: "timestamptz",
             from: s.datetime,
-            to: s.makeValidator<Date, DuckDBTimestampTZValue>((value) => {
-                if (!(value instanceof Date)) {
-                    throw new Error("Expected Date");
-                }
-                return new DuckDBTimestampTZValue(BigInt(value.getTime()) * 1000n);
-            }),
+            to: s.datetimeToIsoString,
         };
     },
     datepart() {
@@ -138,14 +133,14 @@ const DUCKDB_COLUMNS = {
     jsonb<T extends UnknownSchema>(params: Params<{ schema: T }>) {
         return {
             from: params.schema,
-            to: s.makeValidator<unknown, string>((value) => JSON.stringify(value)),
+            to: s.jsonToString,
             datatype: "json",
         };
     },
     json<T extends UnknownSchema>(params: Params<{ schema: T }>) {
         return {
             from: params.schema,
-            to: s.makeValidator<unknown, string>((value) => JSON.stringify(value)),
+            to: s.jsonToString,
             datatype: "json",
         };
     },

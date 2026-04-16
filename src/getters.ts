@@ -128,6 +128,16 @@ export function getSchemasFromColumns<
     }, {} as any);
 }
 
+export function getPatchSchema<Columns extends Record<string, ColumnType<string, any>>, 
+    TypeTable extends RecordOfSchemas>(
+    table: Table<any, Columns>,
+    types: TypeTable
+) {
+    const patchSchema = getSchemasFromColumns(getPatchColumns(table), types);
+    // TODO: ...
+}
+        
+
 type RecordOfColumnTypeToDriver = Record<string, (params?: any) => ColumnTypeToDriver>;
 type ArrayOfTables = Table<any, RecordOfColumnTypes>[];
 

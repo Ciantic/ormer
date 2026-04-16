@@ -1,7 +1,6 @@
 import { jsonArrayFrom } from "kysely/helpers/sqlite";
 import * as v from "valibot";
 import * as o from "../src/index.ts";
-import type { StandardSchemaV1 } from "@standard-schema/spec"
 
 const invoiceTable = o.table("invoice", {
     id: o.pkAutoInc(),
@@ -67,13 +66,28 @@ type Database = typeof kysely;
 // type PersonTable = o.InferKyselyTable<typeof personTable>;
 
 // Creating valibot schemas for the tables
-const invoiceInsertSchema = o.getInsertColumns(invoiceTable);
-const patchUpdateSchema = o.getSchemasFromColumns(o.getPatchColumns(invoiceTable), o.SCHEMAS);
-const updateKeySchema = o.getSchemasFromColumns(o.getUpdateKeyColumns(invoiceTable), o.SCHEMAS);
-// const update = v.intersect([v.object(updateKeySchema), v.object(patchUpdateSchema)]);
+const invoiceInsertSchemaRecord = o.getSchemasFromColumns(o.getInsertColumns(invoiceTable), o.SCHEMAS);
+const patchUpdateSchemaRecord = o.getSchemasFromColumns(o.getPatchColumns(invoiceTable), o.SCHEMAS);
+const updateKeySchemaRecord = o.getSchemasFromColumns(o.getUpdateKeyColumns(invoiceTable), o.SCHEMAS);
 
-const insertPersonSchema = o.getInsertColumns(personTable);
-type InsertPerson = v.InferInput<typeof insertPersonSchema>;
+const personInsertSchemaRecord = o.getSchemasFromColumns(o.getInsertColumns(personTable), o.SCHEMAS);
+const personPatchUpdateSchemaRecord = o.getSchemasFromColumns(o.getPatchColumns(personTable), o.SCHEMAS);
+const personUpdateKeySchemaRecord = o.getSchemasFromColumns(o.getUpdateKeyColumns(personTable), o.SCHEMAS);
+
+
+const invoiceInsertSchema = o.s.combineRecordOfSchemas(invoiceInsertSchemaRecord);
+const invoicePatchUpdateSchema = o.s.combineRecordOfSchemas({
+    ...updateKeySchemaRecord,
+    ...patchUpdateSchemaRecord,
+});
+
+
+const personInsertSchema = o.s.combineRecordOfSchemas(personInsertSchemaRecord);
+const personPatchUpdateSchema = o.s.combineRecordOfSchemas({
+    ...personUpdateKeySchemaRecord,
+    ...personPatchUpdateSchemaRecord,
+});
+// type InsertPerson = v.InferInput<typeof insertPersonSchema>;
 
 // type UpdateWithPatch = v.InferInput<typeof update>;
 

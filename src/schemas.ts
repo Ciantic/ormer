@@ -80,8 +80,8 @@ export const SCHEMAS = {
     datetime() {
         return schema({
             schema: s.datetime,
-            fromJson: s.datetimeFromJson,
-            toJson: s.datetimeToJson,
+            fromJson: s.datetimeFromIsoString,
+            toJson: s.datetimeToIsoString,
         });
     },
     datepart() {
