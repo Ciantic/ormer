@@ -1,8 +1,9 @@
 import * as v from "valibot";
 import type { MapColumnsTo } from "./helpers.ts";
 import type { Params } from "./columns.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+type UnknownSchema = StandardSchemaV1<unknown, unknown>;
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 
 export const SCHEMAS = {
@@ -168,34 +169,34 @@ export const SCHEMAS = {
             toJson: v.string(),
         });
     },
-    jsonb<T extends ValibotSchema>(params: Params<{ schema: T }>) {
+    jsonb<T extends UnknownSchema>(params: Params<{ schema: T }>) {
         return schema({
             schema: params.schema,
             fromJson: params.schema,
             toJson: params.schema,
         });
     },
-    json<T extends ValibotSchema>(params: Params<{ schema: T }>) {
+    json<T extends UnknownSchema>(params: Params<{ schema: T }>) {
         return schema({
             schema: params.schema,
             fromJson: params.schema,
             toJson: params.schema,
         });
     },
-} satisfies MapColumnsTo<Schema<ValibotSchema, ValibotSchema, ValibotSchema>>;
+} satisfies MapColumnsTo<Schema<UnknownSchema, UnknownSchema, UnknownSchema>>;
 
 export function schema<
-    S extends ValibotSchema,
-    FromJson extends v.BaseSchema<unknown, v.InferOutput<S>, v.BaseIssue<unknown>>,
-    ToJson extends v.BaseSchema<v.InferOutput<S>, unknown, v.BaseIssue<unknown>>
+    S extends StandardSchemaV1<unknown, unknown>,
+    FromJson extends StandardSchemaV1<unknown, StandardSchemaV1.InferOutput<S>>,
+    ToJson extends StandardSchemaV1<StandardSchemaV1.InferOutput<S>, unknown>
 >(value: Schema<S, FromJson, ToJson>): FinalType<Schema<S, FromJson, ToJson>> {
     return value;
 }
 
 export interface Schema<
-    S extends v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>,
-    FromJson extends v.BaseSchema<unknown, v.InferOutput<S>, v.BaseIssue<unknown>>,
-    ToJson extends v.BaseSchema<v.InferOutput<S>, unknown, v.BaseIssue<unknown>>
+    S extends StandardSchemaV1<unknown, unknown>,
+    FromJson extends StandardSchemaV1<unknown, StandardSchemaV1.InferOutput<S>>,
+    ToJson extends StandardSchemaV1<StandardSchemaV1.InferOutput<S>, unknown>
 > {
     readonly schema: S;
     readonly fromJson: FromJson;

@@ -1,6 +1,8 @@
 import * as v from "valibot";
 import type { ColumnType, Params, DateTimeCol } from "./columns.ts";
-type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+import type { StandardSchemaV1 } from "@standard-schema/spec";
+
+type UnknownSchema = StandardSchemaV1<unknown, unknown>;
 // Restrict record T to only keys from record B
 type R<T, B> = {
     [K in keyof T]: K extends keyof B ? T[K] : never;
@@ -89,7 +91,7 @@ export function concurrencyStamp(): ColumnType<
     };
 }
 
-export type UserStringCol<T extends ValibotSchema> = Params<{ schema: T; maxLength: number }>;
+export type UserStringCol<T extends UnknownSchema> = Params<{ schema: T; maxLength: number }>;
 
 /**
  * User input string, typically used for names, addresses, etc.
@@ -98,7 +100,7 @@ export type UserStringCol<T extends ValibotSchema> = Params<{ schema: T; maxLeng
  *
  * @param params
  */
-export function userstring<S extends ValibotSchema, T extends UserStringCol<S>>(
+export function userstring<S extends UnknownSchema, T extends UserStringCol<S>>(
     params: R<T, UserStringCol<S>>
 ): ColumnType<"varchar", T> {
     return {
@@ -109,7 +111,7 @@ export function userstring<S extends ValibotSchema, T extends UserStringCol<S>>(
 
 export function email(): ColumnType<
     "varchar",
-    { schema: v.BaseSchema<string, string, v.BaseIssue<unknown>> }
+    { schema: StandardSchemaV1<string, string> }
 >;
 export function email<T extends Params>(
     params: R<T, Params>

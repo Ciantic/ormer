@@ -1,18 +1,18 @@
 // deno-lint-ignore-file no-explicit-any
-import type * as v from "valibot";
 import * as k from "kysely";
 import type { ColumnType, Params } from "./columns.ts";
 import type { Table } from "./table.ts";
 import type { Schema } from "./schemas.ts";
 import { SCHEMAS } from "./schemas.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 type RecordOfColumnTypes = Record<string, ColumnType<string, any>>;
-type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+type UnknownSchema = StandardSchemaV1<unknown, unknown>;
 type RecordOfSchemas = Record<
     string,
-    (params?: any) => Schema<ValibotSchema, ValibotSchema, ValibotSchema>
+    (params?: any) => Schema<UnknownSchema, UnknownSchema, UnknownSchema>
 >;
 type RecordOfColumnTypeToDriver = Record<string, (params?: any) => ColumnTypeToDriver>;
 type ArrayOfTables = Table<any, RecordOfColumnTypes>[];
@@ -22,10 +22,10 @@ export type ColumnTypeToDriver = {
     datatype: k.ColumnDataType | k.Expression<any>;
 
     // Deserialize from driver result
-    from: ValibotSchema;
+    from: UnknownSchema;
 
     // Serialize to driver
-    to: ValibotSchema;
+    to: UnknownSchema;
 
     columnDefinition?: (column: k.ColumnDefinitionBuilder) => k.ColumnDefinitionBuilder;
     tableDefinition?: (
@@ -64,10 +64,10 @@ type InferredValue<
     K extends string,
     C extends keyof Extract<T[number], Table<K, RecordOfColumnTypes>>["columns"],
     TypeTable extends RecordOfSchemas
-> = v.InferOutput<
+> = StandardSchemaV1.InferOutput<
     // Return schema from params of a column
     // Or value from TypeTable (usually TYPES_TO_SCHEMAS)
-    ColumnOfTable<T, K, C>["params"]["schema"] extends ValibotSchema
+    ColumnOfTable<T, K, C>["params"]["schema"] extends UnknownSchema
         ? ColumnOfTable<T, K, C>["params"]["schema"]
         : ReturnType<TypeTable[ColumnOfTable<T, K, C>["type"]]>["schema"]
 >;
@@ -347,7 +347,7 @@ export function createDbBuilder(): DbBuilder {
     return {
         withTables<T extends ArrayOfTables>(tables: T) {
             return {
-                withSchemas(schemas?: Record<string, (params?: any) => ValibotSchema>) {
+                withSchemas(schemas?: Record<string, (params?: any) => UnknownSchema>) {
                     return {
                         withDriver(
                             driver: OrmerDbDriver<any, any>,

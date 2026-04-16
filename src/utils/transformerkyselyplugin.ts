@@ -1,7 +1,7 @@
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import * as k from "kysely";
-import * as v from "valibot";
 
-type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+type UnknownSchema = StandardSchemaV1<unknown, unknown>;
 type TableName = string;
 type ColumnName = string;
 
@@ -10,8 +10,8 @@ type DatabaseSerializerMapping = Record<
     Record<
         ColumnName,
         {
-            from: ValibotSchema;
-            to: ValibotSchema;
+            from: UnknownSchema;
+            to: UnknownSchema;
         }
     >
 >;
@@ -72,12 +72,18 @@ class Transformer extends k.OperationNodeTransformer {
     private mapValue(tableName: string, columnName: string, value: unknown) {
         const schema = this.mapping?.[tableName]?.[columnName]?.to;
         if (schema) {
-            const res = v.safeParse(schema, value);
-            if (res.success) {
+            // const res = v.safeParse(schema, value);
+            const res = schema["~standard"].validate(value);
+            if (res instanceof Promise) {
+                throw new Error("Async validation not supported yet");
+            }
+
+
+            if (!res.issues) {
                 // console.info(
                 //     `Value ${debugLogValue(value)} mapped to ${debugLogValue(res.output)}`
                 // );
-                return res.output;
+                return res.value
             } else {
                 console.error(res.issues);
             }

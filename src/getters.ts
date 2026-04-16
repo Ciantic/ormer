@@ -1,16 +1,16 @@
 // deno-lint-ignore-file no-explicit-any
-import type * as v from "valibot";
 import type { ColumnType } from "./columns.ts";
 import type { Table } from "./table.ts";
 import type { Schema } from "./schemas.ts";
 import type { ColumnTypeToDriver } from "./database.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
-type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+type UnknownSchema = StandardSchemaV1<unknown, unknown>;
 type RecordOfColumnTypes = Record<string, ColumnType<string, any>>;
 type RecordOfSchemas = Record<
     string,
-    (params?: any) => Schema<ValibotSchema, ValibotSchema, ValibotSchema>
+    (params?: any) => Schema<UnknownSchema, UnknownSchema, UnknownSchema>
 >;
 
 /**
@@ -116,7 +116,7 @@ export function getSchemasFromColumns<
 ): {
     // prettier-ignore
     [K in keyof Columns as Columns[K]["type"] extends string ? K : never]: 
-        Columns[K]["params"]["schema"] extends ValibotSchema
+        Columns[K]["params"]["schema"] extends UnknownSchema
         ? Columns[K]["params"]["schema"]
         : ReturnType<TypeTable[Columns[K]["type"]]>["schema"];
 } {

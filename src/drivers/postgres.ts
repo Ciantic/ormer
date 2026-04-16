@@ -6,8 +6,9 @@ import type { OrmerDbDriver } from "../database.ts";
 import type { Table } from "../table.ts";
 import { TransformerKyselyPlugin } from "../utils/transformerkyselyplugin.ts";
 import { getDatabaseSerializers } from "../getters.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+type UnknownSchema = StandardSchemaV1<unknown, unknown>;
 
 const POSTGRES_COLUMNS = {
     // Primitive types
@@ -114,14 +115,14 @@ const POSTGRES_COLUMNS = {
             to: v.string(),
         };
     },
-    jsonb<T extends ValibotSchema>(params: Params<{ schema: T }>) {
+    jsonb<T extends UnknownSchema>(params: Params<{ schema: T }>) {
         return {
             from: params.schema,
             to: params.schema,
             datatype: "jsonb",
         };
     },
-    json<T extends ValibotSchema>(params: Params<{ schema: T }>) {
+    json<T extends UnknownSchema>(params: Params<{ schema: T }>) {
         return {
             from: params.schema,
             to: params.schema,

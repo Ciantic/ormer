@@ -1,7 +1,7 @@
-import * as v from "valibot";
 import type { Table } from "./table.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+type UnknownSchema = StandardSchemaV1<unknown, unknown>;
 
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 
@@ -24,7 +24,7 @@ export type Params<ExtraProps extends object = {}> = FinalType<
             foreignKeyTable?: string;
             foreignKeyColumn?: string;
             autoIncrement?: boolean;
-            schema?: ValibotSchema;
+            schema?: UnknownSchema;
 
             // Should not use these
             // columnName?: string; // Automatically assigned by table()
@@ -213,7 +213,7 @@ export function timepart(params?: unknown) {
     };
 }
 
-export function jsonb<Schema extends ValibotSchema, T extends Params<{ schema: Schema }>>(
+export function jsonb<Schema extends UnknownSchema, T extends Params<{ schema: Schema }>>(
     params: R<T, Params<{ schema: Schema }>>
 ): ColumnType<"jsonb", T> {
     return {
@@ -222,7 +222,7 @@ export function jsonb<Schema extends ValibotSchema, T extends Params<{ schema: S
     };
 }
 
-export function json<Schema extends ValibotSchema, T extends Params<{ schema: Schema }>>(
+export function json<Schema extends UnknownSchema, T extends Params<{ schema: Schema }>>(
     params: R<T, Params<{ schema: Schema }>>
 ): ColumnType<"json", T> {
     return {

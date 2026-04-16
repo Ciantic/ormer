@@ -1,9 +1,9 @@
-import * as v from "valibot";
 import type * as c from "./columns.ts";
 import type { Schema, SCHEMAS } from "./schemas.ts";
 import type { ColumnTypeToDriver } from "./database.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-type ValibotSchema = v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>;
+type UnknownSchema = StandardSchemaV1<unknown, unknown>;
 
 type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
 
@@ -24,22 +24,30 @@ export type TransformSchemas<
     Schemas extends Record<
         string,
         // deno-lint-ignore no-explicit-any
-        (params?: any) => Schema<ValibotSchema, ValibotSchema, ValibotSchema>
+        (params?: any) => Schema<UnknownSchema, UnknownSchema, UnknownSchema>
     > = typeof SCHEMAS
 > = {
     [K in keyof TypesDefined as TypesDefined[K] extends string ? TypesDefined[K] : never]: (
         ...params: Parameters<(typeof c)[K]> extends [infer U] ? [U] : [c.Params]
     ) => {
-        from: v.BaseSchema<
+        from: StandardSchemaV1<
             unknown,
-            v.InferOutput<ReturnType<Schemas[K]>["schema"]>,
-            v.BaseIssue<unknown>
+            StandardSchemaV1.InferOutput<ReturnType<Schemas[K]>["schema"]>
         >;
-        to: v.BaseSchema<
-            v.InferOutput<ReturnType<Schemas[K]>["schema"]>,
-            unknown,
-            v.BaseIssue<unknown>
+        to: StandardSchemaV1<
+            StandardSchemaV1.InferOutput<ReturnType<Schemas[K]>["schema"]>,
+            unknown
         >;
+        // from: v.BaseSchema<
+        //     unknown,
+        //     v.InferOutput<ReturnType<Schemas[K]>["schema"]>,
+        //     v.BaseIssue<unknown>
+        // >;
+        // to: v.BaseSchema<
+        //     v.InferOutput<ReturnType<Schemas[K]>["schema"]>,
+        //     unknown,
+        //     v.BaseIssue<unknown>
+        // >;
     };
 };
 
@@ -47,7 +55,7 @@ export type OrmdriverColumnTypes<
     Schemas extends Record<
         string,
         // deno-lint-ignore no-explicit-any
-        (params?: any) => Schema<ValibotSchema, ValibotSchema, ValibotSchema>
+        (params?: any) => Schema<UnknownSchema, UnknownSchema, UnknownSchema>
     > = typeof SCHEMAS
 > = {
     [K in keyof TypesDefined as TypesDefined[K] extends string ? TypesDefined[K] : never]: (
@@ -55,15 +63,13 @@ export type OrmdriverColumnTypes<
             ? [U & { columnName: string; tableName: string }]
             : [c.Params & { columnName: string; tableName: string }]
     ) => ColumnTypeToDriver & {
-        from: v.BaseSchema<
+        from: StandardSchemaV1<
             unknown,
-            v.InferOutput<ReturnType<Schemas[K]>["schema"]>,
-            v.BaseIssue<unknown>
+            StandardSchemaV1.InferOutput<ReturnType<Schemas[K]>["schema"]>
         >;
-        to: v.BaseSchema<
-            v.InferOutput<ReturnType<Schemas[K]>["schema"]>,
-            unknown,
-            v.BaseIssue<unknown>
+        to: StandardSchemaV1<
+            StandardSchemaV1.InferOutput<ReturnType<Schemas[K]>["schema"]>,
+            unknown
         >;
     };
 };
