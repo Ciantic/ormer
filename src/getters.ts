@@ -4,6 +4,7 @@ import type { Table } from "./table.ts";
 import type { Schema } from "./schemas.ts";
 import type { ColumnTypeToDriver } from "./database.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
+import * as s from "./simplevalidation.ts";
 
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 type UnknownSchema = StandardSchemaV1<unknown, unknown>;
@@ -12,6 +13,33 @@ type RecordOfSchemas = Record<
     string,
     (params?: any) => Schema<UnknownSchema, UnknownSchema, UnknownSchema>
 >;
+
+/**
+ * Get Valibot schema for the columns
+ *
+ * @param columns Columns property of the table
+ * @returns A record of schemas mapped to the column's keys
+ */
+export function getSchemasFromColumns<
+    Columns extends Record<string, ColumnType<string, any>>,
+    TypeTable extends RecordOfSchemas
+>(
+    columns: Columns,
+    types: TypeTable
+): {
+    // prettier-ignore
+    [K in keyof Columns as Columns[K]["type"] extends string ? K : never]: 
+        Columns[K]["params"]["schema"] extends UnknownSchema
+        ? Columns[K]["params"]["schema"]
+        : ReturnType<TypeTable[Columns[K]["type"]]>["schema"];
+} {
+    return Object.keys(columns).reduce((acc, key) => {
+        const column = columns[key]!;
+        const schema = (types as any)[column.type](column.params ?? {})["schema"];
+        acc[key] = schema;
+        return acc;
+    }, {} as any);
+}       
 
 /**
  * Get primary key columns
@@ -101,43 +129,6 @@ export function getPatchColumns<Columns extends Record<string, ColumnType<string
     }, {} as any);
 }
 
-/**
- * Get Valibot schema for the columns
- *
- * @param columns Columns property of the table
- * @returns A record of schemas mapped to the column's keys
- */
-export function getSchemasFromColumns<
-    Columns extends Record<string, ColumnType<string, any>>,
-    TypeTable extends RecordOfSchemas
->(
-    columns: Columns,
-    types: TypeTable
-): {
-    // prettier-ignore
-    [K in keyof Columns as Columns[K]["type"] extends string ? K : never]: 
-        Columns[K]["params"]["schema"] extends UnknownSchema
-        ? Columns[K]["params"]["schema"]
-        : ReturnType<TypeTable[Columns[K]["type"]]>["schema"];
-} {
-    return Object.keys(columns).reduce((acc, key) => {
-        const column = columns[key]!;
-        const schema = (types as any)[column.type](column.params ?? {})["schema"];
-        acc[key] = schema;
-        return acc;
-    }, {} as any);
-}
-
-export function getPatchSchema<Columns extends Record<string, ColumnType<string, any>>, 
-    TypeTable extends RecordOfSchemas>(
-    table: Table<any, Columns>,
-    types: TypeTable
-) {
-    const patchSchema = getSchemasFromColumns(getPatchColumns(table), types);
-    // TODO: ...
-}
-        
-
 type RecordOfColumnTypeToDriver = Record<string, (params?: any) => ColumnTypeToDriver>;
 type ArrayOfTables = Table<any, RecordOfColumnTypes>[];
 
@@ -184,4 +175,54 @@ export function getDatabaseSerializers<
     }
 
     return serializers;
+}
+
+// Schema getters -------------------------------------------------------
+
+
+export function getInsertSchema<Columns extends Record<string, ColumnType<string, any>>, TypeTable extends RecordOfSchemas>(
+    table: Table<any, Columns>,
+    types: TypeTable
+) {
+    const insertSchema = getSchemasFromColumns(getInsertColumns(table), types);
+    return s.schemaCombine(insertSchema);
+}
+
+export function getUpdateKeySchema<Columns extends Record<string, ColumnType<string, any>>, TypeTable extends RecordOfSchemas>(
+    table: Table<any, Columns>,
+    types: TypeTable
+) {
+    const updateKeySchema = getSchemasFromColumns(getUpdateKeyColumns(table), types);
+    return s.schemaCombine(updateKeySchema);
+}
+
+export function getPatchSchema<Columns extends Record<string, ColumnType<string, any>>, 
+    TypeTable extends RecordOfSchemas>(
+    table: Table<any, Columns>,
+    types: TypeTable
+) {
+    const patchSchema = getSchemasFromColumns(getPatchColumns(table), types);
+    return s.schemaMapOpt(patchSchema);
+}
+
+export function getUpdateSchema<Columns extends Record<string, ColumnType<string, any>>, TypeTable extends RecordOfSchemas>(
+    table: Table<any, Columns>,
+    types: TypeTable
+) {
+    const primaryKeySchema = getSchemasFromColumns(getPrimaryKeyColumns(table), types);
+    const updateKeySchema = getSchemasFromColumns(getUpdateKeyColumns(table), types);
+    const patchSchema = getSchemasFromColumns(getPatchColumns(table), types);
+    return s.schemaCombine({
+        ...primaryKeySchema,
+        ...updateKeySchema,
+        ...s.schemaMapOpt(patchSchema),
+    });
+}
+
+export function getPrimaryKeySchema<Columns extends Record<string, ColumnType<string, any>>, TypeTable extends RecordOfSchemas>(
+    table: Table<any, Columns>,
+    types: TypeTable
+) {
+    const primaryKeySchema = getSchemasFromColumns(getPrimaryKeyColumns(table), types);
+    return s.schemaCombine(primaryKeySchema);
 }

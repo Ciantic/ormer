@@ -80,7 +80,7 @@ export const SCHEMAS = {
     datetime() {
         return schema({
             schema: s.datetime,
-            fromJson: s.datetimeFromIsoString,
+            fromJson: s.datetimeCoerced,
             toJson: s.datetimeToIsoString,
         });
     },

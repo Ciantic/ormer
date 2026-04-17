@@ -1,5 +1,4 @@
 import { jsonArrayFrom } from "kysely/helpers/sqlite";
-import * as v from "valibot";
 import * as o from "../src/index.ts";
 
 const invoiceTable = o.table("invoice", {
@@ -11,8 +10,8 @@ const invoiceTable = o.table("invoice", {
     due_date: o.datetime({
         default: "now",
     }),
-    foo: o.datetime(),
     rowversion: o.rowversion(),
+    concurrencyStamp: o.concurrencyStamp(),
     created_at: o.createdAt(),
     updated_at: o.updatedAt(),
 });
@@ -24,6 +23,7 @@ const invoiceRowTable = o.table("invoice_row", {
     tax_percentage: o.float64(),
     quantity: o.float64(),
     invoice_id: o.foreignKey(invoiceTable, "id"),
+    concurrencyStamp: o.concurrencyStamp(),
 });
 
 const personTable = o.table("person", {
@@ -46,7 +46,7 @@ const personTable = o.table("person", {
 // Alternative you can use mutational syntax, which is typed
 // personTable.columns.supervisor_id = o.nullable(o.foreignKey(personTable, "id"));
 
-const foo = o
+const db = o
     .createDbBuilder()
     .withTables([invoiceTable, invoiceRowTable, personTable])
     .withSchemas()
@@ -54,9 +54,9 @@ const foo = o
     .withKyselyConfig()
     .build();
 
-await foo.createTables().execute();
+await db.createTables().execute();
 
-const kysely = foo.getKysely();
+const kysely = db.getKysely();
 
 type Database = typeof kysely;
 
@@ -65,28 +65,21 @@ type Database = typeof kysely;
 // type InvoiceRowTable = o.InferKyselyTable<typeof invoiceRowTable>;
 // type PersonTable = o.InferKyselyTable<typeof personTable>;
 
-// Creating valibot schemas for the tables
-const invoiceInsertSchemaRecord = o.getSchemasFromColumns(o.getInsertColumns(invoiceTable), o.SCHEMAS);
-const patchUpdateSchemaRecord = o.getSchemasFromColumns(o.getPatchColumns(invoiceTable), o.SCHEMAS);
-const updateKeySchemaRecord = o.getSchemasFromColumns(o.getUpdateKeyColumns(invoiceTable), o.SCHEMAS);
+const patchSchema = o.getPatchSchema(invoiceTable, db.schemas);
+const insertSchema = o.getInsertSchema(invoiceTable, db.schemas);
+const updateKeySchema = o.getUpdateKeySchema(invoiceTable, db.schemas);
+const primaryKeySchema = o.getPrimaryKeySchema(invoiceTable, db.schemas);
+const updateSchema = o.getUpdateSchema(invoiceTable, db.schemas);
 
-const personInsertSchemaRecord = o.getSchemasFromColumns(o.getInsertColumns(personTable), o.SCHEMAS);
-const personPatchUpdateSchemaRecord = o.getSchemasFromColumns(o.getPatchColumns(personTable), o.SCHEMAS);
-const personUpdateKeySchemaRecord = o.getSchemasFromColumns(o.getUpdateKeyColumns(personTable), o.SCHEMAS);
-
-
-const invoiceInsertSchema = o.s.combineRecordOfSchemas(invoiceInsertSchemaRecord);
-const invoicePatchUpdateSchema = o.s.combineRecordOfSchemas({
-    ...updateKeySchemaRecord,
-    ...patchUpdateSchemaRecord,
+updateSchema["~standard"].validate({
+    id: 1,
+    rowversion: 1,
+    title: "Updated Invoice",
+    description: "Updated description",
+    due_date: new Date(),
+    foffo: 5
 });
 
-
-const personInsertSchema = o.s.combineRecordOfSchemas(personInsertSchemaRecord);
-const personPatchUpdateSchema = o.s.combineRecordOfSchemas({
-    ...personUpdateKeySchemaRecord,
-    ...personPatchUpdateSchemaRecord,
-});
 // type InsertPerson = v.InferInput<typeof insertPersonSchema>;
 
 // type UpdateWithPatch = v.InferInput<typeof update>;

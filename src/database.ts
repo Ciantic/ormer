@@ -277,10 +277,10 @@ interface Db<
     ColumnTypes extends RecordOfColumnTypeToDriver,
     OrmDriver extends OrmerDbDriver<DbType, ColumnTypes>
 > {
-    tables: Tables;
-    schemas: Schemas;
-    driver: OrmDriver;
-    kyselyConfig: k.KyselyConfig;
+    readonly tables: Tables;
+    readonly schemas: Schemas;
+    readonly driver: OrmDriver;
+    readonly kyselyConfig: k.KyselyConfig;
 
     getKysely(): k.Kysely<InferKyselyTables<Tables, Schemas>>;
     createTables(): ReturnType<typeof createTables<Tables>>;
@@ -294,11 +294,11 @@ class DbImpl<
     OrmDriver extends OrmerDbDriver<DbType, ColumnTypes>
 > implements Db<DbType, Tables, Schemas, ColumnTypes, OrmDriver>
 {
-    kyselyConfig: k.KyselyConfig;
-    kyselyInstance: k.Kysely<InferKyselyTables<Tables, Schemas>>;
-    tables: Tables;
-    schemas: Schemas;
-    driver: OrmDriver;
+    readonly kyselyConfig: k.KyselyConfig;
+    readonly kyselyInstance: k.Kysely<InferKyselyTables<Tables, Schemas>>;
+    readonly tables: Tables;
+    readonly schemas: Schemas;
+    readonly driver: OrmDriver;
 
     constructor(
         tables: Tables,

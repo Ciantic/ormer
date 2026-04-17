@@ -232,7 +232,7 @@ export const datetime = validator<Date, Date>((value) => {
 const ISO_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 const ISO_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})$/;
 
-export const datetimeFromIsoString = validator<string | number, Date>((value) => {
+export const datetimeCoerced = validator<string | number, Date>((value) => {
     if (typeof value === "string") {
         if (ISO_DATETIME_RE.test(value)) {
             return { value: new Date(value + "Z") };
@@ -298,7 +298,7 @@ export const email = validator<string, string>((value) => {
     return { value };
 });
 
-export function combineRecordOfSchemas<T extends Record<string, StandardSchemaV1<unknown, unknown>>>(schemas: T): StandardSchemaV1<{ [K in keyof T]: StandardSchemaV1.InferInput<T[K]> }, { [K in keyof T]: StandardSchemaV1.InferOutput<T[K]> }> {
+export function schemaCombine<T extends Record<string, StandardSchemaV1<unknown, unknown>>>(schemas: T): StandardSchemaV1<{ [K in keyof T]: StandardSchemaV1.InferInput<T[K]> }, { [K in keyof T]: StandardSchemaV1.InferOutput<T[K]> }> {
     return validator<{ [K in keyof T]: StandardSchemaV1.InferInput<T[K]> }, { [K in keyof T]: StandardSchemaV1.InferOutput<T[K]> }>((value) => {
         if (typeof value !== "object" || value === null) {
             return { issues: [{ message: "Expected object" }] };
@@ -318,3 +318,30 @@ export function combineRecordOfSchemas<T extends Record<string, StandardSchemaV1
         return { value: result as { [K in keyof T]: StandardSchemaV1.InferOutput<T[K]> } };
     });
 }
+
+export function schemaMapOpt<T extends Record<string, StandardSchemaV1<any, any>>>(
+    record: T
+): { [K in keyof T]: T[K] extends StandardSchemaV1<infer I, infer O> ? StandardSchemaV1<I | undefined, O | undefined> : never } {
+    const result: Record<string, StandardSchemaV1<any, any>> = {};
+    for (const key in record) {
+        result[key] = schemaOpt(record[key]!);
+    }
+    return result as any;
+}
+
+export const schemaOpt = <I, O>(schema: StandardSchemaV1<I, O>): StandardSchemaV1<I | undefined, O | undefined> => {
+    return validator<I | undefined, O | undefined>((value) => {
+        if (value === undefined) {
+            return { value: undefined };
+        }
+        const res = schema["~standard"].validate(value);
+        if (res instanceof Promise) {
+            return { issues: [{ message: "Async validation not supported" }] };
+        }
+        if (res.issues) {
+            return { issues: res.issues };
+        }
+        return { value: res.value };
+    });
+}
+
