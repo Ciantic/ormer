@@ -345,3 +345,6 @@ export const schemaOpt = <I, O>(schema: StandardSchemaV1<I, O>): StandardSchemaV
     });
 }
 
+export function typedValidate<I, O>(schema: StandardSchemaV1<I, O>, value: I): StandardSchemaV1.Result<O> {
+    return schema["~standard"].validate(value as unknown) as StandardSchemaV1.Result<O>;
+}

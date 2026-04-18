@@ -1,6 +1,6 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { describe, it, expect } from "vitest";
-import { number, string, schemaMapOpt, schemaOpt, schemaCombine } from "./simplevalidation.js";
+import { number, string, schemaMapOpt, schemaOpt, schemaCombine, typedValidate } from "./simplevalidation.js";
 
 type Expect<T extends true> = T;
 type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
@@ -101,5 +101,22 @@ describe("schemaCombine", () => {
         const combined = schemaCombine({ n: number, s: string });
         const result = combined["~standard"].validate({ n: "bad", s: "hello" }) as StandardSchemaV1.FailureResult;
         expect(result.issues[0]?.message).toBe('Error in key "n": Expected number');
+    });
+
+    it("type-level: rejects objects not fitting the schema", () => {
+        const testValidator = schemaCombine({
+            something: number,
+            name: string,
+        });
+
+        const invalidInput = {
+            something: "wrong type",
+            missing: "name",
+        };
+
+        // @ts-expect-error
+        typedValidate(testValidator, invalidInput);
+
+        expect(true).toBe(true);
     });
 });
