@@ -57,9 +57,13 @@ type ResolveType<V, Tables extends TableDefs> =
             ? Types[V]
             : never;
 
-function materialize<T extends Record<string, string | readonly [string, string]>>(
-    schema: T
-): { [K in keyof T]: ResolveType<T[K], TableDefs> } {
+type Materialize<T extends Record<string, string | readonly [string, string]>> = { [K in keyof T]: ResolveType<T[K], TableDefs> };
+
+type Invoice = Materialize<typeof invoice>;
+type InvoiceRow = Materialize<typeof invoiceRow>;
+type Person = Materialize<typeof person>;
+
+function materialize<T extends Record<string, string | readonly [string, string]>>(def: T): Materialize<T> {
     return null as any;
 }
 
