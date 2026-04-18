@@ -12,11 +12,11 @@ const invoice = {
 
 const invoiceRow = {
     id: "pk",
-    title: "string",
-    price: "float64",
-    tax_percentage: "float64",
-    quantity: "float64",
-    invoice: ["reference", "invoice"],
+    title: "opt string",
+    price: "opt float64",
+    tax_percentage: "opt float64",
+    quantity: "opt float64",
+    invoice: ["opt reference", "invoice"],
     concurrencyStamp: "concurrencyStamp",    
 } as const;
 
@@ -48,16 +48,30 @@ type TableDefs = {
     invoiceRow: typeof invoiceRow;
 };
 
-type ResolveType<V, Tables extends TableDefs> =
-    V extends readonly ["reference", infer TableName]
-        ? TableName extends keyof Tables
-            ? { [K in keyof Tables[TableName]]: ResolveType<Tables[TableName][K], Tables> }
-            : never
-        : V extends keyof Types
-            ? Types[V]
-            : never;
+type IsOptional<V> = V extends `opt ${string}` | readonly ["opt reference", string] ? true : false;
 
-type Materialize<T extends Record<string, string | readonly [string, string]>> = { [K in keyof T]: ResolveType<T[K], TableDefs> };
+type ResolveType<V, Tables extends TableDefs> =
+    V extends readonly ["opt reference", infer TableName]
+        ? TableName extends keyof Tables
+            ? { [K in keyof Tables[TableName]]: ResolveType<Tables[TableName][K], Tables> } | undefined
+            : never
+        : V extends readonly ["reference", infer TableName]
+            ? TableName extends keyof Tables
+                ? { [K in keyof Tables[TableName]]: ResolveType<Tables[TableName][K], Tables> }
+                : never
+        : V extends `opt ${infer Rest}`
+            ? ResolveType<Rest, Tables> | undefined
+            : V extends keyof Types
+                ? Types[V]
+                : never;
+
+type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
+
+type Materialize<T extends Record<string, string | readonly [string, string]>> = FinalType<{
+    [K in keyof T as IsOptional<T[K]> extends true ? never : K]: ResolveType<T[K], TableDefs>;
+} & {
+    [K in keyof T as IsOptional<T[K]> extends true ? K : never]?: ResolveType<T[K], TableDefs>;
+}>;
 
 type Invoice = Materialize<typeof invoice>;
 type InvoiceRow = Materialize<typeof invoiceRow>;
