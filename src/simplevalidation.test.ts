@@ -1,6 +1,6 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { describe, it, expect } from "vitest";
-import { number, string, schemaMapOpt, schemaOpt, schemaCombine, typedValidate } from "./simplevalidation.js";
+import { describe, it, expect, assertType } from "vitest";
+import { number, string, schemaMapOpt, schemaOpt, schemaCombine, typedValidate, typedValidateLoose } from "./simplevalidation.js";
 
 type Expect<T extends true> = T;
 type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
@@ -102,6 +102,23 @@ describe("schemaCombine", () => {
         const result = combined["~standard"].validate({ n: "bad", s: "hello" }) as StandardSchemaV1.FailureResult;
         expect(result.issues[0]?.message).toBe('Error in key "n": Expected number');
     });
+});
+
+describe("typedValidate", () => {
+    it("type-level: accepts valid input", () => {
+        const testValidator = schemaCombine({
+            something: number,
+            name: string,
+        });
+
+        const validInput = {
+            something: 42,
+            name: "name",
+        };
+
+        const result = typedValidate(testValidator, validInput);
+        assertType<StandardSchemaV1.Result<{ something: number; name: string }>>(result);
+    });
 
     it("type-level: rejects objects not fitting the schema", () => {
         const testValidator = schemaCombine({
@@ -111,11 +128,60 @@ describe("schemaCombine", () => {
 
         const invalidInput = {
             something: "wrong type",
-            missing: "name",
+            name: "name",
         };
 
         // @ts-expect-error
-        typedValidate(testValidator, invalidInput);
+        assertType(typedValidate(testValidator, invalidInput));
+    });
+
+    it("returns value for valid input", () => {
+        const testValidator = schemaCombine({ n: number, s: string });
+        const result = typedValidate(testValidator, { n: 42, s: "hello" });
+        expect(result).toEqual({ value: { n: 42, s: "hello" } });
+    });
+
+    it("returns issues for invalid input", () => {
+        const testValidator = schemaCombine({ n: number, s: string });
+        // @ts-expect-error
+        const result = typedValidate(testValidator, { n: "bad", s: "hello" }) as StandardSchemaV1.FailureResult;
+        expect(result.issues).toBeDefined();
+        expect(result.issues[0]?.message).toBe('Error in key "n": Expected number');
+    });
+});
+
+describe("typedValidateLoose", () => {
+    it("type-level: allows extraneous properties", () => {
+        const testValidator = schemaCombine({
+            something: number,
+            name: string,
+        });
+
+        const inputWithExtras = {
+            something: 42,
+            name: "name",
+            extraField: "this is fine",
+        };
+
+        typedValidateLoose(testValidator, inputWithExtras);
+
+        expect(true).toBe(true);
+    });
+
+    it("type-level: rejects objects with wrong types for known fields", () => {
+        const testValidator = schemaCombine({
+            something: number,
+            name: string,
+        });
+
+        const invalidInput = {
+            something: "wrong type",
+            name: "name",
+            extraField: "this is fine",
+        };
+
+        // @ts-expect-error
+        typedValidateLoose(testValidator, invalidInput);
 
         expect(true).toBe(true);
     });
