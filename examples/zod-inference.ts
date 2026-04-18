@@ -4,6 +4,7 @@ import { z } from "zod";
 type Ext<S> = { _ext: S };
 type Ext2<S, T> = { _ext: S, _ext2: T };
 
+
 // Type augmentation
 declare module "zod" {
     interface ZodType {
@@ -14,9 +15,21 @@ declare module "zod" {
         pk<T extends z.ZodUUID>(this: T): T & Ext<"pk">;
         pk<T extends z.ZodString>(this: T): T & Ext<"pk">;
         pkAutoInc<T extends z.ZodInt>(this: T): T & Ext<"pkAutoInc">;
+        foreignKey<T extends z.ZodUUID, R extends z.ZodObject<any>>(this: T, table: R, column: keyof R["shape"]): T & Ext2<"foreignKey", { table: R, column: keyof R["shape"] }>;
+        foreignKey<T extends z.ZodString, R extends z.ZodObject<any>>(this: T, table: R, column: keyof R["shape"]): T & Ext2<"foreignKey", { table: R, column: keyof R["shape"] }>;
+        foreignKey<T extends z.ZodInt, R extends z.ZodObject<any>>(this: T, table: R, column: keyof R["shape"]): T & Ext2<"foreignKey", { table: R, column: keyof R["shape"] }>;
         rowversion<T extends z.ZodInt>(this: T): T & Ext<"rowversion">;
         concurrencyStamp<T extends z.ZodString>(this: T): T & Ext<"concurrencyStamp">;
-        forwardRef<T extends z.ZodObject, S extends string>(this: T, fieldName: S): T & Ext2<"forwardRef", S>;
+        timestamptz<T extends z.ZodDate>(this: T): T & Ext<"timestamptz">;
+        timestamp<T extends z.ZodDate>(this: T): T & Ext<"timestamp">;
+        dateOnly<T extends z.ZodISODate>(this: T): T & Ext<"dateOnly">;
+        timeOnly<T extends z.ZodISOTime>(this: T): T & Ext<"timeOnly">;
+
+        /**
+         * Reference field (isn't part of database schema)
+         * @param this 
+         */
+        ref<T extends z.ZodObject, S extends string>(this: T): T & Ext<"ref">;
     }
 }
 z.ZodType.prototype.int64 = function(this: z.ZodType & Ext<any>) {
@@ -51,9 +64,14 @@ z.ZodType.prototype.concurrencyStamp = function(this: z.ZodType & Ext<any>) {
     this._ext = "concurrencyStamp";
     return this;
 }
-z.ZodType.prototype.forwardRef = function<T extends z.ZodObject, S extends string>(this: z.ZodType & Ext<any>, fieldName: S) {
-    (this as z.ZodType & Ext2<any, any>)._ext = ["forwardRef", fieldName];
-    return this as z.ZodType & Ext2<"forwardRef", S>;
+z.ZodType.prototype.foreignKey = function<T extends z.ZodType, R extends z.ZodObject<any>>(this: T & Ext2<T, R>, table: R, column: keyof R["shape"]) {
+    this._ext = "foreignKey" as any;
+    this._ext2 = { table, column } as any;
+    return this as any;
+}
+z.ZodType.prototype.ref = function<T extends z.ZodObject, S extends string>(this: T & Ext<any>) {
+    this._ext = "ref";
+    return this;
 }
 
 // Testing the inference
@@ -61,36 +79,38 @@ z.ZodType.prototype.forwardRef = function<T extends z.ZodObject, S extends strin
 const InvoiceSchema = z.object({
     id: z.int().pkAutoInc(),
     title: z.string(),
-    describetion: z.string(),
-    due_date: z.date(),
+    description: z.string(),
+    dueDate: z.date(),
     rowversion: z.int().rowversion(),
     concurrencyStamp: z.string().concurrencyStamp(),
-    created_at: z.date(),
-    updated_at: z.date(),    
+    createdAt: z.date(),
+    updatedAt: z.date(),    
 });
 
 const InvoiceRowSchema = z.object({
     id: z.int().pkAutoInc(),
     title: z.string().optional(),
     price: z.number().optional(),
-    tax_percentage: z.number().optional(),
+    taxPercentage: z.number().optional(),
     quantity: z.number().optional(),
-    invoiceId: z.int().pkAutoInc().optional(),
-    invoice: InvoiceSchema.forwardRef("invoiceId").optional(),
+    invoiceId: z.int().foreignKey(InvoiceSchema, "id").optional(),
+    invoice: InvoiceSchema.ref().optional(),
     concurrencyStamp: z.string().concurrencyStamp(),    
 });
 
 const PersonSchema = z.object({
     id: z.int().pkAutoInc(),
-    first_name: z.string(),
-    last_name: z.string(),
+    firstName: z.string(),
+    lastName: z.string(),
     email: z.string(),
-    supervisorId: z.int().pkAutoInc().optional(),
-    get supervisor() {
-        return PersonSchema.forwardRef("supervisorId").optional();
+    get supervisorId() {
+        return z.int().foreignKey(PersonSchema, "id").optional();
     },
-    created_at: z.date(),
-    updated_at: z.date(),    
+    get supervisor() {
+        return PersonSchema.ref().optional();
+    },
+    createdAt: z.date(),
+    updatedAt: z.date(),    
 });
 
 type Invoice = z.input<typeof InvoiceSchema>;
