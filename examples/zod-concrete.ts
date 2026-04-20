@@ -246,29 +246,36 @@ export type InferFieldsWithParams<
 };
 
 export type InferPrimaryKeySchema<T extends z.ZodObject<any>> = z.ZodObject<
-  InferFieldsWithParams<T, { primaryKey: true }>
+  InferFieldsWithParams<T, { primaryKey: true }>,
+  z.core.$strict
 >;
 
-export type InferPatchSchema<T extends z.ZodObject<any>> = z.ZodObject<{
-  [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends DbType<any>
-    ? UnwrapZod<T["shape"][K]> extends DbType<any> & { notUpdatable: true }
-      ? never
-      : K
-    : never]: UnwrapZod<T["shape"][K]> extends DbType<any> &
-    ((Params & { primaryKey: true }) | { updateKey: true })
-    ? T["shape"][K]
-    : T["shape"][K] extends z.ZodTypeAny
-      ? z.ZodOptional<T["shape"][K]>
-      : never;
-}>;
+export type InferPatchSchema<T extends z.ZodObject<any>> = z.ZodObject<
+  {
+    [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends DbType<any>
+      ? UnwrapZod<T["shape"][K]> extends DbType<any> & { notUpdatable: true }
+        ? never
+        : K
+      : never]: UnwrapZod<T["shape"][K]> extends DbType<any> &
+      ((Params & { primaryKey: true }) | { updateKey: true })
+      ? T["shape"][K]
+      : T["shape"][K] extends z.ZodTypeAny
+        ? z.ZodOptional<T["shape"][K]>
+        : never;
+  },
+  z.core.$strict
+>;
 
-export type InferInsertSchema<T extends z.ZodObject<any>> = z.ZodObject<{
-  [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends DbType<any>
-    ? UnwrapZod<T["shape"][K]> extends DbType<any> & { notInsertable: true }
-      ? never
-      : K
-    : never]: T["shape"][K] extends z.ZodTypeAny ? T["shape"][K] : never;
-}>;
+export type InferInsertSchema<T extends z.ZodObject<any>> = z.ZodObject<
+  {
+    [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends DbType<any>
+      ? UnwrapZod<T["shape"][K]> extends DbType<any> & { notInsertable: true }
+        ? never
+        : K
+      : never]: T["shape"][K] extends z.ZodTypeAny ? T["shape"][K] : never;
+  },
+  z.core.$strict
+>;
 
 // export type InferPatchSchema<T extends z.ZodObject<any>> = InferFieldsWithParams<T, { primaryKey: true }> &
 
@@ -315,7 +322,7 @@ function getParam<P extends keyof Params>(
  */
 export function getDbSchema<T extends z.ZodObject<any>>(
   schema: T,
-): z.ZodObject<InferDbFields<T>> {
+): z.ZodObject<InferDbFields<T>, z.core.$strict> {
   const newShape: Record<string, z.ZodTypeAny> = {};
   for (const key in schema.shape) {
     const field = schema.shape[key] as z.ZodTypeAny;
@@ -323,7 +330,10 @@ export function getDbSchema<T extends z.ZodObject<any>>(
       newShape[key] = field;
     }
   }
-  return z.object(newShape) as z.ZodObject<InferDbFields<T>>;
+  return z.strictObject(newShape) as unknown as z.ZodObject<
+    InferDbFields<T>,
+    z.core.$strict
+  >;
 }
 /**
  * Returns a Zod schema containing only the primary key fields.
@@ -333,7 +343,7 @@ export function getDbSchema<T extends z.ZodObject<any>>(
  */
 export function getPrimaryKeySchema<T extends z.ZodObject<any>>(
   schema: T,
-): z.ZodObject<InferFieldsWithParams<T, { primaryKey: true }>> {
+): z.ZodObject<InferFieldsWithParams<T, { primaryKey: true }>, z.core.$strict> {
   const newShape: Record<string, z.ZodTypeAny> = {};
   for (const key in schema.shape) {
     const field = schema.shape[key] as z.ZodTypeAny;
@@ -341,8 +351,9 @@ export function getPrimaryKeySchema<T extends z.ZodObject<any>>(
       newShape[key] = field;
     }
   }
-  return z.object(newShape) as z.ZodObject<
-    InferFieldsWithParams<T, { primaryKey: true }>
+  return z.strictObject(newShape) as unknown as z.ZodObject<
+    InferFieldsWithParams<T, { primaryKey: true }>,
+    z.core.$strict
   >;
 }
 
@@ -364,7 +375,7 @@ export function getPatchSchema<T extends z.ZodObject<any>>(
       getParam(field, "primaryKey") || getParam(field, "updateKey");
     newShape[key] = isRequired ? field : z.optional(field);
   }
-  return z.object(newShape) as any;
+  return z.strictObject(newShape) as InferPatchSchema<T>;
 }
 
 /**
@@ -382,5 +393,5 @@ export function getInsertSchema<T extends z.ZodObject<any>>(
     if (getParam(field, "notInsertable")) continue;
     newShape[key] = field;
   }
-  return z.object(newShape) as InferInsertSchema<T>;
+  return z.strictObject(newShape) as InferInsertSchema<T>;
 }
