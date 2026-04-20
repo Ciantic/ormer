@@ -177,7 +177,7 @@ type UnwrapZod<T> =
     T;
 
 export type InferPrimaryKeySchema<T extends z.ZodObject<any>> = z.ZodObject<{
-    [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends { primaryKey: true } ? K : never]: T["shape"][K] extends z.ZodTypeAny ? T["shape"][K] : never;
+    [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends DbType<any> & { primaryKey: true } ? K : never]: T["shape"][K] extends z.ZodTypeAny ? T["shape"][K] : never;
 }>;
 
 export type InferPatchSchema<T extends z.ZodObject<any>> = z.ZodObject<{
