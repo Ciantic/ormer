@@ -2,6 +2,24 @@ import { z } from "zod";
 
 type DbType<S> = { dbtype: S };
 
+type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
+
+export type Params<ExtraProps extends object = {}> = FinalType<
+    Readonly<
+        ExtraProps & {
+            primaryKey?: boolean;
+            autoIncrement?: boolean;
+            unique?: boolean;
+            updateKey?: boolean;
+            notInsertable?: boolean;
+            notUpdatable?: boolean;
+            defaultSql?: unknown;
+            foreignKeyTable?: string;
+            foreignKeyColumn?: string;
+        }
+    >
+>;
+
 function dbtype<T extends object, U>(schema: T, dbtype: U): T & DbType<U> {
     return Object.assign(schema, { dbtype: dbtype });
 }
@@ -91,6 +109,10 @@ type PkAutoInc = <T extends DbType<"int32"> | DbType<"int64"> | DbType<"bigint">
             autoInc: true;
         }
 
+type CreatedAt = <T extends DbType<"datetime" | "timestamptz" | "timestamp">>(this: T) => T & { createdAt: true };
+
+type UpdatedAt = <T extends DbType<"datetime" | "timestamptz" | "timestamp">>(this: T) => T & { updatedAt: true };
+
 type ForeignKey = <T extends DbType<"int32"> | DbType<"int64"> | DbType<"bigint"> | DbType<"uuid">, R extends z.ZodObject<any>, C extends keyof R["shape"]>(this: T, table: R, column: C) => T & {
             foreignKey: true;
             table: R;
@@ -117,6 +139,8 @@ declare module "zod" {
     interface ZodType {
         pk: Pk;
         pkAutoInc: PkAutoInc;
+        createdAt: CreatedAt;
+        updatedAt: UpdatedAt;
         foreignKey: ForeignKey;
         rowversion: RowVersion;
         concurrencyStamp: ConcurrencyStamp;
@@ -132,6 +156,14 @@ z.ZodType.prototype.pk = function (this) {
 z.ZodType.prototype.pkAutoInc = function (this) {
     return Object.assign(this, { pk: true, autoInc: true } as const);
 } satisfies PkAutoInc;
+
+z.ZodType.prototype.createdAt = function (this) {
+    return Object.assign(this, { createdAt: true } as const);
+} satisfies CreatedAt;
+
+z.ZodType.prototype.updatedAt = function (this) {
+    return Object.assign(this, { updatedAt: true } as const);
+} satisfies UpdatedAt;
 
 z.ZodType.prototype.foreignKey = function (table, column) {
     return Object.assign(this, { foreignKey: true, table, column } as const);
@@ -152,3 +184,26 @@ z.ZodType.prototype.navigateOne = function () {
 z.ZodArray.prototype.navigateMany = function () {
     return Object.assign(this, { navigateMany: true } as const);
 } satisfies NavigateMany;
+
+
+type UnwrapZod<T> =
+    T extends z.ZodOptional<infer U> ? UnwrapZod<U> :
+    T extends z.ZodDefault<infer U> ? UnwrapZod<U> :
+    T extends z.ZodNullable<infer U> ? UnwrapZod<U> :
+    T extends z.ZodCatch<infer U> ? UnwrapZod<U> :
+    T;
+
+export type InferPrimaryKeySchema<T extends z.ZodObject<any>> = z.ZodObject<{
+    [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends { pk: true } ? K : never]: T["shape"][K] extends z.ZodTypeAny ? T["shape"][K] : never;
+}>;
+
+export type InferPatchSchema<T extends z.ZodObject<any>> = z.ZodObject<{
+    [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends DbType<any> ? K : never]: T["shape"][K] extends z.ZodTypeAny
+        ? T["shape"][K] extends z.ZodOptional<any> ? T["shape"][K] : z.ZodOptional<T["shape"][K]>
+        : never;
+}>;
+
+export type InferUpdateKeysSchema<T extends z.ZodObject<any>> = z.ZodObject<{
+    [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends { pk: true } | { concurrencyStamp: true } ? K : never]: T["shape"][K] extends z.ZodTypeAny ? T["shape"][K] : never;
+}>;
+

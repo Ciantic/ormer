@@ -18,7 +18,7 @@ const InvoiceSchema = z.object({
 
 const InvoiceRowSchema = z.object({
     id: d.bigint().pkAutoInc(),
-    title: d.string().optional(),
+    title: d.string().optional().nullable(),
     price: d.float64().optional(),
     taxPercentage: d.float64().optional(),
     quantity: d.int32().optional(),
@@ -41,3 +41,9 @@ const PersonSchema = z.object({
     createdAt: d.datetime(),
     updatedAt: d.datetime(),    
 });
+
+type InvoicePkSchema = d.InferPrimaryKeySchema<typeof InvoiceSchema> // z.ZodBigInt & { pk: true; autoInc: true }
+
+type InvoicePatch = d.InferPatchSchema<typeof InvoiceSchema> // Partial<Invoice> & { id: bigint }
+
+type InvoiceRowPatchSchema = d.InferPatchSchema<typeof InvoiceRowSchema> // Partial<InvoiceRow> & { id: bigint }
