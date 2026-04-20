@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z, ZodType, type Infer } from "zod";
 
 type DbType<S> = { dbtype: S };
 
@@ -22,7 +22,7 @@ type Params = {
   maxLength?: number;
   createdAt?: boolean;
   updatedAt?: boolean;
-  rowVersion?: boolean;
+  rowversion?: boolean;
   concurrencyStamp?: boolean;
   navigateOne?: boolean;
   navigateMany?: boolean;
@@ -138,6 +138,7 @@ function pkAutoInc<
     primaryKey: true,
     autoIncrement: true,
     notUpdatable: true,
+    notInsertable: true,
   } as const);
 }
 
@@ -168,10 +169,10 @@ function foreignKey<
   } as const);
 }
 
-function rowVersion<
+function rowversion<
   T extends DbType<"int32"> | DbType<"int64"> | DbType<"bigint">,
 >(this: T) {
-  return params(this, { rowVersion: true } as const);
+  return params(this, { rowversion: true } as const);
 }
 
 function concurrencyStamp<T extends DbType<"string"> | DbType<"uuid">>(
@@ -201,7 +202,7 @@ declare module "zod" {
     createdAt: typeof createdAt;
     updatedAt: typeof updatedAt;
     foreignKey: typeof foreignKey;
-    rowversion: typeof rowVersion;
+    rowversion: typeof rowversion;
     concurrencyStamp: typeof concurrencyStamp;
     navigateOne: typeof navigateOne;
     navigateMany: typeof navigateMany;
@@ -213,10 +214,10 @@ z.ZodType.prototype.pkAutoInc = pkAutoInc;
 z.ZodType.prototype.createdAt = createdAt;
 z.ZodType.prototype.updatedAt = updatedAt;
 z.ZodType.prototype.foreignKey = foreignKey;
-z.ZodType.prototype.rowVersion = rowVersion;
+z.ZodType.prototype.rowversion = rowversion;
 z.ZodType.prototype.concurrencyStamp = concurrencyStamp;
 z.ZodType.prototype.navigateOne = navigateOne;
-z.ZodArray.prototype.navigateMany = navigateMany;
+z.ZodType.prototype.navigateMany = navigateMany;
 
 type UnwrapZod<T> =
   T extends z.ZodOptional<infer U>
@@ -229,28 +230,157 @@ type UnwrapZod<T> =
           ? UnwrapZod<U>
           : T;
 
-export type InferPrimaryKeySchema<T extends z.ZodObject<any>> = z.ZodObject<{
-  [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends DbType<any> & {
-    primaryKey: true;
-  }
+export type InferDbFields<T extends z.ZodObject<any>> = {
+  [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends DbType<any>
     ? K
     : never]: T["shape"][K] extends z.ZodTypeAny ? T["shape"][K] : never;
-}>;
+};
+
+export type InferFieldsWithParams<
+  T extends z.ZodObject<any>,
+  P extends Params,
+> = {
+  [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends DbType<any> & P
+    ? K
+    : never]: T["shape"][K] extends z.ZodTypeAny ? T["shape"][K] : never;
+};
+
+export type InferPrimaryKeySchema<T extends z.ZodObject<any>> = z.ZodObject<
+  InferFieldsWithParams<T, { primaryKey: true }>
+>;
 
 export type InferPatchSchema<T extends z.ZodObject<any>> = z.ZodObject<{
   [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends DbType<any>
-    ? K
-    : never]: T["shape"][K] extends z.ZodTypeAny
-    ? T["shape"][K] extends z.ZodOptional<any>
-      ? T["shape"][K]
-      : z.ZodOptional<T["shape"][K]>
-    : never;
+    ? UnwrapZod<T["shape"][K]> extends DbType<any> & { notUpdatable: true }
+      ? never
+      : K
+    : never]: UnwrapZod<T["shape"][K]> extends DbType<any> &
+    ((Params & { primaryKey: true }) | { updateKey: true })
+    ? T["shape"][K]
+    : T["shape"][K] extends z.ZodTypeAny
+      ? z.ZodOptional<T["shape"][K]>
+      : never;
 }>;
 
-export type InferUpdateKeysSchema<T extends z.ZodObject<any>> = z.ZodObject<{
-  [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends
-    | { pk: true }
-    | { concurrencyStamp: true }
-    ? K
+export type InferInsertSchema<T extends z.ZodObject<any>> = z.ZodObject<{
+  [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends DbType<any>
+    ? UnwrapZod<T["shape"][K]> extends DbType<any> & { notInsertable: true }
+      ? never
+      : K
     : never]: T["shape"][K] extends z.ZodTypeAny ? T["shape"][K] : never;
 }>;
+
+// export type InferPatchSchema<T extends z.ZodObject<any>> = InferFieldsWithParams<T, { primaryKey: true }> &
+
+// Helpers to get schemas
+
+function hasDbType(schema: z.ZodTypeAny): boolean {
+  let current: any = schema;
+  while (current) {
+    if ("dbtype" in current && current.dbtype !== undefined) {
+      return true;
+    }
+    if (current._def?.innerType) {
+      current = current._def.innerType;
+    } else {
+      break;
+    }
+  }
+  return false;
+}
+
+function getParam<P extends keyof Params>(
+  schema: z.ZodTypeAny,
+  param: P,
+): Params[P] | undefined {
+  let current: any = schema;
+  while (current) {
+    if (param in current && current[param] !== undefined) {
+      return current[param] as Params[P];
+    }
+    if (current._def?.innerType) {
+      current = current._def.innerType;
+    } else {
+      break;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Returns a Zod schema containing only the fields that are database columns (i.e. have DbType).
+ *
+ * @param schema
+ * @returns
+ */
+export function getDbSchema<T extends z.ZodObject<any>>(
+  schema: T,
+): z.ZodObject<InferDbFields<T>> {
+  const newShape: Record<string, z.ZodTypeAny> = {};
+  for (const key in schema.shape) {
+    const field = schema.shape[key] as z.ZodTypeAny;
+    if (hasDbType(field)) {
+      newShape[key] = field;
+    }
+  }
+  return z.object(newShape) as z.ZodObject<InferDbFields<T>>;
+}
+/**
+ * Returns a Zod schema containing only the primary key fields.
+ *
+ * @param schema
+ * @returns
+ */
+export function getPrimaryKeySchema<T extends z.ZodObject<any>>(
+  schema: T,
+): z.ZodObject<InferFieldsWithParams<T, { primaryKey: true }>> {
+  const newShape: Record<string, z.ZodTypeAny> = {};
+  for (const key in schema.shape) {
+    const field = schema.shape[key] as z.ZodTypeAny;
+    if (getParam(field, "primaryKey")) {
+      newShape[key] = field;
+    }
+  }
+  return z.object(newShape) as z.ZodObject<
+    InferFieldsWithParams<T, { primaryKey: true }>
+  >;
+}
+
+/**
+ * Returns a Zod schema for patching: all db fields except notUpdatable ones,
+ * with fields optional except PK and updateKey which remain required.
+ * @param schema
+ * @returns
+ */
+export function getPatchSchema<T extends z.ZodObject<any>>(
+  schema: T,
+): InferPatchSchema<T> {
+  const newShape: Record<string, z.ZodTypeAny> = {};
+  for (const key in schema.shape) {
+    const field = schema.shape[key] as z.ZodTypeAny;
+    if (!hasDbType(field)) continue;
+    if (getParam(field, "notUpdatable")) continue;
+    const isRequired =
+      getParam(field, "primaryKey") || getParam(field, "updateKey");
+    newShape[key] = isRequired ? field : z.optional(field);
+  }
+  return z.object(newShape) as any;
+}
+
+/**
+ * Returns a Zod schema for inserting: all db fields except notInsertable.
+ * @param schema
+ * @returns
+ */
+export function getInsertSchema<T extends z.ZodObject<any>>(
+  schema: T,
+): InferInsertSchema<T> {
+  const newShape: Record<string, z.ZodTypeAny> = {};
+  for (const key in schema.shape) {
+    const field = schema.shape[key] as z.ZodTypeAny;
+    if (!hasDbType(field)) continue;
+    if (getParam(field, "notInsertable")) continue;
+    newShape[key] = field;
+  }
+  return z.object(newShape) as InferInsertSchema<T>;
+}
