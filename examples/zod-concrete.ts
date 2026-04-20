@@ -2,188 +2,171 @@ import { z } from "zod";
 
 type DbType<S> = { dbtype: S };
 
-type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
+// Restrict record T to only keys from record B
+type R<T, B> = {
+    [K in keyof T]: K extends keyof B ? T[K] : never;
+};
 
-export type Params<ExtraProps extends object = {}> = FinalType<
-    Readonly<
-        ExtraProps & {
-            primaryKey?: boolean;
-            autoIncrement?: boolean;
-            unique?: boolean;
-            updateKey?: boolean;
-            notInsertable?: boolean;
-            notUpdatable?: boolean;
-            defaultSql?: unknown;
-            foreignKeyTable?: string;
-            foreignKeyColumn?: string;
-        }
-    >
->;
+type Params = {
+    primaryKey?: boolean;
+    autoIncrement?: boolean;
+    unique?: boolean;
+    updateKey?: boolean;
+    notInsertable?: boolean;
+    notUpdatable?: boolean;
+    defaultSql?: unknown;
+    foreignKeyTable?: string;
+    foreignKeyColumn?: string;
+    precision?: number;
+    scale?: number;
+    maxLength?: number;
+    createdAt?: boolean;
+    updatedAt?: boolean;
+    rowVersion?: boolean;
+    concurrencyStamp?: boolean;
+    navigateOne?: boolean;
+    navigateMany?: boolean;
+}
 
-function dbtype<T extends object, U>(schema: T, dbtype: U): T & DbType<U> {
+function dbtype<O extends object, T extends string>(schema: O, dbtype: T): O & DbType<T> {
     return Object.assign(schema, { dbtype: dbtype });
 }
 
-function assignExt<T extends object, U, E>(schema: T, dbtype: U, extra: E): T & DbType<U> & E {
-    return Object.assign(schema, { dbtype: dbtype, ...extra });
+function params<O extends object, P extends Params>(schema: O, extra: R<P, Params>): O & P {
+    return Object.assign(schema, extra);
 }
 
 // --- Database type functions
 
-export function int64(): z.ZodInt & DbType<"int64"> {
+export function int64() {
     return dbtype(z.int(), "int64");
 }
 
-export function int32(): z.ZodInt32 & DbType<"int32"> {
+export function int32() {
     return dbtype(z.int32(), "int32");
 }
 
-export function float32(): z.ZodNumber & DbType<"float32"> {
+export function float32() {
     return dbtype(z.number(), "float32");
 }
 
-export function float64(): z.ZodNumber & DbType<"float64"> {
+export function float64() {
     return dbtype(z.number(), "float64");
 }
 
-export function bigint(): z.ZodBigInt & DbType<"bigint"> {
+export function bigint() {
     return dbtype(z.bigint(), "bigint");
 }
 
-export function decimal(precision: number, scale: number): z.ZodNumber & DbType<"decimal"> & { _precision: number; _scale: number } {
-    return assignExt(z.number(), "decimal", { _precision: precision, _scale: scale });
+export function decimal(precision: number, scale: number) {
+    return params(dbtype(z.number(), "decimal"), { precision: precision, scale: scale } as const);
 }
 
-export function uuid(): z.ZodUUID & DbType<"uuid"> {
+export function uuid() {
     return dbtype(z.uuid(), "uuid");
 }
 
-export function string(): z.ZodString & DbType<"string"> {
+export function string() {
     return dbtype(z.string(), "string");
 }
 
-export function varchar(maxLength: number): z.ZodString & DbType<"varchar"> & { _maxLength: number } {
-    return assignExt(z.string().max(maxLength), "varchar", { _maxLength: maxLength });
+export function varchar(maxLength: number) {
+    return params(dbtype(z.string().max(maxLength), "varchar"), { maxLength: maxLength } as const);
 }
 
-export function boolean(): z.ZodBoolean & DbType<"boolean"> {
+export function boolean() {
     return dbtype(z.boolean(), "boolean");
 }
 
-export function datetime(): z.ZodDate & DbType<"datetime"> {
+export function datetime() {
     return dbtype(z.date(), "datetime");
 }
 
-export function datepart(): z.ZodISODate & DbType<"datepart"> {
+export function datepart() {
     return dbtype(z.iso.date(), "datepart");
 }
 
-export function timepart(): z.ZodISOTime & DbType<"timepart"> {
+export function timepart() {
     return dbtype(z.iso.time(), "timepart");
 }
 
-export function jsonb<T extends z.ZodType>(schema: T): T & DbType<"jsonb"> {
+export function jsonb<T extends z.ZodType>(schema: T) {
     return dbtype(schema, "jsonb");
 }
 
-export function json<T extends z.ZodType>(schema: T): T & DbType<"json"> {
+export function json<T extends z.ZodType>(schema: T) {
     return dbtype(schema, "json");
 }
 
-export function timestamptz<T extends z.ZodDate>(schema: T): T & DbType<"timestamptz"> {
+export function timestamptz<T extends z.ZodDate>(schema: T) {
     return dbtype(schema, "timestamptz");
 }
 
-export function timestamp<T extends z.ZodDate>(schema: T): T & DbType<"timestamp"> {
+export function timestamp<T extends z.ZodDate>(schema: T) {
     return dbtype(schema, "timestamp");
 }
 
-// Metadata functions
+// Zod extension functions
 
-type Pk = <T extends DbType<"int32"> | DbType<"int64"> | DbType<"bigint"> | DbType<"uuid"> | DbType<"string"> | DbType<"varchar">>(this: T) => T & {
-            pk: true;
-        }
+function pk<T extends DbType<"int32"> | DbType<"int64"> | DbType<"bigint"> | DbType<"uuid"> | DbType<"string"> | DbType<"varchar">>(this: T) {
+    return params(this, { primaryKey: true } as const);
+}
 
-type PkAutoInc = <T extends DbType<"int32"> | DbType<"int64"> | DbType<"bigint">>(this: T) => T & {
-            pk: true;
-            autoInc: true;
-        }
+function pkAutoInc<T extends DbType<"int32"> | DbType<"int64"> | DbType<"bigint">>(this: T) {
+    return params(this, { primaryKey: true, autoIncrement: true, notUpdatable: true } as const);
+}
 
-type CreatedAt = <T extends DbType<"datetime" | "timestamptz" | "timestamp">>(this: T) => T & { createdAt: true };
+function createdAt<T extends DbType<"datetime" | "timestamptz" | "timestamp">>(this: T) {
+    return params(this, { createdAt: true } as const);
+}
 
-type UpdatedAt = <T extends DbType<"datetime" | "timestamptz" | "timestamp">>(this: T) => T & { updatedAt: true };
+function updatedAt<T extends DbType<"datetime" | "timestamptz" | "timestamp">>(this: T) {
+    return params(this, { updatedAt: true } as const);
+}
 
-type ForeignKey = <T extends DbType<"int32"> | DbType<"int64"> | DbType<"bigint"> | DbType<"uuid">, R extends z.ZodObject<any>, C extends keyof R["shape"]>(this: T, table: R, column: C) => T & {
-            foreignKey: true;
-            table: R;
-            column: C;
-        }
+function foreignKey<T extends DbType<"int32"> | DbType<"int64"> | DbType<"bigint"> | DbType<"uuid">, R extends z.ZodObject<any>, C extends keyof R["shape"]>(this: T, table: R, column: C) {
+    return params(this, { foreignKeyTable: table as any, foreignKeyColumn: column as any } as const);
+}
 
-type RowVersion = <T extends DbType<"int32"> | DbType<"int64"> | DbType<"bigint">>(this: T) => T & {
-            rowversion: true;
-        }
+function rowVersion<T extends DbType<"int32"> | DbType<"int64"> | DbType<"bigint">>(this: T) {
+    return params(this, { rowVersion: true } as const);
+}
 
-type ConcurrencyStamp = <T extends DbType<"string"> | DbType<"uuid">>(this: T) => T & {
-            concurrencyStamp: true;
-        }
+function concurrencyStamp<T extends DbType<"string"> | DbType<"uuid">>(this: T) {
+    return params(this, { concurrencyStamp: true } as const);
+}
 
-type NavigateOne = <T extends z.ZodObject | z.ZodOptional<z.ZodObject>>(this: T) => T & {
-            navigateOne: true;
-        }
+function navigateOne<T extends z.ZodObject | z.ZodOptional<z.ZodObject>>(this: T) {
+    return params(this, { navigateOne: true } as const);
+}
 
-type NavigateMany = <T extends z.ZodArray<z.ZodObject<any>> | z.ZodOptional<z.ZodArray<z.ZodObject<any>>>>(this: T) => T & {
-            navigateMany: true;
-        }
+function navigateMany<T extends z.ZodArray<z.ZodObject<any>> | z.ZodOptional<z.ZodArray<z.ZodObject<any>>>>(this: T) {
+    return params(this, { navigateMany: true } as const);
+}
 
 declare module "zod" {
     interface ZodType {
-        pk: Pk;
-        pkAutoInc: PkAutoInc;
-        createdAt: CreatedAt;
-        updatedAt: UpdatedAt;
-        foreignKey: ForeignKey;
-        rowversion: RowVersion;
-        concurrencyStamp: ConcurrencyStamp;
-        navigateOne: NavigateOne;
-        navigateMany: NavigateMany;
+        pk: typeof pk;
+        pkAutoInc: typeof pkAutoInc;
+        createdAt: typeof createdAt;
+        updatedAt: typeof updatedAt;
+        foreignKey: typeof foreignKey;
+        rowversion: typeof rowVersion;
+        concurrencyStamp: typeof concurrencyStamp;
+        navigateOne: typeof navigateOne;
+        navigateMany: typeof navigateMany;
     }
 }
 
-z.ZodType.prototype.pk = function (this) {
-    return Object.assign(this, { pk: true } as const);
-} satisfies Pk;
-
-z.ZodType.prototype.pkAutoInc = function (this) {
-    return Object.assign(this, { pk: true, autoInc: true } as const);
-} satisfies PkAutoInc;
-
-z.ZodType.prototype.createdAt = function (this) {
-    return Object.assign(this, { createdAt: true } as const);
-} satisfies CreatedAt;
-
-z.ZodType.prototype.updatedAt = function (this) {
-    return Object.assign(this, { updatedAt: true } as const);
-} satisfies UpdatedAt;
-
-z.ZodType.prototype.foreignKey = function (table, column) {
-    return Object.assign(this, { foreignKey: true, table, column } as const);
-} satisfies ForeignKey;
-
-z.ZodType.prototype.rowversion = function () {
-    return Object.assign(this, { rowversion: true } as const);
-} satisfies RowVersion;
-
-z.ZodType.prototype.concurrencyStamp = function () {
-    return Object.assign(this, { concurrencyStamp: true } as const);
-} satisfies ConcurrencyStamp;
-
-z.ZodType.prototype.navigateOne = function () {
-    return Object.assign(this, { navigateOne: true } as const);
-} satisfies NavigateOne;
-
-z.ZodArray.prototype.navigateMany = function () {
-    return Object.assign(this, { navigateMany: true } as const);
-} satisfies NavigateMany;
+z.ZodType.prototype.pk = pk;
+z.ZodType.prototype.pkAutoInc = pkAutoInc
+z.ZodType.prototype.createdAt = createdAt;
+z.ZodType.prototype.updatedAt = updatedAt;
+z.ZodType.prototype.foreignKey = foreignKey;
+z.ZodType.prototype.rowVersion = rowVersion;
+z.ZodType.prototype.concurrencyStamp = concurrencyStamp;
+z.ZodType.prototype.navigateOne = navigateOne;
+z.ZodArray.prototype.navigateMany = navigateMany;
 
 
 type UnwrapZod<T> =
@@ -194,7 +177,7 @@ type UnwrapZod<T> =
     T;
 
 export type InferPrimaryKeySchema<T extends z.ZodObject<any>> = z.ZodObject<{
-    [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends { pk: true } ? K : never]: T["shape"][K] extends z.ZodTypeAny ? T["shape"][K] : never;
+    [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends { primaryKey: true } ? K : never]: T["shape"][K] extends z.ZodTypeAny ? T["shape"][K] : never;
 }>;
 
 export type InferPatchSchema<T extends z.ZodObject<any>> = z.ZodObject<{
