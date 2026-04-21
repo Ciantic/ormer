@@ -13,12 +13,21 @@ function schemaShapeKeys<T extends z.ZodObject<any>>(schema: T) {
   return Object.keys(schema.shape) as Array<keyof z.output<T>>;
 }
 
-function expectEqualAndTypes<K extends readonly string[]>(
+function expectTypedArrays<K extends readonly string[]>(
   actual: K,
   expected: K,
 ) {
   expect(actual).toEqual(expected);
 }
+
+function expectTypedRecords<K extends Record<string, any>>(
+  actual: K,
+  expected: K,
+) {
+  expect(actual).toEqual(expected);
+}
+
+const TEST_UUID = "550e8400-e29b-41d4-a716-446655440000";
 
 const TestSchema = z.strictObject({
   int64Field: d.int64(),
@@ -134,74 +143,110 @@ describe("zod-concrete", () => {
     }>();
   });
 
-  it("should build helper schemas for extension schema", () => {
+  it("should have correct type for getDbSchema input and output", () => {
     const dbSchema = d.getDbSchema(ExtensionSchema);
-    const primaryKeySchema = d.getPrimaryKeySchema(ExtensionSchema);
-    const patchSchema = d.getPatchSchema(ExtensionSchema);
-    const insertSchema = d.getInsertSchema(ExtensionSchema);
+    const date = new Date();
+    const output = dbSchema.decode({
+      pkField: 1,
+      pkAutoIncField: 1n,
+      createdAtField: date,
+      updatedAtField: date,
+      rowversionField: 1,
+      concurrencyStampField: TEST_UUID,
+    });
 
-    const dbKeys = schemaShapeKeys(dbSchema);
-    const primaryKeyKeys = schemaShapeKeys(primaryKeySchema);
-    const patchKeys = schemaShapeKeys(patchSchema);
-    const insertKeys = schemaShapeKeys(insertSchema);
-
-    expectEqualAndTypes(dbKeys, [
-      "pkField",
-      "pkAutoIncField",
-      "createdAtField",
-      "updatedAtField",
-      "rowversionField",
-      "concurrencyStampField",
-    ] as const);
-
-    expectEqualAndTypes(primaryKeyKeys, ["pkField", "pkAutoIncField"] as const);
-
-    expectEqualAndTypes(patchKeys, [
-      "pkField",
-      "createdAtField",
-      "updatedAtField",
-      "rowversionField",
-      "concurrencyStampField",
-    ] as const);
-
-    expectEqualAndTypes(insertKeys, [
-      "pkField",
-      "createdAtField",
-      "updatedAtField",
-      "rowversionField",
-      "concurrencyStampField",
-    ] as const);
+    expectTypedRecords(output, {
+      pkField: 1,
+      pkAutoIncField: 1n,
+      createdAtField: date,
+      updatedAtField: date,
+      rowversionField: 1,
+      concurrencyStampField: TEST_UUID,
+    });
   });
 
-  it("should build helper schemas for relation schema", () => {
-    const authorDbSchema = d.getDbSchema(AuthorSchema);
-    const authorPrimaryKeySchema = d.getPrimaryKeySchema(AuthorSchema);
-    const authorPatchSchema = d.getPatchSchema(AuthorSchema);
+  it("should have correct type for getPrimaryKeySchema input and output", () => {
+    const primaryKeySchema = d.getPrimaryKeySchema(ExtensionSchema);
+    const output = primaryKeySchema.decode({
+      pkField: 1,
+      pkAutoIncField: 1n,
+    });
+
+    expectTypedRecords(output, {
+      pkField: 1,
+      pkAutoIncField: 1n,
+    });
+  });
+
+  it("should have correct type for getPatchSchema input and output", () => {
+    const patchSchema = d.getPatchSchema(ExtensionSchema);
+    const date = new Date();
+    const output = patchSchema.decode({
+      pkField: 1,
+      updatedAtField: date,
+    });
+
+    expectTypedRecords(output, {
+      pkField: 1,
+      updatedAtField: date,
+    });
+  });
+
+  it("should have correct type for getInsertSchema input and output", () => {
+    const insertSchema = d.getInsertSchema(ExtensionSchema);
+    const date = new Date();
+    const output = insertSchema.decode({
+      pkField: 1,
+      createdAtField: date,
+      updatedAtField: date,
+      rowversionField: 1,
+      concurrencyStampField: TEST_UUID,
+    });
+
+    expectTypedRecords(output, {
+      pkField: 1,
+      createdAtField: date,
+      updatedAtField: date,
+      rowversionField: 1,
+      concurrencyStampField: TEST_UUID,
+    });
+  });
+
+  it("should exclude and reject non-db fields", () => {
+    const dbSchema = d.getDbSchema(ExtensionSchema);
+    const date = new Date();
+    const payloadWithNonDbField = {
+      pkField: 1,
+      pkAutoIncField: 1n,
+      createdAtField: date,
+      updatedAtField: date,
+      rowversionField: 1,
+      concurrencyStampField: TEST_UUID,
+      nonDbField: "should-fail",
+    } as unknown;
+
+    expect(() => dbSchema.decode(payloadWithNonDbField as any)).toThrow();
+  });
+
+  it("should have correct type for author/post derived schema input and output", () => {
     const authorInsertSchema = d.getInsertSchema(AuthorSchema);
+    const authorInsertOutput = authorInsertSchema.decode({
+      name: "Ada",
+    });
 
-    const postDbSchema = d.getDbSchema(PostSchema);
-    const postPrimaryKeySchema = d.getPrimaryKeySchema(PostSchema);
+    expectTypedRecords(authorInsertOutput, {
+      name: "Ada",
+    });
+
     const postPatchSchema = d.getPatchSchema(PostSchema);
-    const postInsertSchema = d.getInsertSchema(PostSchema);
+    const postPatchOutput = postPatchSchema.decode({
+      authorId: 10n,
+      title: "Hello",
+    });
 
-    const authorDbKeys = schemaShapeKeys(authorDbSchema);
-    const authorPrimaryKeyKeys = schemaShapeKeys(authorPrimaryKeySchema);
-    const authorPatchKeys = schemaShapeKeys(authorPatchSchema);
-    const authorInsertKeys = schemaShapeKeys(authorInsertSchema);
-
-    const postDbKeys = schemaShapeKeys(postDbSchema);
-    const postPrimaryKeyKeys = schemaShapeKeys(postPrimaryKeySchema);
-    const postPatchKeys = schemaShapeKeys(postPatchSchema);
-    const postInsertKeys = schemaShapeKeys(postInsertSchema);
-
-    expectEqualAndTypes(authorDbKeys, ["id", "name"] as const);
-    expectEqualAndTypes(authorPrimaryKeyKeys, ["id"] as const);
-    expectEqualAndTypes(authorPatchKeys, ["name"] as const);
-    expectEqualAndTypes(authorInsertKeys, ["name"] as const);
-
-    expectEqualAndTypes(postDbKeys, ["id", "authorId", "title"] as const);
-    expectEqualAndTypes(postPrimaryKeyKeys, ["id"] as const);
-    expectEqualAndTypes(postPatchKeys, ["authorId", "title"] as const);
-    expectEqualAndTypes(postInsertKeys, ["authorId", "title"] as const);
+    expectTypedRecords(postPatchOutput, {
+      authorId: 10n,
+      title: "Hello",
+    });
   });
 });
