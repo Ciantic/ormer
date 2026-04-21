@@ -191,9 +191,7 @@ function rowversion<
   } as const);
 }
 
-function concurrencyStamp<T extends DbType<"string"> | DbType<"uuid">>(
-  this: T,
-) {
+function concurrencyStamp<T extends DbType<"uuid">>(this: T) {
   return params(this, {
     concurrencyStamp: true,
     updateKey: true,

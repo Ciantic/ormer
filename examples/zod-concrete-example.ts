@@ -7,7 +7,7 @@ const InvoiceSchema = z.object({
   description: d.string(),
   dueDate: d.datetime(),
   rowversion: d.int32().rowversion(),
-  concurrencyStamp: d.string().concurrencyStamp(),
+  concurrencyStamp: d.uuid().concurrencyStamp(),
   createdAt: d.datetime(),
   updatedAt: d.datetime(),
   get rows() {
