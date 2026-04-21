@@ -21,7 +21,10 @@ type Params = {
   scale?: number;
   maxLength?: number;
   createdAt?: boolean;
+  createdAtAuto?: boolean;
   updatedAt?: boolean;
+  updatedAtAuto?: boolean;
+  sqlDefault?: unknown;
   rowversion?: boolean;
   concurrencyStamp?: boolean;
   navigateOne?: boolean;
@@ -142,16 +145,24 @@ function pkAutoInc<
   } as const);
 }
 
-function createdAt<T extends DbType<"datetime" | "timestamptz" | "timestamp">>(
-  this: T,
-) {
-  return params(this, { createdAt: true } as const);
+function createdAt<
+  T extends DbType<"datetime" | "timestamptz" | "timestamp">,
+  P extends { auto: boolean },
+>(this: T, opts: R<P, { auto: boolean }>) {
+  return params(this, {
+    createdAt: true,
+    createdAtAuto: opts.auto,
+  } as const satisfies Params);
 }
 
-function updatedAt<T extends DbType<"datetime" | "timestamptz" | "timestamp">>(
-  this: T,
-) {
-  return params(this, { updatedAt: true } as const);
+function updatedAt<
+  T extends DbType<"datetime" | "timestamptz" | "timestamp">,
+  P extends { auto: boolean },
+>(this: T, opts: R<P, { auto: boolean }>) {
+  return params(this, {
+    updatedAt: true,
+    updatedAtAuto: opts.auto,
+  } as const satisfies Params);
 }
 
 function foreignKey<
@@ -330,7 +341,7 @@ export function getDbSchema<T extends z.ZodObject<any>>(
       newShape[key] = field;
     }
   }
-  return z.strictObject(newShape) as unknown as z.ZodObject<
+  return z.strictObject(newShape) as z.ZodObject<
     InferDbFields<T>,
     z.core.$strict
   >;
@@ -351,7 +362,7 @@ export function getPrimaryKeySchema<T extends z.ZodObject<any>>(
       newShape[key] = field;
     }
   }
-  return z.strictObject(newShape) as unknown as z.ZodObject<
+  return z.strictObject(newShape) as z.ZodObject<
     InferFieldsWithParams<T, { primaryKey: true }>,
     z.core.$strict
   >;
