@@ -25,8 +25,6 @@ type Params = {
   updatedAt?: boolean;
   updatedAtAuto?: boolean;
   sqlDefault?: unknown;
-  rowversion?: boolean;
-  xmin?: boolean;
   concurrencyStamp?: boolean;
   navigateOne?: boolean;
   navigateMany?: boolean;
@@ -123,7 +121,6 @@ export function timestamp<T extends z.ZodDate>(schema: T) {
 
 export function rowversion() {
   return params(dbtype(z.int32(), "rowversion"), {
-    rowversion: true,
     updateKey: true,
     notUpdatable: true,
     notInsertable: true,
@@ -132,7 +129,6 @@ export function rowversion() {
 
 // export function xmin() {
 //   return params(dbtype(z.int32(), "xmin"), {
-//     xmin: true,
 //     updateKey: true,
 //     notUpdatable: true,
 //     notInsertable: true,
@@ -150,7 +146,7 @@ function pk<
     | DbType<"string">
     | DbType<"varchar">,
 >(this: T) {
-  return params(this, { primaryKey: true } as const);
+  return params(this, { primaryKey: true } as const satisfies Params);
 }
 
 function pkAutoInc<
@@ -161,7 +157,7 @@ function pkAutoInc<
     autoIncrement: true,
     notUpdatable: true,
     notInsertable: true,
-  } as const);
+  } as const satisfies Params);
 }
 
 function createdAt<
@@ -196,7 +192,7 @@ function foreignKey<
   return params(this, {
     foreignKeyTable: table as any,
     foreignKeyColumn: column as any,
-  } as const);
+  } as const satisfies Params);
 }
 
 function concurrencyStamp<T extends DbType<"uuid">>(this: T) {
@@ -204,13 +200,13 @@ function concurrencyStamp<T extends DbType<"uuid">>(this: T) {
     concurrencyStamp: true,
     updateKey: true,
     notUpdatable: true,
-  } as const);
+  } as const satisfies Params);
 }
 
 function navigateOne<T extends z.ZodObject | z.ZodOptional<z.ZodObject>>(
   this: T,
 ) {
-  return params(this, { navigateOne: true } as const);
+  return params(this, { navigateOne: true } as const satisfies Params);
 }
 
 function navigateMany<
@@ -218,7 +214,7 @@ function navigateMany<
     | z.ZodArray<z.ZodObject<any>>
     | z.ZodOptional<z.ZodArray<z.ZodObject<any>>>,
 >(this: T) {
-  return params(this, { navigateMany: true } as const);
+  return params(this, { navigateMany: true } as const satisfies Params);
 }
 
 declare module "zod" {
