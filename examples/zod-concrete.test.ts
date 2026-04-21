@@ -54,7 +54,7 @@ const ExtensionSchema = z.strictObject({
   pkAutoIncField: d.bigint().pkAutoInc(),
   createdAtField: d.datetime().createdAt({ auto: true }),
   updatedAtField: d.timestamp(z.date()).updatedAt({ auto: false }),
-  rowversionField: d.int32().rowversion(),
+  rowversionField: d.rowversion(),
   concurrencyStampField: d.uuid().concurrencyStamp(),
   nonDbField: z.string(), // <-- Note this is vanilla zod field, without database backing type and is ignored
 });
@@ -373,7 +373,7 @@ describe("zod-concrete edge cases", () => {
   const UpdateKeySchema = z.strictObject({
     id: d.bigint().pkAutoInc(),
     email: d.string(),
-    version: d.int32().rowversion(),
+    version: d.rowversion(),
   });
 
   const OptionalDbFieldSchema = z.strictObject({

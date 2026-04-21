@@ -6,7 +6,7 @@ const InvoiceSchema = z.object({
   title: d.string(),
   description: d.string(),
   dueDate: d.datetime(),
-  rowversion: d.int32().rowversion(),
+  rowversion: d.rowversion(),
   concurrencyStamp: d.uuid().concurrencyStamp(),
   createdAt: d.datetime(),
   updatedAt: d.datetime(),

@@ -26,6 +26,7 @@ type Params = {
   updatedAtAuto?: boolean;
   sqlDefault?: unknown;
   rowversion?: boolean;
+  xmin?: boolean;
   concurrencyStamp?: boolean;
   navigateOne?: boolean;
   navigateMany?: boolean;
@@ -120,6 +121,24 @@ export function timestamp<T extends z.ZodDate>(schema: T) {
   return dbtype(schema, "timestamp");
 }
 
+export function rowversion() {
+  return params(dbtype(z.int32(), "rowversion"), {
+    rowversion: true,
+    updateKey: true,
+    notUpdatable: true,
+    notInsertable: true,
+  } as const);
+}
+
+// export function xmin() {
+//   return params(dbtype(z.int32(), "xmin"), {
+//     xmin: true,
+//     updateKey: true,
+//     notUpdatable: true,
+//     notInsertable: true,
+//   } as const);
+// }
+
 // Zod extension functions
 
 function pk<
@@ -180,17 +199,6 @@ function foreignKey<
   } as const);
 }
 
-function rowversion<
-  T extends DbType<"int32"> | DbType<"int64"> | DbType<"bigint">,
->(this: T) {
-  return params(this, {
-    rowversion: true,
-    updateKey: true,
-    notUpdatable: true,
-    notInsertable: true,
-  } as const);
-}
-
 function concurrencyStamp<T extends DbType<"uuid">>(this: T) {
   return params(this, {
     concurrencyStamp: true,
@@ -220,7 +228,6 @@ declare module "zod" {
     createdAt: typeof createdAt;
     updatedAt: typeof updatedAt;
     foreignKey: typeof foreignKey;
-    rowversion: typeof rowversion;
     concurrencyStamp: typeof concurrencyStamp;
     navigateOne: typeof navigateOne;
     navigateMany: typeof navigateMany;
@@ -232,7 +239,6 @@ z.ZodType.prototype.pkAutoInc = pkAutoInc;
 z.ZodType.prototype.createdAt = createdAt;
 z.ZodType.prototype.updatedAt = updatedAt;
 z.ZodType.prototype.foreignKey = foreignKey;
-z.ZodType.prototype.rowversion = rowversion;
 z.ZodType.prototype.concurrencyStamp = concurrencyStamp;
 z.ZodType.prototype.navigateOne = navigateOne;
 z.ZodType.prototype.navigateMany = navigateMany;
