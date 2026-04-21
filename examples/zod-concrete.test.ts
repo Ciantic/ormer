@@ -217,31 +217,35 @@ describe("zod-concrete", () => {
     type PatchSchemaInput = z.input<typeof patchSchema>;
     type PatchSchemaOutput = z.output<typeof patchSchema>;
 
-    // pkField is required (PK), pkAutoIncField excluded (notUpdatable), rest optional
+    // pkField is required (PK), pkAutoIncField excluded (notUpdatable), rowversionField required (updateKey), concurrencyStampField required (updateKey), rest optional
     expectTypeOf<PatchSchemaInput>().toMatchObjectType<{
       pkField: number;
+      rowversionField: number;
+      concurrencyStampField: string;
       createdAtField?: Date | undefined;
       updatedAtField?: Date | undefined;
-      rowversionField?: number | undefined;
-      concurrencyStampField?: string | undefined;
     }>();
 
     expectTypeOf<PatchSchemaOutput>().toMatchObjectType<{
       pkField: number;
+      rowversionField: number;
+      concurrencyStampField: string;
       createdAtField?: Date | undefined;
       updatedAtField?: Date | undefined;
-      rowversionField?: number | undefined;
-      concurrencyStampField?: string | undefined;
     }>();
 
     const date = new Date();
     const output = patchSchema.decode({
       pkField: 1,
+      rowversionField: 1,
+      concurrencyStampField: TEST_UUID,
       updatedAtField: date,
     });
 
     expectTypedRecords(output, {
       pkField: 1,
+      rowversionField: 1,
+      concurrencyStampField: TEST_UUID,
       updatedAtField: date,
     });
   });
@@ -251,12 +255,11 @@ describe("zod-concrete", () => {
     type InsertSchemaInput = z.input<typeof insertSchema>;
     type InsertSchemaOutput = z.output<typeof insertSchema>;
 
-    // pkAutoIncField excluded (notInsertable), rest required
+    // pkAutoIncField excluded (notInsertable), rowversionField excluded (notInsertable), rest required
     expectTypeOf<InsertSchemaInput>().toMatchObjectType<{
       pkField: number;
       createdAtField: Date;
       updatedAtField: Date;
-      rowversionField: number;
       concurrencyStampField: string;
     }>();
 
@@ -264,7 +267,6 @@ describe("zod-concrete", () => {
       pkField: number;
       createdAtField: Date;
       updatedAtField: Date;
-      rowversionField: number;
       concurrencyStampField: string;
     }>();
 
@@ -273,7 +275,6 @@ describe("zod-concrete", () => {
       pkField: 1,
       createdAtField: date,
       updatedAtField: date,
-      rowversionField: 1,
       concurrencyStampField: TEST_UUID,
     });
 
@@ -281,7 +282,6 @@ describe("zod-concrete", () => {
       pkField: 1,
       createdAtField: date,
       updatedAtField: date,
-      rowversionField: 1,
       concurrencyStampField: TEST_UUID,
     });
   });
@@ -350,3 +350,363 @@ describe("zod-concrete", () => {
     });
   });
 });
+
+describe("zod-concrete edge cases", () => {
+  // --- Edge case schemas ---
+
+  const NoPkSchema = z.strictObject({
+    name: d.string(),
+    email: d.varchar(255),
+  });
+
+  const NoDbFieldsSchema = z.strictObject({
+    computedA: z.number(),
+    computedB: z.string(),
+  });
+
+  const CompositePkSchema = z.strictObject({
+    tenantId: d.int64().pk(),
+    userId: d.int64().pk(),
+    name: d.string(),
+  });
+
+  const UpdateKeySchema = z.strictObject({
+    id: d.bigint().pkAutoInc(),
+    email: d.string(),
+    version: d.int32().rowversion(),
+  });
+
+  const OptionalDbFieldSchema = z.strictObject({
+    requiredField: d.int64(),
+    optionalField: z.optional(d.string()),
+  });
+
+  // --- getPrimaryKeySchema edge cases ---
+
+  it("should return empty schema when no primary keys exist", () => {
+    const pkSchema = d.getPrimaryKeySchema(NoPkSchema);
+    type PkInput = z.input<typeof pkSchema>;
+    type PkOutput = z.output<typeof pkSchema>;
+
+    expectTypeOf<PkInput>().toMatchObjectType<{}>();
+    expectTypeOf<PkOutput>().toMatchObjectType<{}>();
+
+    expect(Object.keys(pkSchema.shape)).toEqual([]);
+  });
+
+  it("should return composite primary key schema", () => {
+    const pkSchema = d.getPrimaryKeySchema(CompositePkSchema);
+    type PkInput = z.input<typeof pkSchema>;
+    type PkOutput = z.output<typeof pkSchema>;
+
+    expectTypeOf<PkInput>().toMatchObjectType<{
+      tenantId: number;
+      userId: number;
+    }>();
+
+    expectTypeOf<PkOutput>().toMatchObjectType<{
+      tenantId: number;
+      userId: number;
+    }>();
+
+    const output = pkSchema.decode({ tenantId: 1, userId: 2 });
+    expectTypedRecords(output, { tenantId: 1, userId: 2 });
+  });
+
+  // --- getDbSchema edge cases ---
+
+  it("should return empty schema when no db fields exist", () => {
+    const dbSchema = d.getDbSchema(NoDbFieldsSchema);
+    type DbInput = z.input<typeof dbSchema>;
+    type DbOutput = z.output<typeof dbSchema>;
+
+    expectTypeOf<DbInput>().toMatchObjectType<{}>();
+    expectTypeOf<DbOutput>().toMatchObjectType<{}>();
+
+    expect(Object.keys(dbSchema.shape)).toEqual([]);
+  });
+
+  it("should include optional-wrapped db fields", () => {
+    const dbSchema = d.getDbSchema(OptionalDbFieldSchema);
+    type DbInput = z.input<typeof dbSchema>;
+    type DbOutput = z.output<typeof dbSchema>;
+
+    expectTypeOf<DbInput>().toMatchObjectType<{
+      requiredField: number;
+      optionalField?: string | undefined;
+    }>();
+
+    expectTypeOf<DbOutput>().toMatchObjectType<{
+      requiredField: number;
+      optionalField?: string | undefined;
+    }>();
+
+    expect(Object.keys(dbSchema.shape)).toEqual([
+      "requiredField",
+      "optionalField",
+    ]);
+
+    // Decode with optional field present
+    const withOptional = dbSchema.decode({
+      requiredField: 1,
+      optionalField: "hello",
+    });
+    expectTypedRecords(withOptional, {
+      requiredField: 1,
+      optionalField: "hello",
+    });
+
+    // Decode with optional field absent
+    const withoutOptional = dbSchema.decode({ requiredField: 1 });
+    expectTypedRecords(withoutOptional, { requiredField: 1 });
+  });
+
+  it("should exclude navigation fields from db schema", () => {
+    const authorDbSchema = d.getDbSchema(AuthorSchema);
+    type AuthorDbInput = z.input<typeof authorDbSchema>;
+    type AuthorDbOutput = z.output<typeof authorDbSchema>;
+
+    // posts (navigateMany) excluded
+    expectTypeOf<AuthorDbInput>().toMatchObjectType<{
+      id: bigint;
+      name: string;
+    }>();
+
+    expectTypeOf<AuthorDbOutput>().toMatchObjectType<{
+      id: bigint;
+      name: string;
+    }>();
+
+    expect(Object.keys(authorDbSchema.shape)).toEqual(["id", "name"]);
+
+    const postDbSchema = d.getDbSchema(PostSchema);
+    type PostDbInput = z.input<typeof postDbSchema>;
+    type PostDbOutput = z.output<typeof postDbSchema>;
+
+    // author (navigateOne) excluded
+    expectTypeOf<PostDbInput>().toMatchObjectType<{
+      id: bigint;
+      authorId: bigint;
+      title: string;
+    }>();
+
+    expectTypeOf<PostDbOutput>().toMatchObjectType<{
+      id: bigint;
+      authorId: bigint;
+      title: string;
+    }>();
+
+    expect(Object.keys(postDbSchema.shape)).toEqual([
+      "id",
+      "authorId",
+      "title",
+    ]);
+  });
+
+  // --- getPatchSchema edge cases ---
+
+  it("should keep rowversion as required updateKey in patch schema", () => {
+    const patchSchema = d.getPatchSchema(UpdateKeySchema);
+    type PatchInput = z.input<typeof patchSchema>;
+    type PatchOutput = z.output<typeof patchSchema>;
+
+    // id excluded (pkAutoInc → notUpdatable, no updateKey), version required (rowversion → updateKey), email optional
+    expectTypeOf<PatchInput>().toMatchObjectType<{
+      version: number;
+      email?: string | undefined;
+    }>();
+
+    expectTypeOf<PatchOutput>().toMatchObjectType<{
+      version: number;
+      email?: string | undefined;
+    }>();
+
+    expect(Object.keys(patchSchema.shape)).toEqual(["email", "version"]);
+
+    // version is required at runtime
+    expect(() => patchSchema.decode({ email: "a@b.com" } as any)).toThrow();
+    const output = patchSchema.decode({ version: 1, email: "a@b.com" });
+    expectTypedRecords(output, { version: 1, email: "a@b.com" });
+  });
+
+  it("should keep updateKey fields required in patch schema", () => {
+    // Create a field with updateKey set directly
+    const tenantIdWithUpdateKey = d.int64();
+    (tenantIdWithUpdateKey as any).updateKey = true;
+
+    const UpdateKeyMixedSchema = z.strictObject({
+      id: d.bigint().pkAutoInc(),
+      email: d.string(),
+      tenantId: tenantIdWithUpdateKey,
+    });
+
+    const patchSchema = d.getPatchSchema(UpdateKeyMixedSchema);
+
+    // id excluded (notUpdatable), tenantId required (updateKey), email optional
+    expect(Object.keys(patchSchema.shape)).toEqual(["email", "tenantId"]);
+
+    // Should require tenantId at runtime
+    expect(() => patchSchema.decode({ email: "a@b.com" })).toThrow();
+    const output = patchSchema.decode({ tenantId: 1, email: "a@b.com" });
+    expectTypedRecords(output, { tenantId: 1, email: "a@b.com" });
+  });
+
+  // --- getInsertSchema edge cases ---
+
+  it("should return empty schema when all fields are notInsertable", () => {
+    const AllAutoIncSchema = z.strictObject({
+      id: d.bigint().pkAutoInc(),
+    });
+
+    const insertSchema = d.getInsertSchema(AllAutoIncSchema);
+    type InsertInput = z.input<typeof insertSchema>;
+    type InsertOutput = z.output<typeof insertSchema>;
+
+    expectTypeOf<InsertInput>().toMatchObjectType<{}>();
+    expectTypeOf<InsertOutput>().toMatchObjectType<{}>();
+
+    expect(Object.keys(insertSchema.shape)).toEqual([]);
+  });
+
+  // --- Runtime validation rejection ---
+
+  it("should reject invalid types for each type category", () => {
+    const date = new Date();
+
+    // Wrong type for int64
+    expect(() =>
+      TestSchema.decode({
+        ...validTestSchemaData(),
+        int64Field: "not-a-number" as any,
+      }),
+    ).toThrow();
+
+    // Wrong type for bigint
+    expect(() =>
+      TestSchema.decode({
+        ...validTestSchemaData(),
+        bigintField: "not-a-bigint" as any,
+      }),
+    ).toThrow();
+
+    // Wrong type for uuid
+    expect(() =>
+      TestSchema.decode({
+        ...validTestSchemaData(),
+        uuidField: "not-a-uuid" as any,
+      }),
+    ).toThrow();
+
+    // Wrong type for boolean
+    expect(() =>
+      TestSchema.decode({
+        ...validTestSchemaData(),
+        booleanField: "not-a-boolean" as any,
+      }),
+    ).toThrow();
+
+    // Wrong type for datetime
+    expect(() =>
+      TestSchema.decode({
+        ...validTestSchemaData(),
+        datetimeField: "not-a-date" as any,
+      }),
+    ).toThrow();
+
+    // Wrong inner shape for jsonb
+    expect(() =>
+      TestSchema.decode({
+        ...validTestSchemaData(),
+        jsonbField: { wrong: "shape" } as any,
+      }),
+    ).toThrow();
+
+    // Wrong inner shape for json
+    expect(() =>
+      TestSchema.decode({
+        ...validTestSchemaData(),
+        jsonField: { count: 123 } as any,
+      }),
+    ).toThrow();
+
+    // varchar max length enforcement
+    expect(() =>
+      TestSchema.decode({
+        ...validTestSchemaData(),
+        varcharField: "x".repeat(256),
+      }),
+    ).toThrow();
+  });
+
+  it("should accept valid TestSchema data", () => {
+    const output = TestSchema.decode(validTestSchemaData());
+    // Compare keys and non-date values (Date instances differ by reference)
+    expect(Object.keys(output)).toEqual(Object.keys(validTestSchemaData()));
+    expect(output.int64Field).toBe(1);
+    expect(output.bigintField).toBe(100n);
+    expect(output.uuidField).toBe(TEST_UUID);
+    expect(output.jsonbField).toEqual({ count: 1 });
+    expect(output.jsonField).toEqual({ name: "test" });
+  });
+
+  // --- Stored params verification ---
+
+  it("should store decimal precision and scale", () => {
+    const field = d.decimal(12, 2);
+    expect((field as any).precision).toBe(12);
+    expect((field as any).scale).toBe(2);
+    expect((field as any).dbtype).toBe("decimal");
+  });
+
+  it("should store varchar maxLength", () => {
+    const field = d.varchar(255);
+    expect((field as any).maxLength).toBe(255);
+    expect((field as any).dbtype).toBe("varchar");
+  });
+
+  it("should store foreignKey params", () => {
+    const field = d.bigint().foreignKey(AuthorSchema, "id");
+    expect((field as any).foreignKeyTable).toBe(AuthorSchema);
+    expect((field as any).foreignKeyColumn).toBe("id");
+  });
+
+  it("should store pkAutoInc params", () => {
+    const field = d.bigint().pkAutoInc();
+    expect((field as any).primaryKey).toBe(true);
+    expect((field as any).autoIncrement).toBe(true);
+    expect((field as any).notUpdatable).toBe(true);
+    expect((field as any).notInsertable).toBe(true);
+  });
+
+  it("should store createdAt/updatedAt params", () => {
+    const createdField = d.datetime().createdAt({ auto: true });
+    expect((createdField as any).createdAt).toBe(true);
+    expect((createdField as any).createdAtAuto).toBe(true);
+
+    const updatedField = d.timestamp(z.date()).updatedAt({ auto: false });
+    expect((updatedField as any).updatedAt).toBe(true);
+    expect((updatedField as any).updatedAtAuto).toBe(false);
+  });
+});
+
+function validTestSchemaData() {
+  return {
+    int64Field: 1,
+    int32Field: 2,
+    float32Field: 1.5,
+    float64Field: 2.5,
+    bigintField: 100n,
+    decimalField: 99.99,
+    uuidField: TEST_UUID,
+    stringField: "hello",
+    varcharField: "fitting",
+    booleanField: true,
+    datetimeField: new Date(),
+    datepartField: "2024-01-15",
+    timepartField: "12:30:00",
+    jsonbField: { count: 1 },
+    jsonField: { name: "test" },
+    timestamptzField: new Date(),
+    timestampField: new Date(),
+  };
+}

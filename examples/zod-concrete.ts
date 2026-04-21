@@ -183,13 +183,22 @@ function foreignKey<
 function rowversion<
   T extends DbType<"int32"> | DbType<"int64"> | DbType<"bigint">,
 >(this: T) {
-  return params(this, { rowversion: true } as const);
+  return params(this, {
+    rowversion: true,
+    updateKey: true,
+    notUpdatable: true,
+    notInsertable: true,
+  } as const);
 }
 
 function concurrencyStamp<T extends DbType<"string"> | DbType<"uuid">>(
   this: T,
 ) {
-  return params(this, { concurrencyStamp: true } as const);
+  return params(this, {
+    concurrencyStamp: true,
+    updateKey: true,
+    notUpdatable: true,
+  } as const);
 }
 
 function navigateOne<T extends z.ZodObject | z.ZodOptional<z.ZodObject>>(
@@ -264,9 +273,11 @@ export type InferPrimaryKeySchema<T extends z.ZodObject<any>> = z.ZodObject<
 export type InferPatchSchema<T extends z.ZodObject<any>> = z.ZodObject<
   {
     [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends DbType<any>
-      ? T["shape"][K] extends { notUpdatable: true }
-        ? never
-        : K
+      ? T["shape"][K] extends { notUpdatable: true } & { updateKey: true }
+        ? K
+        : T["shape"][K] extends { notUpdatable: true }
+          ? never
+          : K
       : never]: T["shape"][K] extends
       | (DbType<any> & { primaryKey: true })
       | (DbType<any> & { updateKey: true })
@@ -382,7 +393,8 @@ export function getPatchSchema<T extends z.ZodObject<any>>(
   for (const key in schema.shape) {
     const field = schema.shape[key] as z.ZodTypeAny;
     if (!hasDbType(field)) continue;
-    if (getParam(field, "notUpdatable")) continue;
+    if (getParam(field, "notUpdatable") && !getParam(field, "updateKey"))
+      continue;
     const isRequired =
       getParam(field, "primaryKey") || getParam(field, "updateKey");
     newShape[key] = isRequired ? field : z.optional(field);
