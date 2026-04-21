@@ -264,11 +264,12 @@ export type InferPrimaryKeySchema<T extends z.ZodObject<any>> = z.ZodObject<
 export type InferPatchSchema<T extends z.ZodObject<any>> = z.ZodObject<
   {
     [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends DbType<any>
-      ? UnwrapZod<T["shape"][K]> extends DbType<any> & { notUpdatable: true }
+      ? T["shape"][K] extends { notUpdatable: true }
         ? never
         : K
-      : never]: UnwrapZod<T["shape"][K]> extends DbType<any> &
-      ((Params & { primaryKey: true }) | { updateKey: true })
+      : never]: T["shape"][K] extends
+      | (DbType<any> & { primaryKey: true })
+      | (DbType<any> & { updateKey: true })
       ? T["shape"][K]
       : T["shape"][K] extends z.ZodTypeAny
         ? z.ZodOptional<T["shape"][K]>

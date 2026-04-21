@@ -145,6 +145,27 @@ describe("zod-concrete", () => {
 
   it("should have correct type for getDbSchema input and output", () => {
     const dbSchema = d.getDbSchema(ExtensionSchema);
+    type DbSchemaInput = z.input<typeof dbSchema>;
+    type DbSchemaOutput = z.output<typeof dbSchema>;
+
+    expectTypeOf<DbSchemaInput>().toMatchObjectType<{
+      pkField: number;
+      pkAutoIncField: bigint;
+      createdAtField: Date;
+      updatedAtField: Date;
+      rowversionField: number;
+      concurrencyStampField: string;
+    }>();
+
+    expectTypeOf<DbSchemaOutput>().toMatchObjectType<{
+      pkField: number;
+      pkAutoIncField: bigint;
+      createdAtField: Date;
+      updatedAtField: Date;
+      rowversionField: number;
+      concurrencyStampField: string;
+    }>();
+
     const date = new Date();
     const output = dbSchema.decode({
       pkField: 1,
@@ -167,6 +188,19 @@ describe("zod-concrete", () => {
 
   it("should have correct type for getPrimaryKeySchema input and output", () => {
     const primaryKeySchema = d.getPrimaryKeySchema(ExtensionSchema);
+    type PrimaryKeySchemaInput = z.input<typeof primaryKeySchema>;
+    type PrimaryKeySchemaOutput = z.output<typeof primaryKeySchema>;
+
+    expectTypeOf<PrimaryKeySchemaInput>().toMatchObjectType<{
+      pkField: number;
+      pkAutoIncField: bigint;
+    }>();
+
+    expectTypeOf<PrimaryKeySchemaOutput>().toMatchObjectType<{
+      pkField: number;
+      pkAutoIncField: bigint;
+    }>();
+
     const output = primaryKeySchema.decode({
       pkField: 1,
       pkAutoIncField: 1n,
@@ -180,6 +214,26 @@ describe("zod-concrete", () => {
 
   it("should have correct type for getPatchSchema input and output", () => {
     const patchSchema = d.getPatchSchema(ExtensionSchema);
+    type PatchSchemaInput = z.input<typeof patchSchema>;
+    type PatchSchemaOutput = z.output<typeof patchSchema>;
+
+    // pkField is required (PK), pkAutoIncField excluded (notUpdatable), rest optional
+    expectTypeOf<PatchSchemaInput>().toMatchObjectType<{
+      pkField: number;
+      createdAtField?: Date | undefined;
+      updatedAtField?: Date | undefined;
+      rowversionField?: number | undefined;
+      concurrencyStampField?: string | undefined;
+    }>();
+
+    expectTypeOf<PatchSchemaOutput>().toMatchObjectType<{
+      pkField: number;
+      createdAtField?: Date | undefined;
+      updatedAtField?: Date | undefined;
+      rowversionField?: number | undefined;
+      concurrencyStampField?: string | undefined;
+    }>();
+
     const date = new Date();
     const output = patchSchema.decode({
       pkField: 1,
@@ -194,6 +248,26 @@ describe("zod-concrete", () => {
 
   it("should have correct type for getInsertSchema input and output", () => {
     const insertSchema = d.getInsertSchema(ExtensionSchema);
+    type InsertSchemaInput = z.input<typeof insertSchema>;
+    type InsertSchemaOutput = z.output<typeof insertSchema>;
+
+    // pkAutoIncField excluded (notInsertable), rest required
+    expectTypeOf<InsertSchemaInput>().toMatchObjectType<{
+      pkField: number;
+      createdAtField: Date;
+      updatedAtField: Date;
+      rowversionField: number;
+      concurrencyStampField: string;
+    }>();
+
+    expectTypeOf<InsertSchemaOutput>().toMatchObjectType<{
+      pkField: number;
+      createdAtField: Date;
+      updatedAtField: Date;
+      rowversionField: number;
+      concurrencyStampField: string;
+    }>();
+
     const date = new Date();
     const output = insertSchema.decode({
       pkField: 1,
@@ -230,6 +304,18 @@ describe("zod-concrete", () => {
 
   it("should have correct type for author/post derived schema input and output", () => {
     const authorInsertSchema = d.getInsertSchema(AuthorSchema);
+    type AuthorInsertInput = z.input<typeof authorInsertSchema>;
+    type AuthorInsertOutput = z.output<typeof authorInsertSchema>;
+
+    // id excluded (notInsertable), posts excluded (navigateMany, no dbtype)
+    expectTypeOf<AuthorInsertInput>().toMatchObjectType<{
+      name: string;
+    }>();
+
+    expectTypeOf<AuthorInsertOutput>().toMatchObjectType<{
+      name: string;
+    }>();
+
     const authorInsertOutput = authorInsertSchema.decode({
       name: "Ada",
     });
@@ -239,6 +325,20 @@ describe("zod-concrete", () => {
     });
 
     const postPatchSchema = d.getPatchSchema(PostSchema);
+    type PostPatchInput = z.input<typeof postPatchSchema>;
+    type PostPatchOutput = z.output<typeof postPatchSchema>;
+
+    // id excluded (pkAutoInc → notUpdatable), author excluded (navigateOne, no dbtype), rest optional
+    expectTypeOf<PostPatchInput>().toMatchObjectType<{
+      authorId?: bigint | undefined;
+      title?: string | undefined;
+    }>();
+
+    expectTypeOf<PostPatchOutput>().toMatchObjectType<{
+      authorId?: bigint | undefined;
+      title?: string | undefined;
+    }>();
+
     const postPatchOutput = postPatchSchema.decode({
       authorId: 10n,
       title: "Hello",
