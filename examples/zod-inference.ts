@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Params as AllParams } from "../src/columns.ts";
+import type { Params as AllParams, ColumnType } from "../src/columns.ts";
 import { type Table } from "../src/table.ts";
 
 type Simplify<T> = { [K in keyof T]: T[K] } & {};
@@ -84,11 +84,17 @@ export function inferZodColumn<Col extends { type: string }>(
   return base as any;
 }
 
-export function inferZodSchema<T extends Table<any, any>>(
+export function inferZodTable<T extends Table<any, any>>(
   table: T,
 ): z.ZodObject<Simplify<InferZodShape<T["columns"]>>> {
+  return inferZodColumns(table.columns) as any;
+}
+
+export function inferZodColumns<
+  Columns extends Record<string, ColumnType<string, any>>,
+>(columns: Columns): z.ZodObject<Simplify<InferZodShape<Columns>>> {
   const shape: Record<string, z.ZodTypeAny> = {};
-  for (const [key, col] of Object.entries(table.columns)) {
+  for (const [key, col] of Object.entries(columns)) {
     shape[key] = inferZodColumn(col as any);
   }
   return z.object(shape) as any;

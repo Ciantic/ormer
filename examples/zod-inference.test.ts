@@ -3,7 +3,7 @@ import * as h from "../src/columnhelpers.ts";
 import * as c from "../src/columns.ts";
 import { table } from "../src/table.ts";
 import { describe, it } from "vitest";
-import { inferZodColumn, inferZodSchema } from "./zod-inference.ts";
+import { inferZodColumn, inferZodTable } from "./zod-inference.ts";
 
 type Expect<T extends true> = T;
 type Equal<X, Y> =
@@ -96,7 +96,7 @@ describe("inferZodColumn", () => {
 });
 
 describe("zod-inference", () => {
-  it("inferZodSchema - exampleTable", () => {
+  it("inferZodTable - exampleTable", () => {
     const exampleTable = table("example", {
       id: c.int32({ primaryKey: true, autoIncrement: true }),
       name: c.string({ nullable: true }),
@@ -104,7 +104,7 @@ describe("zod-inference", () => {
         schema: z.object({ foo: z.string(), bar: z.number() }),
       }),
     });
-    const schema = inferZodSchema(exampleTable);
+    const schema = inferZodTable(exampleTable);
     type Result = z.input<typeof schema>;
     type Test = Expect<
       Equal<
@@ -119,7 +119,7 @@ describe("zod-inference", () => {
     true satisfies Test;
   });
 
-  it("inferZodSchema - invoiceTable", () => {
+  it("inferZodTable - invoiceTable", () => {
     const invoiceTable = table("invoice", {
       id: h.pkAutoInc(),
       title: c.string(),
@@ -127,7 +127,7 @@ describe("zod-inference", () => {
       due_date: c.datetime(),
       rowversion: h.rowversion(),
     });
-    const schema = inferZodSchema(invoiceTable);
+    const schema = inferZodTable(invoiceTable);
     type Result = z.input<typeof schema>;
     type Test = Expect<
       Equal<
@@ -144,7 +144,7 @@ describe("zod-inference", () => {
     true satisfies Test;
   });
 
-  it("inferZodSchema - invoiceRowTable", () => {
+  it("inferZodTable - invoiceRowTable", () => {
     const invoiceTable = table("invoice", {
       id: h.pkAutoInc(),
       title: c.string(),
@@ -160,7 +160,7 @@ describe("zod-inference", () => {
       quantity: c.int32(),
       invoiceId: c.foreignKey(invoiceTable, "id"),
     });
-    const schema = inferZodSchema(invoiceRowTable);
+    const schema = inferZodTable(invoiceRowTable);
     type Result = z.input<typeof schema>;
     type Test = Expect<
       Equal<
