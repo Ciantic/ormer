@@ -3,11 +3,7 @@ import * as h from "../src/columnhelpers.ts";
 import * as c from "../src/columns.ts";
 import { table } from "../src/table.ts";
 import { describe, it } from "vitest";
-import {
-  inferZodColumn,
-  inferZodParams,
-  inferZodSchema,
-} from "./zod-inference.ts";
+import { inferZodColumn, inferZodSchema } from "./zod-inference.ts";
 
 type Expect<T extends true> = T;
 type Equal<X, Y> =
@@ -15,62 +11,91 @@ type Equal<X, Y> =
     ? true
     : false;
 
+describe("inferZodColumn", () => {
+  it("plain int32 -> ZodNumber", () => {
+    const col = c.int32();
+    const schema = inferZodColumn(col);
+    type Result = z.infer<typeof schema>;
+    type Test = Expect<Equal<Result, number>>;
+    true satisfies Test;
+  });
+
+  it("plain string -> ZodString", () => {
+    const col = c.string();
+    const schema = inferZodColumn(col);
+    type Result = z.infer<typeof schema>;
+    type Test = Expect<Equal<Result, string>>;
+    true satisfies Test;
+  });
+
+  it("nullable string -> ZodOptional<ZodString>", () => {
+    const col = c.string({ nullable: true });
+    const schema = inferZodColumn(col);
+    type Result = z.infer<typeof schema>;
+    type Test = Expect<Equal<Result, string | undefined>>;
+    true satisfies Test;
+  });
+
+  it("string with default -> ZodDefault<ZodString>", () => {
+    const col = c.string({ default: "hello" });
+    const schema = inferZodColumn(col);
+    type Result = z.infer<typeof schema>;
+    type Test = Expect<Equal<Result, string>>;
+    true satisfies Test;
+  });
+
+  it("int64 -> ZodBigInt", () => {
+    const col = c.int64();
+    const schema = inferZodColumn(col);
+    type Result = z.infer<typeof schema>;
+    type Test = Expect<Equal<Result, bigint>>;
+    true satisfies Test;
+  });
+
+  it("float64 -> ZodNumber", () => {
+    const col = c.float64();
+    const schema = inferZodColumn(col);
+    type Result = z.infer<typeof schema>;
+    type Test = Expect<Equal<Result, number>>;
+    true satisfies Test;
+  });
+
+  it("boolean -> ZodBoolean", () => {
+    const col = c.boolean();
+    const schema = inferZodColumn(col);
+    type Result = z.infer<typeof schema>;
+    type Test = Expect<Equal<Result, boolean>>;
+    true satisfies Test;
+  });
+
+  it("datetime -> ZodDate", () => {
+    const col = c.datetime();
+    const schema = inferZodColumn(col);
+    type Result = z.infer<typeof schema>;
+    type Test = Expect<Equal<Result, Date>>;
+    true satisfies Test;
+  });
+
+  it("json with custom schema -> uses custom schema type", () => {
+    const col = c.json({
+      schema: z.object({ foo: z.string(), count: z.number() }),
+    });
+    const schema = inferZodColumn(col);
+    type Result = z.infer<typeof schema>;
+    type Test = Expect<Equal<Result, { foo: string; count: number }>>;
+    true satisfies Test;
+  });
+
+  it("nullable int32 with default -> ZodDefault<ZodOptional<ZodNumber>>", () => {
+    const col = c.int32({ nullable: true, default: 0 });
+    const schema = inferZodColumn(col);
+    type Result = z.infer<typeof schema>;
+    type Test = Expect<Equal<Result, number | undefined>>;
+    true satisfies Test;
+  });
+});
+
 describe("zod-inference", () => {
-  it("inferZodColumn", () => {
-    const someInt32 = c.int32();
-    const inferredInt32 = inferZodColumn(someInt32);
-    type Test1 = Expect<Equal<typeof inferredInt32, z.ZodNumber>>;
-    true satisfies Test1;
-
-    const someField = c.int32({ default: 42 });
-    const inferredField = inferZodColumn(someField);
-    type Test2 = Expect<Equal<typeof inferredField, z.ZodNumber>>;
-    true satisfies Test2;
-
-    const someJsonField = c.json({
-      schema: z.object({ name: z.string() }),
-    });
-    const inferredJsonField = inferZodColumn(someJsonField);
-    type Test3 = Expect<
-      Equal<typeof inferredJsonField, z.ZodRecord<z.ZodString, z.ZodUnknown>>
-    >;
-    true satisfies Test3;
-  });
-
-  it("inferZodParams", () => {
-    const someInt32 = c.int32();
-    const result1 = inferZodParams(inferZodColumn(someInt32), someInt32.params);
-    type Test1 = Expect<Equal<typeof result1, z.ZodNumber>>;
-    true satisfies Test1;
-
-    const someField = c.int32({ default: 42 });
-    const result2 = inferZodParams(inferZodColumn(someField), someField.params);
-    type Test2 = Expect<Equal<typeof result2, z.ZodDefault<z.ZodNumber>>>;
-    true satisfies Test2;
-
-    const someField2 = c.int32({ default: 42, nullable: true });
-    const result3 = inferZodParams(
-      inferZodColumn(someField2),
-      someField2.params,
-    );
-    type Test3 = Expect<
-      Equal<typeof result3, z.ZodDefault<z.ZodOptional<z.ZodNumber>>>
-    >;
-    true satisfies Test3;
-
-    const someJsonField = c.json({
-      schema: z.object({ name: z.string() }),
-    });
-    const result4 = inferZodParams(
-      inferZodColumn(someJsonField),
-      someJsonField.params,
-    );
-    type Test4 = Expect<
-      Equal<typeof result4, z.ZodObject<{ name: z.ZodString }>>
-    >;
-    true satisfies Test4;
-  });
-
   it("inferZodSchema - exampleTable", () => {
     const exampleTable = table("example", {
       id: c.int32({ primaryKey: true, autoIncrement: true }),

@@ -54,18 +54,13 @@ type InferZodSchema<T extends Table<any, any>> = z.ZodObject<{
 
 export function inferZodColumn<T extends ColumnType<any, any>>(
   column: T,
-): T extends ColumnType<infer Type, any>
-  ? Type extends keyof typeof zodColumnTypes
-    ? (typeof zodColumnTypes)[Type]
+): T extends ColumnType<infer Type, infer Params>
+  ? Params extends c.Params | undefined
+    ? Type extends keyof typeof zodColumnTypes
+      ? InferZodParams<(typeof zodColumnTypes)[Type], Params>
+      : never
     : never
   : never {
-  return null as any;
-}
-
-export function inferZodParams<
-  Z extends z.ZodType,
-  T extends c.Params | undefined,
->(zod: Z, params: T): InferZodParams<Z, T> & {} {
   return null as any;
 }
 
