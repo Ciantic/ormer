@@ -34,11 +34,9 @@ const personTable = o.table("person", {
   }),
   email: o.email(),
   // Self referencing foreign key, requires untyped
-  supervisor_id: o.int64({
-    foreignKeyTable: "person",
-    foreignKeyColumn: "id",
-    nullable: true,
-  }),
+  get supervisor_id() {
+    return o.foreignKey(personTable, "id");
+  },
   created_at: o.createdAt(),
   updated_at: o.updatedAt(),
 });

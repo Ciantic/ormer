@@ -39,11 +39,16 @@ export function table<
     // Getter allows self-referential table definitions for foreign keys
     get columns() {
       return Object.entries(columns).reduce((acc, [key, column]) => {
-        acc[key] = {
-          ...(column as any),
-          columnName: key,
-          tableName: table,
-        };
+        Object.defineProperty(acc, key, {
+          enumerable: true,
+          get() {
+            return {
+              ...(column as any),
+              columnName: key,
+              tableName: table,
+            };
+          },
+        });
         return acc;
       }, {} as any);
     },

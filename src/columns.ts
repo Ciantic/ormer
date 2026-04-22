@@ -165,18 +165,18 @@ export function foreignKey<
   >
 > {
   return {
-    type: table.columns[column].type,
+    get type() {
+      return table.columns[column].type;
+    },
+    ...params,
     ...({
-      ...params,
       foreignKeyTable: table.table,
       foreignKeyColumn: column,
-    } as FinalType<
-      P & {
-        foreignKeyTable: T["table"];
-        foreignKeyColumn: C;
-      }
-    >),
-  };
+    } satisfies {
+      foreignKeyTable: T["table"];
+      foreignKeyColumn: C;
+    }),
+  } as any;
 }
 
 export function boolean(): ColumnTypeSingualr<"boolean">;
