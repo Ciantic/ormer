@@ -63,7 +63,7 @@ const AuthorSchema = z.strictObject({
   id: d.bigint().pkAutoInc(),
   name: d.string(),
   get posts() {
-    return PostSchema.array().optional().navigateMany();
+    return PostSchema.array().optional().navigateMany(AuthorSchema, "id");
   },
 });
 
@@ -71,7 +71,9 @@ const PostSchema = z.strictObject({
   id: d.bigint().pkAutoInc(),
   authorId: d.bigint().foreignKey(AuthorSchema, "id"),
   title: d.string(),
-  author: AuthorSchema.optional().navigateOne(),
+  get author() {
+    return AuthorSchema.optional().navigateOne(PostSchema, "authorId");
+  },
 });
 
 describe("zod-concrete", () => {

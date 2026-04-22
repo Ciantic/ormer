@@ -15,8 +15,11 @@ type Params = {
   notInsertable?: boolean;
   notUpdatable?: boolean;
   defaultSql?: unknown;
-  foreignKeyTable?: string;
+  relationship?: [z.ZodObject<any>, string];
+  foreignKeyTable?: z.ZodObject<any>;
   foreignKeyColumn?: string;
+  cascadeDelete?: boolean | undefined;
+  cascadeUpdate?: boolean | undefined;
   precision?: number;
   scale?: number;
   maxLength?: number;
@@ -127,6 +130,33 @@ export function rowversion() {
   } as const);
 }
 
+export function relation<
+  T extends z.ZodObject<any>,
+  C extends keyof T["shape"] & string,
+  R,
+>(
+  table: T,
+  column: UnwrapZod<T["shape"][C]> extends { foreignKeyTable: any } ? C : never,
+): UnwrapZod<T["shape"][C]>["foreignKeyTable"] & { relationship: [T, C] } {
+  return Object.assign(table, {
+    relationship: [table, column as string],
+  }) as any;
+}
+
+export function table<
+  T extends string,
+  O extends z.core.$ZodLooseShape = Partial<Record<never, z.core.SomeType>>,
+>(name: T, schema: O): z.ZodObject<O> & { tableName: T } {
+  return Object.assign(z.object(schema), { tableName: name });
+}
+/*
+export declare function object<T extends core.$ZodLooseShape = Partial<Record<never, core.SomeType>>>(shape?: T, params?: string | core.$ZodObjectParams): ZodObject<util.Writeable<T>, core.$strip>;
+
+export type Writeable<T> = {
+    -readonly [P in keyof T]: T[P];
+} & {};
+*/
+
 // export function xmin() {
 //   return params(dbtype(z.int32(), "xmin"), {
 //     updateKey: true,
@@ -186,13 +216,17 @@ function foreignKey<
     | DbType<"int64">
     | DbType<"bigint">
     | DbType<"uuid">,
-  R extends z.ZodObject<any>,
-  C extends keyof R["shape"],
->(this: T, table: R, column: C) {
+  N extends z.ZodObject<any>,
+  C extends keyof N["shape"] & string,
+>(
+  this: T,
+  table: N,
+  column: C,
+): T & { foreignKeyTable: N; foreignKeyColumn: C } {
   return params(this, {
-    foreignKeyTable: table as any,
-    foreignKeyColumn: column as any,
-  } as const satisfies Params);
+    foreignKeyTable: table,
+    foreignKeyColumn: column,
+  } as const satisfies Params) as any;
 }
 
 function concurrencyStamp<T extends DbType<"uuid">>(this: T) {
@@ -203,9 +237,11 @@ function concurrencyStamp<T extends DbType<"uuid">>(this: T) {
   } as const satisfies Params);
 }
 
-function navigateOne<T extends z.ZodObject | z.ZodOptional<z.ZodObject>>(
-  this: T,
-) {
+function navigateOne<
+  T extends z.ZodObject | z.ZodOptional<z.ZodObject>,
+  R extends z.ZodObject<any>,
+  C extends keyof R["shape"],
+>(this: T, table: R, column: C) {
   return params(this, { navigateOne: true } as const satisfies Params);
 }
 
@@ -213,7 +249,9 @@ function navigateMany<
   T extends
     | z.ZodArray<z.ZodObject<any>>
     | z.ZodOptional<z.ZodArray<z.ZodObject<any>>>,
->(this: T) {
+  R extends z.ZodObject<any>,
+  C extends keyof R["shape"],
+>(this: T, table: R, column: C) {
   return params(this, { navigateMany: true } as const satisfies Params);
 }
 
