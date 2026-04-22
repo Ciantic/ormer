@@ -5,7 +5,7 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 type UnknownSchema = StandardSchemaV1<unknown, unknown>;
 // Restrict record T to only keys from record B
 type R<T, B> = {
-    [K in keyof T]: K extends keyof B ? T[K] : never;
+  [K in keyof T]: K extends keyof B ? T[K] : never;
 };
 
 /**
@@ -14,25 +14,27 @@ type R<T, B> = {
  * BIGSERIAL or PRIMARY KEY AUTOINCREMENT
  */
 export function pkAutoInc(): ColumnType<
-    "int64",
-    {
-        autoIncrement: true;
-        primaryKey: true;
-        notInsertable: true;
-        notUpdatable: true;
-    }
+  "int64",
+  {
+    autoIncrement: true;
+    primaryKey: true;
+    notInsertable: true;
+    notUpdatable: true;
+  }
 >;
-export function pkAutoInc<T extends Params>(params: R<T, Params>): ColumnType<"int64", T>;
+export function pkAutoInc<T extends Params>(
+  params: R<T, Params>,
+): ColumnType<"int64", T>;
 export function pkAutoInc(params?: unknown) {
-    return {
-        type: "int64",
-        ... (params ?? {
-            primaryKey: true,
-            notInsertable: true,
-            notUpdatable: true,
-            autoIncrement: true,
-        }) satisfies Params,
-    };
+  return {
+    type: "int64",
+    ...((params ?? {
+      primaryKey: true,
+      notInsertable: true,
+      notUpdatable: true,
+      autoIncrement: true,
+    }) satisfies Params),
+  };
 }
 
 /**
@@ -41,23 +43,23 @@ export function pkAutoInc(params?: unknown) {
  * Implementation can be an integer which is incremented on each update
  */
 export function rowversion(): ColumnType<
-    "int64",
-    {
-        rowversion: true;
-        notInsertable: true;
-        notUpdatable: true;
-        updateKey: true;
-        default: 1;
-    }
+  "int64",
+  {
+    rowversion: true;
+    notInsertable: true;
+    notUpdatable: true;
+    updateKey: true;
+    default: 1;
+  }
 > {
-    return {
-        type: "int64",
-        rowversion: true,
-        notInsertable: true,
-        notUpdatable: true,
-        updateKey: true,
-        default: 1,
-    };
+  return {
+    type: "int64",
+    rowversion: true,
+    notInsertable: true,
+    notUpdatable: true,
+    updateKey: true,
+    default: 1,
+  };
 }
 
 /**
@@ -68,26 +70,29 @@ export function rowversion(): ColumnType<
  * @returns
  */
 export function concurrencyStamp(): ColumnType<
-    "uuid",
-    {
-        default: "generate";
-        onUpdateSet: true;
-        notInsertable: true;
-        notUpdatable: true;
-        updateKey: true;
-    }
+  "uuid",
+  {
+    default: "generate";
+    onUpdateSet: true;
+    notInsertable: true;
+    notUpdatable: true;
+    updateKey: true;
+  }
 > {
-    return {
-        type: "uuid",
-        default: "generate",
-        onUpdateSet: true,
-        notInsertable: true,
-        notUpdatable: true,
-        updateKey: true,
-    };
+  return {
+    type: "uuid",
+    default: "generate",
+    onUpdateSet: true,
+    notInsertable: true,
+    notUpdatable: true,
+    updateKey: true,
+  };
 }
 
-export type UserStringCol<T extends UnknownSchema> = Params<{ schema: T; maxLength: number }>;
+export type UserStringCol<T extends UnknownSchema> = Params<{
+  schema: T;
+  maxLength: number;
+}>;
 
 /**
  * User input string, typically used for names, addresses, etc.
@@ -97,59 +102,64 @@ export type UserStringCol<T extends UnknownSchema> = Params<{ schema: T; maxLeng
  * @param params
  */
 export function userstring<S extends UnknownSchema, T extends UserStringCol<S>>(
-    params: R<T, UserStringCol<S>>
+  params: R<T, UserStringCol<S>>,
 ): ColumnType<"varchar", T> {
-    return {
-        type: "varchar",
-        ...params,
-    };
+  return {
+    type: "varchar",
+    ...params,
+  };
 }
 
 export function email(): ColumnType<
-    "varchar",
-    { schema: StandardSchemaV1<string, string> }
+  "varchar",
+  { schema: StandardSchemaV1<string, string> }
 >;
 export function email<T extends Params>(
-    params: R<T, Params>
+  params: R<T, Params>,
 ): ColumnType<"varchar", T & { maxLength: 320 }>;
 export function email(params?: unknown): unknown {
-    return {
-        type: "varchar",
-        ...(params ?? {}),
-        maxLength: 320,
-        schema: s.email,
-    };
+  return {
+    type: "varchar",
+    ...(params ?? {}),
+    maxLength: 320,
+    schema: s.email,
+  };
 }
 
 export function updatedAt(): ColumnType<
-    "datetime",
-    { notInsertable: true; notUpdatable: true; onUpdateSet: true; default: "now" }
+  "datetime",
+  {
+    notInsertable: true;
+    notUpdatable: true;
+    onUpdateSet: true;
+    default: "now";
+  }
 > {
-    return {
-        type: "datetime",
-        ...{
-            notInsertable: true,
-            notUpdatable: true,
-            onUpdateSet: true,
-            default: "now",
-        } satisfies DateTimeCol,
-    };
+  return {
+    type: "datetime",
+    ...({
+      notInsertable: true,
+      notUpdatable: true,
+      onUpdateSet: true,
+      default: "now",
+    } satisfies DateTimeCol),
+  };
 }
 
 export function createdAt(): ColumnType<
-    "datetime",
-    {
-        notInsertable: true;
-        notUpdatable: true;
-        default: "now";
-    }
+  "datetime",
+  {
+    notInsertable: true;
+    notUpdatable: true;
+    default: "now";
+  }
 > {
-    return {
-        type: "datetime",
-        ...{
-            notInsertable: true,
-            notUpdatable: true,
-            default: "now",
-        } satisfies DateTimeCol,
-    };
+  return {
+    type: "datetime",
+    ...({
+      notInsertable: true,
+      notUpdatable: true,
+      default: "now",
+    } satisfies DateTimeCol),
+  };
 }

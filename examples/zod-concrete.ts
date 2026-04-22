@@ -330,7 +330,9 @@ export type InferPatchSchema<T extends z.ZodObject<any>> = z.ZodObject<
 export type InferInsertSchema<T extends z.ZodObject<any>> = z.ZodObject<
   {
     [K in keyof T["shape"] as UnwrapZod<T["shape"][K]> extends DbType<any>
-      ? UnwrapZod<T["shape"][K]> extends DbType<any> & { notInsertable: true }
+      ? UnwrapZod<T["shape"][K]> extends DbType<any> & {
+          notInsertable: true;
+        }
         ? never
         : K
       : never]: T["shape"][K] extends z.ZodTypeAny ? T["shape"][K] : never;

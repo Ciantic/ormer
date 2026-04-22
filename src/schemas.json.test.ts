@@ -2,16 +2,19 @@ import { describe, it, expect } from "vitest";
 import { SCHEMAS } from "./schemas.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-function parse<T extends StandardSchemaV1>(schema: T, value: StandardSchemaV1.InferInput<T>): StandardSchemaV1.InferOutput<T> {
-    const res = schema["~standard"].validate(value);
-    if (res instanceof Promise) {
-        throw new Error("Async validation not supported");
-    }
-    if (res.issues) {
-        throw new Error("Validation failed", { cause: res.issues });
-    }
+function parse<T extends StandardSchemaV1>(
+  schema: T,
+  value: StandardSchemaV1.InferInput<T>,
+): StandardSchemaV1.InferOutput<T> {
+  const res = schema["~standard"].validate(value);
+  if (res instanceof Promise) {
+    throw new Error("Async validation not supported");
+  }
+  if (res.issues) {
+    throw new Error("Validation failed", { cause: res.issues });
+  }
 
-    return res.value;
+  return res.value;
 }
 
 describe("schemas.json", () => {
@@ -33,7 +36,9 @@ describe("schemas.json", () => {
     expect(parse(bigint.fromJson, "12345")).toBe(12345n);
     expect(parse(bigint.fromJson, 12345)).toBe(12345n);
     expect(parse(bigint.toJson, 12345n)).toBe(12345);
-    expect(parse(bigint.toJson, 999999999999999999999n)).toBe("999999999999999999999");
+    expect(parse(bigint.toJson, 999999999999999999999n)).toBe(
+      "999999999999999999999",
+    );
   });
 
   it("float32", () => {
@@ -59,12 +64,12 @@ describe("schemas.json", () => {
 
   it("uuid", () => {
     const uuid = SCHEMAS.uuid();
-    expect(
-      parse(uuid.fromJson, "2703b08e-d93c-4fd0-8aca-30a9f22d4d79")
-    ).toBe("2703b08e-d93c-4fd0-8aca-30a9f22d4d79");
-    expect(
-      parse(uuid.toJson, "2703b08e-d93c-4fd0-8aca-30a9f22d4d79")
-    ).toBe("2703b08e-d93c-4fd0-8aca-30a9f22d4d79");
+    expect(parse(uuid.fromJson, "2703b08e-d93c-4fd0-8aca-30a9f22d4d79")).toBe(
+      "2703b08e-d93c-4fd0-8aca-30a9f22d4d79",
+    );
+    expect(parse(uuid.toJson, "2703b08e-d93c-4fd0-8aca-30a9f22d4d79")).toBe(
+      "2703b08e-d93c-4fd0-8aca-30a9f22d4d79",
+    );
   });
 
   it("string", () => {
@@ -90,20 +95,26 @@ describe("schemas.json", () => {
   it("datetime", () => {
     const timestamp = SCHEMAS.datetime();
 
-    expect(parse(timestamp.fromJson, "2025-02-28T12:00")).toEqual(new Date("2025-02-28T12:00:00Z"));
-    expect(
-      parse(timestamp.fromJson, "2025-02-28T12:00:00Z")
-    ).toEqual(new Date("2025-02-28T12:00:00Z"));
-    expect(
-      parse(timestamp.fromJson, "2025-02-28T11:00:00.123-01:00")
-    ).toEqual(new Date("2025-02-28T12:00:00.123Z"));
+    expect(parse(timestamp.fromJson, "2025-02-28T12:00")).toEqual(
+      new Date("2025-02-28T12:00:00Z"),
+    );
+    expect(parse(timestamp.fromJson, "2025-02-28T12:00:00Z")).toEqual(
+      new Date("2025-02-28T12:00:00Z"),
+    );
+    expect(parse(timestamp.fromJson, "2025-02-28T11:00:00.123-01:00")).toEqual(
+      new Date("2025-02-28T12:00:00.123Z"),
+    );
 
-    expect(parse(timestamp.fromJson, 1740744000)).toEqual(new Date("2025-02-28T12:00:00Z"));
-    expect(parse(timestamp.fromJson, 1740744000000)).toEqual(new Date("2025-02-28T12:00:00Z"));
+    expect(parse(timestamp.fromJson, 1740744000)).toEqual(
+      new Date("2025-02-28T12:00:00Z"),
+    );
+    expect(parse(timestamp.fromJson, 1740744000000)).toEqual(
+      new Date("2025-02-28T12:00:00Z"),
+    );
 
-    expect(
-      parse(timestamp.toJson, new Date("2025-02-28T12:00:00Z"))
-    ).toBe("2025-02-28T12:00:00.000Z");
+    expect(parse(timestamp.toJson, new Date("2025-02-28T12:00:00Z"))).toBe(
+      "2025-02-28T12:00:00.000Z",
+    );
   });
 
   it("datepart", () => {

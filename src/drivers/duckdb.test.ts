@@ -109,9 +109,7 @@ describe("duckdb", () => {
   });
 
   it("create duckdb table, insert and update updatedAt", async () => {
-    const instance = await DuckDBInstance.create(":memory:", {
-
-    });
+    const instance = await DuckDBInstance.create(":memory:", {});
     const db = createDbBuilder()
       .withTables([TEST_TABLE])
       .withSchemas()

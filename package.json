@@ -5,13 +5,16 @@
   "type": "module",
   "scripts": {
     "test": "vitest --run",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.22.0",
   "devDependencies": {
+    "prettier": "^3.8.3",
     "vitest": "^4.1.4"
   },
   "dependencies": {

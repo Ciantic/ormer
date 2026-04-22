@@ -76,10 +76,10 @@ describe("columns", () => {
 
     expect(TEST_INTEGER1).toEqual({
       type: "int64",
-    primaryKey: true,
-    notInsertable: true,
-    notUpdatable: true,
-    autoIncrement: true,
+      primaryKey: true,
+      notInsertable: true,
+      notUpdatable: true,
+      autoIncrement: true,
     });
     expect(TEST_INTEGER2).toEqual({
       type: "int64",

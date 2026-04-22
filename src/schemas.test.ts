@@ -2,16 +2,19 @@ import { describe, it, expect } from "vitest";
 import { SCHEMAS } from "./schemas.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-function parse<T extends StandardSchemaV1>(schema: T, value: StandardSchemaV1.InferInput<T>): StandardSchemaV1.InferOutput<T> {
-    const res = schema["~standard"].validate(value);
-    if (res instanceof Promise) {
-        throw new Error("Async validation not supported");
-    }
-    if (res.issues) {
-        throw new Error(res.issues[0]?.message, { cause: res.issues });
-    }
+function parse<T extends StandardSchemaV1>(
+  schema: T,
+  value: StandardSchemaV1.InferInput<T>,
+): StandardSchemaV1.InferOutput<T> {
+  const res = schema["~standard"].validate(value);
+  if (res instanceof Promise) {
+    throw new Error("Async validation not supported");
+  }
+  if (res.issues) {
+    throw new Error(res.issues[0]?.message, { cause: res.issues });
+  }
 
-    return res.value;
+  return res.value;
 }
 
 describe("schemas", () => {
@@ -31,8 +34,12 @@ describe("schemas", () => {
     expect(parse(schema, 123)).toBe(123);
 
     expect(() => parse(schema, 123.5)).toThrow("Invalid integer");
-    expect(() => parse(schema, Number.MAX_SAFE_INTEGER + 1)).toThrow("Invalid value");
-    expect(() => parse(schema, Number.MIN_SAFE_INTEGER - 1)).toThrow("Invalid value");
+    expect(() => parse(schema, Number.MAX_SAFE_INTEGER + 1)).toThrow(
+      "Invalid value",
+    );
+    expect(() => parse(schema, Number.MIN_SAFE_INTEGER - 1)).toThrow(
+      "Invalid value",
+    );
     expect(() => parse(schema, "12345" as any)).toThrow("Expected number");
   });
 
@@ -82,9 +89,9 @@ describe("schemas", () => {
 
   it("uuid", () => {
     const { schema } = SCHEMAS.uuid();
-    expect(
-      parse(schema, "2703b08e-d93c-4fd0-8aca-30a9f22d4d79")
-    ).toBe("2703b08e-d93c-4fd0-8aca-30a9f22d4d79");
+    expect(parse(schema, "2703b08e-d93c-4fd0-8aca-30a9f22d4d79")).toBe(
+      "2703b08e-d93c-4fd0-8aca-30a9f22d4d79",
+    );
 
     expect(() => parse(schema, "not_a_uuid")).toThrow("Invalid UUID");
     expect(() => parse(schema, 123 as any)).toThrow("Expected string");

@@ -2,17 +2,21 @@
 
 import type { ColumnType } from "./columns.ts";
 
-type StringLiteral<T> = T extends string ? (string extends T ? never : T) : never;
+type StringLiteral<T> = T extends string
+  ? string extends T
+    ? never
+    : T
+  : never;
 
 export interface Table<
-    TableName extends string = string,
-    Columns extends Record<string, ColumnType<string, any>> = Record<
-        string,
-        ColumnType<string, any>
-    >
+  TableName extends string = string,
+  Columns extends Record<string, ColumnType<string, any>> = Record<
+    string,
+    ColumnType<string, any>
+  >,
 > {
-    readonly table: StringLiteral<TableName>;
-    readonly columns: Columns;
+  readonly table: StringLiteral<TableName>;
+  readonly columns: Columns;
 }
 
 /**
@@ -23,23 +27,25 @@ export interface Table<
  * @returns
  */
 export function table<
-    TableName extends string,
-    // Note, following can't be Record<string, ColumnType>, inference stops working
-    Columns extends Record<string, any>
->(table: StringLiteral<TableName>, columns: Columns): Table<TableName, Columns> {
-
-    return {
-        table,
-        // Getter allows self-referential table definitions for foreign keys
-        get columns() {
-            return Object.entries(columns).reduce((acc, [key, column]) => {
-                acc[key] = {
-                    ...(column as any),
-                    columnName: key,
-                    tableName: table,
-                };
-                return acc;
-            }, {} as any)
-        }
-    };
+  TableName extends string,
+  // Note, following can't be Record<string, ColumnType>, inference stops working
+  Columns extends Record<string, any>,
+>(
+  table: StringLiteral<TableName>,
+  columns: Columns,
+): Table<TableName, Columns> {
+  return {
+    table,
+    // Getter allows self-referential table definitions for foreign keys
+    get columns() {
+      return Object.entries(columns).reduce((acc, [key, column]) => {
+        acc[key] = {
+          ...(column as any),
+          columnName: key,
+          tableName: table,
+        };
+        return acc;
+      }, {} as any);
+    },
+  };
 }
