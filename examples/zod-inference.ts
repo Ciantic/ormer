@@ -1,8 +1,6 @@
 import { z } from "zod";
-import * as h from "../src/columnhelpers.ts";
-import * as c from "../src/columns.ts";
-import type { ColumnType, Params } from "../src/columns.ts";
-import { table, type Table } from "../src/table.ts";
+import type { Params as AllParams } from "../src/columns.ts";
+import { type Table } from "../src/table.ts";
 
 type Simplify<T> = { [K in keyof T]: T[K] } & {};
 
@@ -24,7 +22,18 @@ const zodColumnTypes = {
   jsonb: z.record(z.string(), z.unknown()),
 } as const;
 
-// @prettier-ignore
+type ZodBaseTypeMap = typeof zodColumnTypes;
+
+type InferZodBase<Col extends { type: string }> = Col["type"] extends
+  | "json"
+  | "jsonb"
+  ? Col extends { schema: infer S extends z.ZodTypeAny }
+    ? S
+    : ZodBaseTypeMap[Col["type"] & ("json" | "jsonb")]
+  : Col["type"] extends keyof ZodBaseTypeMap
+    ? ZodBaseTypeMap[Col["type"]]
+    : z.ZodUnknown;
+
 type WithSchema<Z extends z.ZodType, T> = T extends { schema: any }
   ? T["schema"]
   : Z;
@@ -34,48 +43,53 @@ type WithNullable<Z extends z.ZodType, T> = T extends { nullable: true }
 type WithDefault<Z extends z.ZodType, T> = T extends { default: any }
   ? z.ZodDefault<Z>
   : Z;
-type InferZodParams<
-  Z extends z.ZodType,
-  T extends c.Params | undefined,
-> = WithDefault<WithNullable<WithSchema<Z, T>, T>, T>;
+type InferZodParams<Z extends z.ZodType, T extends AllParams> = WithDefault<
+  WithNullable<WithSchema<Z, T>, T>,
+  T
+>;
 
-type InferZodSchema<T extends Table<any, any>> = z.ZodObject<{
-  [K in keyof T["columns"]]: T["columns"][K] extends ColumnType<
-    infer Type,
-    infer Params
-  >
-    ? Params extends c.Params | undefined
-      ? Type extends keyof typeof zodColumnTypes
-        ? InferZodParams<(typeof zodColumnTypes)[Type], Params>
-        : never
-      : never
-    : never;
-}>;
+type InferZodColumn<Col extends { type: string }> = InferZodParams<
+  InferZodBase<Col>,
+  Col extends AllParams ? Col : AllParams
+>;
 
-// export function inferZodColumn<T extends object>(
-//   column: T,
-// ): T extends
+type InferZodShape<Cols extends Record<string, { type: string }>> = {
+  [K in keyof Cols]: InferZodColumn<Cols[K]>;
+};
 
-export function inferZodColumn<T extends ColumnType<any, any>>(
-  column: T,
-): T extends c.ColumnTypeSingualr<infer Type> & Params
-  ? Type extends keyof typeof zodColumnTypes
-    ? Params extends c.Params | undefined
-      ? InferZodParams<(typeof zodColumnTypes)[Type], Params>
-      : never
-    : never
-  : never {
-  // ? Params extends c.Params
-  //   ? Type extends keyof typeof zodColumnTypes
-  //     ? InferZodParams<(typeof zodColumnTypes)[Type], Params>
-  //     : never
-  //   : never
-  // : never {
-  return null as any;
+export function inferZodColumn<Col extends { type: string }>(
+  column: Col,
+): InferZodColumn<Col> {
+  const type = column.type;
+  let base: z.ZodTypeAny;
+
+  if (type === "json" || type === "jsonb") {
+    base = (column as any).schema ?? z.record(z.string(), z.unknown());
+  } else if (type in zodColumnTypes) {
+    base = zodColumnTypes[type as keyof typeof zodColumnTypes];
+  } else {
+    base = z.unknown();
+  }
+
+  const hasNullable = (column as any).nullable === true;
+  const hasDefault = "default" in column;
+
+  if (hasNullable && hasDefault) {
+    return base.optional().default((column as any).default) as any;
+  } else if (hasNullable) {
+    return base.optional() as any;
+  } else if (hasDefault) {
+    return base.default((column as any).default) as any;
+  }
+  return base as any;
 }
 
 export function inferZodSchema<T extends Table<any, any>>(
   table: T,
-): z.ZodObject<Simplify<InferZodSchema<T>["shape"]>> {
-  return null as any;
+): z.ZodObject<Simplify<InferZodShape<T["columns"]>>> {
+  const shape: Record<string, z.ZodTypeAny> = {};
+  for (const [key, col] of Object.entries(table.columns)) {
+    shape[key] = inferZodColumn(col as any);
+  }
+  return z.object(shape) as any;
 }
