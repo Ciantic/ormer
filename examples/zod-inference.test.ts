@@ -2,7 +2,7 @@ import { z } from "zod";
 import * as h from "../src/columnhelpers.ts";
 import * as c from "../src/columns.ts";
 import { table } from "../src/table.ts";
-import { describe, it } from "vitest";
+import { describe, it, expect } from "vitest";
 import { inferZodColumn, inferZodTable } from "./zod-inference.ts";
 
 type Expect<T extends true> = T;
@@ -18,6 +18,7 @@ describe("inferZodColumn", () => {
     type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, number>>;
     true satisfies Test;
+    expect(schema.def.type).toBe("number");
   });
 
   it("plain string -> ZodString", () => {
@@ -26,6 +27,7 @@ describe("inferZodColumn", () => {
     type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, string>>;
     true satisfies Test;
+    expect(schema.def.type).toBe("string");
   });
 
   it("nullable string -> ZodOptional<ZodString>", () => {
@@ -34,6 +36,19 @@ describe("inferZodColumn", () => {
     type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, string | undefined>>;
     true satisfies Test;
+    expect(schema.def.innerType.def.type).toBe("string");
+    expect(schema.def.type).toBe("optional");
+  });
+
+  it("nullable, optional, default string -> ZodDefault<ZodOptional<ZodString>>", () => {
+    const col = c.string({ nullable: true, default: "hello" });
+    const schema = inferZodColumn(col);
+    type Result = z.input<typeof schema>;
+    type Test = Expect<Equal<Result, string | undefined>>;
+    true satisfies Test;
+    expect(schema.def.innerType.def.innerType.def.type).toBe("string");
+    expect(schema.def.innerType.def.type).toBe("optional");
+    expect(schema.def.type).toBe("default");
   });
 
   it("string with default -> ZodDefault<ZodString>", () => {
@@ -42,6 +57,8 @@ describe("inferZodColumn", () => {
     type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, string | undefined>>;
     true satisfies Test;
+    expect(schema.def.innerType.def.type).toBe("string");
+    expect(schema.def.type).toBe("default");
   });
 
   it("int64 -> ZodBigInt", () => {
@@ -50,6 +67,7 @@ describe("inferZodColumn", () => {
     type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, bigint>>;
     true satisfies Test;
+    expect(schema.def.type).toBe("bigint");
   });
 
   it("float64 -> ZodNumber", () => {
@@ -58,6 +76,7 @@ describe("inferZodColumn", () => {
     type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, number>>;
     true satisfies Test;
+    expect(schema.def.type).toBe("number");
   });
 
   it("boolean -> ZodBoolean", () => {
@@ -66,6 +85,7 @@ describe("inferZodColumn", () => {
     type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, boolean>>;
     true satisfies Test;
+    expect(schema.def.type).toBe("boolean");
   });
 
   it("datetime -> ZodDate", () => {
@@ -74,6 +94,7 @@ describe("inferZodColumn", () => {
     type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, Date>>;
     true satisfies Test;
+    expect(schema.def.type).toBe("date");
   });
 
   it("json with custom schema -> uses custom schema type", () => {
@@ -84,6 +105,15 @@ describe("inferZodColumn", () => {
     type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, { foo: string; count: number }>>;
     true satisfies Test;
+    expect(schema.def.type).toBe("object");
+    expect(schema.shape).toEqual({
+      foo: expect.objectContaining({
+        def: expect.objectContaining({ type: "string" }),
+      }),
+      count: expect.objectContaining({
+        def: expect.objectContaining({ type: "number" }),
+      }),
+    });
   });
 
   it("nullable int32 with default -> ZodDefault<ZodOptional<ZodNumber>>", () => {
@@ -92,6 +122,9 @@ describe("inferZodColumn", () => {
     type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, number | undefined>>;
     true satisfies Test;
+    expect(schema.def.innerType.def.type).toBe("number");
+    expect(schema.def.innerType.type).toBe("optional");
+    expect(schema.def.type).toBe("default");
   });
 });
 
@@ -117,6 +150,11 @@ describe("zod-inference", () => {
       >
     >;
     true satisfies Test;
+    expect(schema.shape.id.def.type).toBe("number");
+    expect(schema.shape.name.def.type).toBe("optional");
+    expect(schema.shape.name.def.innerType.def.type).toBe("string");
+    expect(schema.shape.data.def.shape.bar.def.type).toBe("number");
+    expect(schema.shape.data.def.shape.foo.def.type).toBe("string");
   });
 
   it("inferZodTable - invoiceTable", () => {
