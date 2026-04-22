@@ -122,8 +122,8 @@ describe("inferZodColumn", () => {
     type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, number | undefined>>;
     true satisfies Test;
-    expect(schema.def.innerType.def.type).toBe("number");
-    expect(schema.def.innerType.type).toBe("optional");
+    expect(schema.def.innerType.def.innerType.def.type).toBe("number");
+    expect(schema.def.innerType.def.type).toBe("optional");
     expect(schema.def.type).toBe("default");
   });
 });
