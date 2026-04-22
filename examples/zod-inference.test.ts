@@ -15,7 +15,7 @@ describe("inferZodColumn", () => {
   it("plain int32 -> ZodNumber", () => {
     const col = c.int32();
     const schema = inferZodColumn(col);
-    type Result = z.infer<typeof schema>;
+    type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, number>>;
     true satisfies Test;
   });
@@ -23,7 +23,7 @@ describe("inferZodColumn", () => {
   it("plain string -> ZodString", () => {
     const col = c.string();
     const schema = inferZodColumn(col);
-    type Result = z.infer<typeof schema>;
+    type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, string>>;
     true satisfies Test;
   });
@@ -31,7 +31,7 @@ describe("inferZodColumn", () => {
   it("nullable string -> ZodOptional<ZodString>", () => {
     const col = c.string({ nullable: true });
     const schema = inferZodColumn(col);
-    type Result = z.infer<typeof schema>;
+    type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, string | undefined>>;
     true satisfies Test;
   });
@@ -39,15 +39,15 @@ describe("inferZodColumn", () => {
   it("string with default -> ZodDefault<ZodString>", () => {
     const col = c.string({ default: "hello" });
     const schema = inferZodColumn(col);
-    type Result = z.infer<typeof schema>;
-    type Test = Expect<Equal<Result, string>>;
+    type Result = z.input<typeof schema>;
+    type Test = Expect<Equal<Result, string | undefined>>;
     true satisfies Test;
   });
 
   it("int64 -> ZodBigInt", () => {
     const col = c.int64();
     const schema = inferZodColumn(col);
-    type Result = z.infer<typeof schema>;
+    type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, bigint>>;
     true satisfies Test;
   });
@@ -55,7 +55,7 @@ describe("inferZodColumn", () => {
   it("float64 -> ZodNumber", () => {
     const col = c.float64();
     const schema = inferZodColumn(col);
-    type Result = z.infer<typeof schema>;
+    type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, number>>;
     true satisfies Test;
   });
@@ -63,7 +63,7 @@ describe("inferZodColumn", () => {
   it("boolean -> ZodBoolean", () => {
     const col = c.boolean();
     const schema = inferZodColumn(col);
-    type Result = z.infer<typeof schema>;
+    type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, boolean>>;
     true satisfies Test;
   });
@@ -71,7 +71,7 @@ describe("inferZodColumn", () => {
   it("datetime -> ZodDate", () => {
     const col = c.datetime();
     const schema = inferZodColumn(col);
-    type Result = z.infer<typeof schema>;
+    type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, Date>>;
     true satisfies Test;
   });
@@ -81,7 +81,7 @@ describe("inferZodColumn", () => {
       schema: z.object({ foo: z.string(), count: z.number() }),
     });
     const schema = inferZodColumn(col);
-    type Result = z.infer<typeof schema>;
+    type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, { foo: string; count: number }>>;
     true satisfies Test;
   });
@@ -89,7 +89,7 @@ describe("inferZodColumn", () => {
   it("nullable int32 with default -> ZodDefault<ZodOptional<ZodNumber>>", () => {
     const col = c.int32({ nullable: true, default: 0 });
     const schema = inferZodColumn(col);
-    type Result = z.infer<typeof schema>;
+    type Result = z.input<typeof schema>;
     type Test = Expect<Equal<Result, number | undefined>>;
     true satisfies Test;
   });
@@ -105,7 +105,7 @@ describe("zod-inference", () => {
       }),
     });
     const schema = inferZodSchema(exampleTable);
-    type Result = z.infer<typeof schema>;
+    type Result = z.input<typeof schema>;
     type Test = Expect<
       Equal<
         Result,
@@ -128,7 +128,7 @@ describe("zod-inference", () => {
       rowversion: h.rowversion(),
     });
     const schema = inferZodSchema(invoiceTable);
-    type Result = z.infer<typeof schema>;
+    type Result = z.input<typeof schema>;
     type Test = Expect<
       Equal<
         Result,
@@ -137,7 +137,7 @@ describe("zod-inference", () => {
           title: string;
           description: string;
           due_date: Date;
-          rowversion: bigint;
+          rowversion?: bigint | undefined;
         }
       >
     >;
@@ -161,7 +161,7 @@ describe("zod-inference", () => {
       invoiceId: c.foreignKey(invoiceTable, "id"),
     });
     const schema = inferZodSchema(invoiceRowTable);
-    type Result = z.infer<typeof schema>;
+    type Result = z.input<typeof schema>;
     type Test = Expect<
       Equal<
         Result,
