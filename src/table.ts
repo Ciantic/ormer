@@ -27,21 +27,22 @@ export function table<
     // Note, following can't be Record<string, ColumnType>, inference stops working
     Columns extends Record<string, any>
 >(table: StringLiteral<TableName>, columns: Columns): Table<TableName, Columns> {
-    // Assign column names
-    const new_columns = Object.entries(columns).reduce((acc, [key, column]) => {
-        acc[key] = {
-            type: (column as any).type,
-            params: {
-                ...(column as any).params,
-                columnName: key,
-                tableName: table,
-            },
-        };
-        return acc;
-    }, {} as any);
 
     return {
         table,
-        columns: new_columns,
+        // Getter allows self-referential table definitions for foreign keys
+        get columns() {
+            return Object.entries(columns).reduce((acc, [key, column]) => {
+                acc[key] = {
+                    type: (column as any).type,
+                    params: {
+                        ...(column as any).params,
+                        columnName: key,
+                        tableName: table,
+                    },
+                };
+                return acc;
+            }, {} as any)
+        }
     };
 }
