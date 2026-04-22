@@ -29,13 +29,13 @@ export function getSchemasFromColumns<
 ): {
     // prettier-ignore
     [K in keyof Columns as Columns[K]["type"] extends string ? K : never]: 
-        Columns[K]["params"]["schema"] extends UnknownSchema
-        ? Columns[K]["params"]["schema"]
+        Columns[K]["schema"] extends UnknownSchema
+        ? Columns[K]["schema"]
         : ReturnType<TypeTable[Columns[K]["type"]]>["schema"];
 } {
     return Object.keys(columns).reduce((acc, key) => {
         const column = columns[key]!;
-        const schema = (types as any)[column.type](column.params ?? {})["schema"];
+        const schema = (types as any)[column.type](column ?? {})["schema"];
         acc[key] = schema;
         return acc;
     }, {} as any);
@@ -50,11 +50,12 @@ export function getSchemasFromColumns<
 export function getPrimaryKeyColumns<Columns extends Record<string, ColumnType<string, any>>>(
     table: Table<any, Columns>
 ): {
-    [K in keyof Columns as Columns[K]["params"]["primaryKey"] extends true ? K : never]: Columns[K];
+    [K in keyof Columns as Columns[K]["primaryKey"] extends true ? K : never]: Columns[K];
 } {
     return Object.keys(table.columns).reduce((acc, key) => {
+        
         const column = table.columns[key];
-        if (column?.params?.primaryKey === true) {
+        if (column?.primaryKey === true) {
             acc[key] = column;
         }
         return acc;
@@ -70,13 +71,13 @@ export function getPrimaryKeyColumns<Columns extends Record<string, ColumnType<s
 export function getInsertColumns<Columns extends Record<string, ColumnType<string, any>>>(
     table: Table<any, Columns>
 ): {
-    [K in keyof Columns as Columns[K]["params"]["notInsertable"] extends true
+    [K in keyof Columns as Columns[K]["notInsertable"] extends true
         ? never
         : K]: Columns[K];
 } {
     return Object.keys(table.columns).reduce((acc, key) => {
         const column = table.columns[key];
-        if (column?.params?.notInsertable !== true) {
+        if (column?.notInsertable !== true) {
             acc[key] = column;
         }
         return acc;
@@ -96,11 +97,11 @@ export function getInsertColumns<Columns extends Record<string, ColumnType<strin
 export function getUpdateKeyColumns<Columns extends Record<string, ColumnType<string, any>>>(
     table: Table<any, Columns>
 ): FinalType<{
-    [K in keyof Columns as Columns[K]["params"]["updateKey"] extends true ? K : never]: Columns[K];
+    [K in keyof Columns as Columns[K]["updateKey"] extends true ? K : never]: Columns[K];
 }> {
     return Object.keys(table.columns).reduce((acc, key) => {
         const column = table.columns[key];
-        if (column?.params?.updateKey === true) {
+        if (column?.updateKey === true) {
             acc[key] = column;
         }
         return acc;
@@ -116,13 +117,13 @@ export function getUpdateKeyColumns<Columns extends Record<string, ColumnType<st
 export function getPatchColumns<Columns extends Record<string, ColumnType<string, any>>>(
     table: Table<any, Columns>
 ): {
-    [K in keyof Columns as Columns[K]["params"]["notUpdatable"] extends true
+    [K in keyof Columns as Columns[K]["notUpdatable"] extends true
         ? never
         : K]: Columns[K];
 } {
     return Object.keys(table.columns).reduce((acc, key) => {
         const column = table.columns[key];
-        if (column?.params?.notUpdatable !== true) {
+        if (column.notUpdatable !== true) {
             acc[key] = column;
         }
         return acc;
@@ -165,7 +166,7 @@ export function getDatabaseSerializers<
         for (const columnName in table.columns) {
             const column = table.columns[columnName]!;
             const columnType = column.type;
-            const serializer = columnTypes[columnType]!(column.params);
+            const serializer = columnTypes[columnType]!(column);
 
             serializers[tableName][columnName] = {
                 from: serializer.from,

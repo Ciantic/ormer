@@ -42,7 +42,7 @@ describe("table", () => {
     true satisfies Expect<
       Equal<
         (typeof invoiceTable.columns)["title"],
-        c.ColumnType<"string", undefined>
+        c.ColumnTypeSingualr<"string">
       >
     >;
 
@@ -62,7 +62,7 @@ describe("table", () => {
     true satisfies Expect<
       Equal<
         (typeof invoiceTable.columns)["foo"],
-        c.ColumnType<"datetime", undefined>
+        c.ColumnTypeSingualr<"datetime">
       >
     >;
     true satisfies Expect<
@@ -117,9 +117,9 @@ describe("table", () => {
                 notUpdatable: true;
               }
             >;
-            title: c.ColumnType<"string", undefined>;
-            description: c.ColumnType<"string", undefined>;
-            due_date: c.ColumnType<"datetime", undefined>;
+            title: c.ColumnTypeSingualr<"string">;
+            description: c.ColumnTypeSingualr<"string">;
+            due_date: c.ColumnTypeSingualr<"datetime">;
             rowversion: c.ColumnType<
               "int64",
               {
@@ -150,10 +150,10 @@ describe("table", () => {
                 notUpdatable: true;
               }
             >;
-            title: c.ColumnType<"string", undefined>;
-            price: c.ColumnType<"float64", undefined>;
-            taxPercentage: c.ColumnType<"float64", undefined>;
-            quantity: c.ColumnType<"int32", undefined>;
+            title: c.ColumnTypeSingualr<"string">;
+            price: c.ColumnTypeSingualr<"float64">;
+            taxPercentage: c.ColumnTypeSingualr<"float64">;
+            quantity: c.ColumnTypeSingualr<"int32">;
             invoiceId: c.ColumnType<
               "int64",
               {
@@ -193,9 +193,9 @@ describe("table", () => {
                 notUpdatable: true;
               }
             >;
-            firstName: c.ColumnType<"string", undefined>;
-            lastName: c.ColumnType<"string", undefined>;
-            email: c.ColumnType<"string", undefined>;
+            firstName: c.ColumnTypeSingualr<"string">;
+            lastName: c.ColumnTypeSingualr<"string">;
+            email: c.ColumnTypeSingualr<"string">;
             readonly supervisorId: c.ColumnType<
               "int64",
               {

@@ -185,12 +185,12 @@ export const ORMER_SQLITE_DRIVER = {
     columnTypeMap: SQLITE_COLUMNS,
 
     createTablesColumnHook(builder, column) {
-        if (column.params.default === "now") {
+        if (column.default === "now") {
             builder = builder.defaultTo(k.sql.raw("CURRENT_TIMESTAMP"));
-        } else if (column.params.default === "generate") {
+        } else if (column.default === "generate") {
             builder = builder.defaultTo(k.sql.raw($SQLITE_UUID_GEN));
-        } else if (column.params.default !== undefined) {
-            builder = builder.defaultTo(column.params.default);
+        } else if (column.default !== undefined) {
+            builder = builder.defaultTo(column.default);
         }
         return builder;
     },

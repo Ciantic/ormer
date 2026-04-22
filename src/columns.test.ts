@@ -3,7 +3,8 @@ import * as h from "./columnhelpers.ts";
 import { describe, it, expect } from "vitest";
 
 type Expect<T extends true> = T;
-type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
+type Equal<X, Y> =
+  (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
     ? true
     : false;
 
@@ -12,13 +13,20 @@ describe("columns", () => {
     const TEST_INTEGER1 = o.int32({ primaryKey: true });
     const TEST_INTEGER2 = o.int32();
 
-    type Test3 = Expect<Equal<typeof TEST_INTEGER1, o.ColumnType<"int32", { primaryKey: true }>>>;
-    type Test4 = Expect<Equal<typeof TEST_INTEGER2, o.ColumnType<"int32", undefined>>>;
+    type Test3 = Expect<
+      Equal<typeof TEST_INTEGER1, o.ColumnType<"int32", { primaryKey: true }>>
+    >;
+    type Test4 = Expect<
+      Equal<typeof TEST_INTEGER2, o.ColumnTypeSingualr<"int32">>
+    >;
     true satisfies Test3;
     true satisfies Test4;
 
-    expect(TEST_INTEGER1).toEqual({ type: "int32", params: { primaryKey: true } });
-    expect(TEST_INTEGER2).toEqual({ type: "int32", params: undefined });
+    expect(TEST_INTEGER1).toEqual({
+      type: "int32",
+      primaryKey: true,
+    });
+    expect(TEST_INTEGER2).toEqual({ type: "int32" });
 
     // Always test these manually when changing the code!
     //
@@ -34,40 +42,48 @@ describe("columns", () => {
   it("pkAutoInc signature", () => {
     const TEST_INTEGER1 = h.pkAutoInc();
     const TEST_INTEGER2 = h.pkAutoInc({
-        primaryKey: false,
+      primaryKey: false,
     });
 
     type Test3 = Expect<
-        Equal<
-            typeof TEST_INTEGER1,
-            o.ColumnType<
-                "int64",
-                { primaryKey: true; notInsertable: true; notUpdatable: true; autoIncrement: true }
-            >
+      Equal<
+        typeof TEST_INTEGER1,
+        o.ColumnType<
+          "int64",
+          {
+            primaryKey: true;
+            notInsertable: true;
+            notUpdatable: true;
+            autoIncrement: true;
+          }
         >
+      >
     >;
     true satisfies Test3;
 
     type Test4 = Expect<
-        Equal<
-            typeof TEST_INTEGER2,
-            o.ColumnType<
-                "int64",
-                {
-                    primaryKey: false;
-                }
-            >
+      Equal<
+        typeof TEST_INTEGER2,
+        o.ColumnType<
+          "int64",
+          {
+            primaryKey: false;
+          }
         >
+      >
     >;
     true satisfies Test4;
 
     expect(TEST_INTEGER1).toEqual({
-        type: "int64",
-        params: { primaryKey: true, notInsertable: true, notUpdatable: true, autoIncrement: true },
+      type: "int64",
+    primaryKey: true,
+    notInsertable: true,
+    notUpdatable: true,
+    autoIncrement: true,
     });
     expect(TEST_INTEGER2).toEqual({
-        type: "int64",
-        params: { primaryKey: false },
+      type: "int64",
+      primaryKey: false,
     });
   });
 });

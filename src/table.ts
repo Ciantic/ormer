@@ -34,12 +34,9 @@ export function table<
         get columns() {
             return Object.entries(columns).reduce((acc, [key, column]) => {
                 acc[key] = {
-                    type: (column as any).type,
-                    params: {
-                        ...(column as any).params,
-                        columnName: key,
-                        tableName: table,
-                    },
+                    ...(column as any),
+                    columnName: key,
+                    tableName: table,
                 };
                 return acc;
             }, {} as any)

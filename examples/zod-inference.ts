@@ -1,7 +1,7 @@
 import { z } from "zod";
 import * as h from "../src/columnhelpers.ts";
 import * as c from "../src/columns.ts";
-import type { ColumnType } from "../src/columns.ts";
+import type { ColumnType, Params } from "../src/columns.ts";
 import { table, type Table } from "../src/table.ts";
 
 type Simplify<T> = { [K in keyof T]: T[K] } & {};
@@ -52,15 +52,25 @@ type InferZodSchema<T extends Table<any, any>> = z.ZodObject<{
     : never;
 }>;
 
+// export function inferZodColumn<T extends object>(
+//   column: T,
+// ): T extends
+
 export function inferZodColumn<T extends ColumnType<any, any>>(
   column: T,
-): T extends ColumnType<infer Type, infer Params>
-  ? Params extends c.Params | undefined
-    ? Type extends keyof typeof zodColumnTypes
+): T extends c.ColumnTypeSingualr<infer Type> & Params
+  ? Type extends keyof typeof zodColumnTypes
+    ? Params extends c.Params | undefined
       ? InferZodParams<(typeof zodColumnTypes)[Type], Params>
       : never
     : never
   : never {
+  // ? Params extends c.Params
+  //   ? Type extends keyof typeof zodColumnTypes
+  //     ? InferZodParams<(typeof zodColumnTypes)[Type], Params>
+  //     : never
+  //   : never
+  // : never {
   return null as any;
 }
 

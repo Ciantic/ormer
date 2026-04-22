@@ -155,12 +155,12 @@ export const ORMER_DUCKDB_DRIVER = {
     },
 
     createTablesColumnHook(builder, column) {
-        if (column.params.default === "now") {
+        if (column.default === "now") {
             builder = builder.defaultTo(k.sql`current_timestamp`);
-        } else if (column.params.default === "generate") {
+        } else if (column.default === "generate") {
             builder = builder.defaultTo(k.sql`gen_random_uuid()`);
-        } else if (column.params.default !== undefined) {
-            builder = builder.defaultTo(column.params.default);
+        } else if (column.default !== undefined) {
+            builder = builder.defaultTo(column.default);
         }
         return builder;
     },

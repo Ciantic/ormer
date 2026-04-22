@@ -128,12 +128,12 @@ export const ORMER_POSTGRES_DRIVER = {
     },
 
     createTablesColumnHook(builder, column) {
-        if (column.params.default === "now") {
+        if (column.default === "now") {
             builder = builder.defaultTo(k.sql`current_timestamp`);
-        } else if (column.params.default === "generate") {
+        } else if (column.default === "generate") {
             builder = builder.defaultTo(k.sql`gen_random_uuid()`);
-        } else if (column.params.default !== undefined) {
-            builder = builder.defaultTo(column.params.default);
+        } else if (column.default !== undefined) {
+            builder = builder.defaultTo(column.default);
         }
         return builder;
     },
@@ -154,7 +154,7 @@ function updatedAtTriggers(db: k.Kysely<unknown>, tables: Table[]) {
     const updatedAtColumns = [] as [string, string][];
     for (const table of tables) {
         for (const [columnName, def] of Object.entries(table.columns)) {
-            if (def.type === "datetime" && def.params.onUpdateSet) {
+            if (def.type === "datetime" && def.onUpdateSet) {
                 updatedAtColumns.push([table.table, columnName]);
             }
         }

@@ -26,12 +26,12 @@ export function pkAutoInc<T extends Params>(params: R<T, Params>): ColumnType<"i
 export function pkAutoInc(params?: unknown) {
     return {
         type: "int64",
-        params: params ?? {
+        ... (params ?? {
             primaryKey: true,
             notInsertable: true,
             notUpdatable: true,
             autoIncrement: true,
-        },
+        }) satisfies Params,
     };
 }
 
@@ -52,13 +52,11 @@ export function rowversion(): ColumnType<
 > {
     return {
         type: "int64",
-        params: {
-            rowversion: true,
-            notInsertable: true,
-            notUpdatable: true,
-            updateKey: true,
-            default: 1,
-        },
+        rowversion: true,
+        notInsertable: true,
+        notUpdatable: true,
+        updateKey: true,
+        default: 1,
     };
 }
 
@@ -81,13 +79,11 @@ export function concurrencyStamp(): ColumnType<
 > {
     return {
         type: "uuid",
-        params: {
-            default: "generate",
-            onUpdateSet: true,
-            notInsertable: true,
-            notUpdatable: true,
-            updateKey: true,
-        },
+        default: "generate",
+        onUpdateSet: true,
+        notInsertable: true,
+        notUpdatable: true,
+        updateKey: true,
     };
 }
 
@@ -105,7 +101,7 @@ export function userstring<S extends UnknownSchema, T extends UserStringCol<S>>(
 ): ColumnType<"varchar", T> {
     return {
         type: "varchar",
-        params,
+        ...params,
     };
 }
 
@@ -119,11 +115,9 @@ export function email<T extends Params>(
 export function email(params?: unknown): unknown {
     return {
         type: "varchar",
-        params: {
-            ...(params ?? {}),
-            maxLength: 320,
-            schema: s.email,
-        },
+        ...(params ?? {}),
+        maxLength: 320,
+        schema: s.email,
     };
 }
 
@@ -133,7 +127,7 @@ export function updatedAt(): ColumnType<
 > {
     return {
         type: "datetime",
-        params: {
+        ...{
             notInsertable: true,
             notUpdatable: true,
             onUpdateSet: true,
@@ -152,7 +146,7 @@ export function createdAt(): ColumnType<
 > {
     return {
         type: "datetime",
-        params: {
+        ...{
             notInsertable: true,
             notUpdatable: true,
             default: "now",
