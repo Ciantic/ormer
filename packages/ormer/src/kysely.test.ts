@@ -149,4 +149,30 @@ describe("kysely", () => {
       };
     }>();
   });
+
+  it("kysely uses custom type mapping when provided", () => {
+    const custom_table = table("custom_table", {
+      id: c.int32(),
+      name: c.string(),
+      score: c.float64(),
+    });
+
+    const db = database({}, custom_table);
+
+    type CustomTypeMap = {
+      int32: string; // map int32 to string instead of number
+      string: number; // map string to number instead of string
+      float64: boolean; // map float64 to boolean instead of number
+    };
+
+    type KyselyTypes = InferKyselyTypes<typeof db, CustomTypeMap>;
+
+    expectTypeOf<KyselyTypes>().toEqualTypeOf<{
+      custom_table: {
+        id: ColumnType<string, string, string>;
+        name: ColumnType<number, number, number>;
+        score: ColumnType<boolean, boolean, boolean>;
+      };
+    }>();
+  });
 });
