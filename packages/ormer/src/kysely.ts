@@ -1,4 +1,5 @@
 import type { MapColumnsTo, AllColumnTypes } from "./columnhelpers.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 type CommonTypes = {
   int32: number;
@@ -28,6 +29,14 @@ type ColumnTypeKysely<
   readonly __update__: UpdateType;
 };
 
+type ColType<Col, TypeMap extends Record<string, unknown>> = Col extends {
+  schema: StandardSchemaV1;
+}
+  ? StandardSchemaV1.InferOutput<Col["schema"]>
+  : Col extends { type: keyof TypeMap }
+    ? TypeMap[Col["type"]]
+    : never;
+
 // Infer kysely types from database
 export type InferKyselyTypes<
   D extends Record<string, { columns: Record<string, { type: string }> }>,
@@ -37,20 +46,20 @@ export type InferKyselyTypes<
   [K in keyof D]: {
     [C in keyof D[K]["columns"]]: ColumnTypeKysely<
       // Select
-      | (D[K]["columns"][C]["type"] extends keyof TypeMap ? TypeMap[D[K]["columns"][C]["type"]] : never)
+      | ColType<D[K]["columns"][C], TypeMap>
       | (D[K]["columns"][C] extends { nullable: true } ? null : never),
       // Insert
       D[K]["columns"][C] extends { notInsertable: true }
         ? never
         :
-          | (D[K]["columns"][C]["type"] extends keyof TypeMap ? TypeMap[D[K]["columns"][C]["type"]] : never)
+          | ColType<D[K]["columns"][C], TypeMap>
           | (D[K]["columns"][C] extends { nullable: true } ? null | undefined : never)
           | (D[K]["columns"][C] extends { default: infer _ } ? undefined : never),
       // Update
       D[K]["columns"][C] extends { notUpdatable: true }
         ? never
         :
-            | (D[K]["columns"][C]["type"] extends keyof TypeMap ? TypeMap[D[K]["columns"][C]["type"]] : never)
+            | ColType<D[K]["columns"][C], TypeMap>
             | (D[K]["columns"][C] extends { nullable: true } ? null : never)
     >;
   };

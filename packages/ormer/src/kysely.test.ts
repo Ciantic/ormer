@@ -63,6 +63,14 @@ const TEST_TABLE = table("test_table", {
 });
 
 describe("kysely", () => {
+  type TestJsonShape = {
+    somestring: string;
+    someint: number;
+    somebool: boolean;
+    somearray: string[];
+    someobject: { foo: string; bar: number };
+  };
+
   it("kysely infers correct types", () => {
     const db = database({}, TEST_TABLE);
 
@@ -85,8 +93,8 @@ describe("kysely", () => {
         test_datetime2: ColumnType<Date, Date, Date>;
         test_datepart: ColumnType<string, string, string>;
         test_timepart: ColumnType<string, string, string>;
-        test_jsonb: ColumnType<object, object, object>;
-        test_json: ColumnType<object, object, object>;
+        test_jsonb: ColumnType<TestJsonShape, TestJsonShape, TestJsonShape>;
+        test_json: ColumnType<TestJsonShape, TestJsonShape, TestJsonShape>;
         test_rowversion: ColumnType<bigint, never, never>;
         test_concurrencyStamp: ColumnType<string, never, never>;
         test_userstring: ColumnType<string, string, string>;
@@ -172,6 +180,32 @@ describe("kysely", () => {
         id: ColumnType<string, string, string>;
         name: ColumnType<number, number, number>;
         score: ColumnType<boolean, boolean, boolean>;
+      };
+    }>();
+  });
+
+  it("kysely uses schema output type when column has schema", () => {
+    const schema_table = table("schema_table", {
+      // string column with a Zod schema — output type should be the schema's output, not `object`
+      tagged: c.string({
+        schema: z.string().brand<"Tagged">(),
+      }),
+      // jsonb with a schema — output type should be the object shape, not generic `object`
+      data: c.jsonb({
+        schema: z.object({ id: z.number(), label: z.string() }),
+      }),
+    });
+
+    const db = database({}, schema_table);
+    type KyselyTypes = InferKyselyTypes<typeof db>;
+
+    type TaggedString = string & z.BRAND<"Tagged">;
+    type DataShape = { id: number; label: string };
+
+    expectTypeOf<KyselyTypes>().toEqualTypeOf<{
+      schema_table: {
+        tagged: ColumnType<TaggedString, TaggedString, TaggedString>;
+        data: ColumnType<DataShape, DataShape, DataShape>;
       };
     }>();
   });
