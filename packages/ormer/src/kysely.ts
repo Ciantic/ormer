@@ -31,8 +31,12 @@ type ColumnTypeKysely<
 
 type ColType<Col, TypeMap extends Record<string, unknown>> = Col extends {
   schema: StandardSchemaV1;
+  type: keyof TypeMap;
 }
-  ? StandardSchemaV1.InferOutput<Col["schema"]>
+  ? // Ensure that schema output is assignable to the expected type for the column type, otherwise fallback to the default type
+    StandardSchemaV1.InferOutput<Col["schema"]> extends TypeMap[Col["type"]]
+    ? StandardSchemaV1.InferOutput<Col["schema"]>
+    : TypeMap[Col["type"]]
   : Col extends { type: keyof TypeMap }
     ? TypeMap[Col["type"]]
     : never;

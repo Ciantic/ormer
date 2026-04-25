@@ -209,4 +209,30 @@ describe("kysely", () => {
       };
     }>();
   });
+
+  it("kysely falls back to TypeMap when schema output is incompatible", () => {
+    const incompatible_table = table("incompatible_table", {
+      // schema output is number, but column type is "string" (TypeMap: string) — incompatible, should fall back to string
+      bad_schema: c.string({
+        schema: z.number(),
+      }),
+    });
+
+    const db = database({}, incompatible_table);
+    type KyselyTypes = InferKyselyTypes<typeof db>;
+
+    // Correctly falls back to string (TypeMap value), not number
+    expectTypeOf<KyselyTypes>().toEqualTypeOf<{
+      incompatible_table: {
+        bad_schema: ColumnType<string, string, string>;
+      };
+    }>();
+
+    // @ts-expect-error — schema output (number) is incompatible, so number is NOT used
+    expectTypeOf<KyselyTypes>().toEqualTypeOf<{
+      incompatible_table: {
+        bad_schema: ColumnType<number, number, number>;
+      };
+    }>();
+  });
 });
