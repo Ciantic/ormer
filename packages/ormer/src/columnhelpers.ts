@@ -170,29 +170,26 @@ type StringLiteral<T> = T extends string
     : T
   : never;
 
+// type AllColumnTypes = "bigint" | "boolean" ...
 export type AllColumnTypes = {
-  [K in keyof typeof c]: ReturnType<(typeof c)[K]> extends c.ColumnType<
-    infer T,
-    unknown
-  >
+  [K in keyof typeof c]: ReturnType<(typeof c)[K]> extends { type: infer T }
     ? StringLiteral<T>
     : never;
-};
+}[keyof typeof c];
 
-// Get types from columns.ts as string literals
-// type TypesAndParamsDefined = {
-//   [K in keyof typeof c]: ReturnType<(typeof c)[K]> extends c.ColumnType<
-//     infer T,
-//     infer P
-//   >
-//     ? { type: StringLiteral<T>; params: P }
-//     : never;
-// };
-
+// Map column types to a new value via a function
 export type MapColumnsTo<T> = {
-  [K in keyof AllColumnTypes as AllColumnTypes[K] extends string
-    ? AllColumnTypes[K]
+  [K in keyof typeof c as ReturnType<(typeof c)[K]> extends {
+    type: infer U extends string;
+  }
+    ? string extends U
+      ? never
+      : U
     : never]: (
-    ...params: Parameters<(typeof c)[K]> extends [infer U] ? [U] : [c.Params]
+    ...params: Parameters<(typeof c)[K]> extends [infer P] ? [P] : [c.Params]
   ) => T;
 };
+
+// export type RecordOfColumnTypes = {
+//   [k in AllColumnTypes]: ReturnType<MapColumnsTo<unknown>[k]>;
+// };
