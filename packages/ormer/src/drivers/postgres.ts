@@ -1,5 +1,6 @@
 import type { MapColumnsTo } from "../columnhelpers.ts";
 import type { Params } from "../columns.ts";
+import type { Opts } from "../sql.ts";
 
 type Int32Fn = <A extends boolean>(
   params: Params<{
@@ -52,3 +53,14 @@ export const POSTGRES_TYPES = {
   jsonb: (_) => "jsonb" as const,
   json: (_) => "json" as const,
 } satisfies MapColumnsTo<string>;
+
+export const POSTGRES_OPTS: Opts = {
+  colNameFn: (colName) => `"${colName}"`,
+  defaultExprFn: (value) => {
+    if (value === "now") return "CURRENT_TIMESTAMP";
+    if (value === "generate") return "gen_random_uuid()";
+    if (typeof value === "number") return String(value);
+    if (typeof value === "string") return `'${value}'`;
+    return null;
+  },
+};
