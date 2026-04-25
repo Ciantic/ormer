@@ -1,3 +1,4 @@
+import * as z from "zod";
 import * as h from "./columnhelpers.ts";
 import * as c from "./columns.ts";
 import { table } from "./table.ts";

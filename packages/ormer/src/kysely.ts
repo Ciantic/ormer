@@ -19,14 +19,14 @@ type CommonTypes = {
   json: object;
 };
 
-type KyselyColumnType<
+type ColumnTypeKysely<
   SelectType,
   InsertType = SelectType,
   UpdateType = SelectType,
 > = {
-  __insert__: InsertType;
-  __select__: SelectType;
-  __update__: UpdateType;
+  readonly __insert__: InsertType;
+  readonly __select__: SelectType;
+  readonly __update__: UpdateType;
 };
 
 type ColJsType<T extends string> = T extends keyof CommonTypes
@@ -38,7 +38,7 @@ export type InferKyselyTypes<
   D extends Record<string, { columns: Record<string, { type: string }> }>,
 > = {
   [K in keyof D]: {
-    [C in keyof D[K]["columns"]]: KyselyColumnType<
+    [C in keyof D[K]["columns"]]: ColumnTypeKysely<
       // Select
       | ColJsType<D[K]["columns"][C]["type"]>
       | (D[K]["columns"][C] extends { nullable: true } ? null : never),
@@ -50,7 +50,9 @@ export type InferKyselyTypes<
             | (D[K]["columns"][C] extends { nullable: true } ? null : never)
             | (D[K]["columns"][C] extends { default: infer _ }
                 ? undefined
-                : never),
+                : D[K]["columns"][C] extends { nullable: true }
+                  ? undefined
+                  : never),
       // Update
       D[K]["columns"][C] extends { notUpdatable: true }
         ? never
