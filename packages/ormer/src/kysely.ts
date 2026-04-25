@@ -1,4 +1,4 @@
-import type { MapColumnsTo, AllColumnTypes } from "./columnhelpers.ts";
+import type { AllColumnTypes } from "./columnhelpers.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 type CommonTypes = {
@@ -18,6 +18,15 @@ type CommonTypes = {
   jsonb: object;
   json: object;
 };
+
+// Compile-time check: CommonTypes must cover every column type defined in
+// columns.ts, with no extraneous keys
+type _CommonTypesExhaustive = [AllColumnTypes] extends [keyof CommonTypes]
+  ? [keyof CommonTypes] extends [AllColumnTypes]
+    ? true
+    : never
+  : never;
+const _assertCommonTypesExhaustive: _CommonTypesExhaustive = true;
 
 type ColumnTypeKysely<
   SelectType,
