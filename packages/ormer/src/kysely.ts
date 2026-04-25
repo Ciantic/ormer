@@ -36,7 +36,9 @@ type ColJsType<T extends string> = T extends keyof CommonTypes
 // Infer kysely types from database
 export type InferKyselyTypes<
   D extends Record<string, { columns: Record<string, { type: string }> }>,
-> = {
+> =
+  {
+  // prettier-ignore
   [K in keyof D]: {
     [C in keyof D[K]["columns"]]: ColumnTypeKysely<
       // Select
@@ -46,13 +48,9 @@ export type InferKyselyTypes<
       D[K]["columns"][C] extends { notInsertable: true }
         ? never
         :
-            | ColJsType<D[K]["columns"][C]["type"]>
-            | (D[K]["columns"][C] extends { nullable: true } ? null : never)
-            | (D[K]["columns"][C] extends { default: infer _ }
-                ? undefined
-                : D[K]["columns"][C] extends { nullable: true }
-                  ? undefined
-                  : never),
+          | ColJsType<D[K]["columns"][C]["type"]>
+          | (D[K]["columns"][C] extends { nullable: true } ? null | undefined : never)
+          | (D[K]["columns"][C] extends { default: infer _ } ? undefined : never),
       // Update
       D[K]["columns"][C] extends { notUpdatable: true }
         ? never
