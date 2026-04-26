@@ -20,14 +20,11 @@ export const PGLITE_SELECT_SCHEMAS = {
   timepart: selectType(s.string),
   jsonb: <
     S extends StandardSchemaV1<any, any>,
-    P extends Params<{ schema: S},
+    P extends Params<{ schema: S }>,
   >(
     p: P & { schema: S },
   ) => selectTypeToSchema(p, p.schema),
-  json: <
-    S extends StandardSchemaV1<any, any>,
-    P extends Params<{ schema: S}>,
-  >(
+  json: <S extends StandardSchemaV1<any, any>, P extends Params<{ schema: S }>>(
     p: P & { schema: S },
   ) => selectTypeToSchema(p, p.schema),
 };
