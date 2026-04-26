@@ -35,8 +35,25 @@ export function selectTypeToSchema<
   }
 }
 
+// Like selectTypeToSchema but returns a branded StandardSchemaV1 wrapper
+// so TypeScript preserves the computed type instead of inferring the raw schema.
+export function selectTypeToSchemaTyped<
+  T extends Params,
+  S extends StandardSchemaV1<any, any>,
+>(params: T, schema: S): SelectToSchema<T, S> {
+  return selectTypeToSchema(params, schema) as any;
+}
+
 export function selectType<S extends StandardSchemaV1<any, any>>(
   schema: S,
 ): <T extends Params>(params: T) => SelectToSchema<T, S> {
   return (params) => selectTypeToSchema(params, schema);
+}
+
+export function selectTypeWithSchema<S extends StandardSchemaV1<any, any>>(
+  schema: S,
+): <T extends Omit<Params, "schema">>(
+  params: T & { schema: S },
+) => SelectToSchema<T & { schema: S }, S> {
+  return (params) => selectTypeToSchema(params, params.schema);
 }
