@@ -2,7 +2,7 @@ import * as z from "zod";
 import * as s from "../simplevalidation.ts";
 import type { MapColumnsTo } from "../columnhelpers.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { selectType, schemaMapper } from "./common.ts";
+import { selectType, selectTypeToSchema } from "./common.ts";
 import type { Params } from "../columns.ts";
 
 export const PGLITE_SELECT_SCHEMAS = {
@@ -19,8 +19,10 @@ export const PGLITE_SELECT_SCHEMAS = {
   datetime: selectType(s.datetime),
   datepart: selectType(s.datetime),
   timepart: selectType(s.string),
-  jsonb: schemaMapper,
-  json: schemaMapper,
+  jsonb: <T extends StandardSchemaV1>(p: Params<{ schema: T }>) =>
+    selectTypeToSchema(p, p.schema),
+  json: <T extends StandardSchemaV1>(p: Params<{ schema: T }>) =>
+    selectTypeToSchema(p, p.schema),
 } satisfies MapColumnsTo<StandardSchemaV1>;
 
 export type PgliteSelectTypes = {
@@ -31,6 +33,10 @@ export type PgliteSelectTypes = {
 
 const foo = PGLITE_SELECT_SCHEMAS.int32({ nullable: true, default: 0 });
 const zoo = PGLITE_SELECT_SCHEMAS.jsonb({
+  nullable: true,
+  schema: z.object({ test: z.number() }),
+});
+const zoo2 = PGLITE_SELECT_SCHEMAS.json({
   nullable: true,
   schema: z.object({ test: z.number() }),
 });

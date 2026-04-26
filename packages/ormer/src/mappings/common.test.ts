@@ -1,13 +1,7 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { describe, it, expect } from "vitest";
-import { number, string, schemaCombine } from "../simplevalidation.js";
-import {
-  selectTypeToSchema,
-  selectType,
-  schemaMapper,
-  schemaToStringMapper,
-  stringToSchemaMapper,
-} from "./common.js";
+import { number, schemaCombine } from "../simplevalidation.js";
+import { selectTypeToSchema, selectType } from "./common.js";
 
 type Expect<T extends true> = T;
 type Equal<X, Y> =
@@ -155,106 +149,5 @@ describe("colMapper", () => {
     type Test = Expect<Equal<typeof schema, typeof number>>;
     true satisfies Test;
     expect(validate(schema, 42)).toEqual({ value: 42 });
-  });
-});
-
-// ─── schemaMapper ─────────────────────────────────────────────────────────────
-
-describe("schemaMapper", () => {
-  it("uses the schema from params", () => {
-    const inner = schemaCombine({ n: number });
-    const schema = schemaMapper({ schema: inner });
-    expect(validate(schema, { n: 1 })).toEqual({ value: { n: 1 } });
-  });
-
-  it("nullable + default wraps schema from params", () => {
-    const inner = schemaCombine({ n: number });
-    const schema = schemaMapper({ schema: inner, nullable: true, default: {} });
-    expect(validate(schema, null)).toEqual({ value: null });
-    expect(validate(schema, undefined)).toEqual({ value: undefined });
-  });
-});
-
-// ─── schemaToStringMapper ─────────────────────────────────────────────────────
-
-describe("schemaToStringMapper", () => {
-  it("type-level: output is string", () => {
-    const inner = schemaCombine({ n: number });
-    const schema = schemaToStringMapper({ schema: inner });
-    type Test = Expect<
-      Equal<typeof schema, StandardSchemaV1<{ n: number }, string>>
-    >;
-    true satisfies Test;
-    expect(true).toBe(true);
-  });
-
-  it("serializes valid value to JSON string", () => {
-    const schema = schemaToStringMapper({
-      schema: schemaCombine({ n: number }),
-    });
-    expect(validate(schema, { n: 42 })).toEqual({ value: '{"n":42}' });
-  });
-
-  it("rejects invalid inner value", () => {
-    const schema = schemaToStringMapper({ schema: number });
-    const result = validate(schema, "bad") as StandardSchemaV1.FailureResult;
-    expect(result.issues[0]?.message).toBe("Expected number");
-  });
-
-  it("nullable: passes null through and serializes value", () => {
-    const schema = schemaToStringMapper({ schema: number, nullable: true });
-    expect(validate(schema, null)).toEqual({ value: null });
-    expect(validate(schema, 1)).toEqual({ value: "1" });
-  });
-});
-
-// ─── stringToSchemaMapper ────────────────────────────────────────────────────
-
-describe("stringToSchemaMapper", () => {
-  it("type-level: input is string, output from schema", () => {
-    const inner = schemaCombine({ n: number });
-    const schema = stringToSchemaMapper({ schema: inner });
-    type Test = Expect<
-      Equal<typeof schema, StandardSchemaV1<string, { n: number }>>
-    >;
-    true satisfies Test;
-    expect(true).toBe(true);
-  });
-
-  it("parses JSON string and validates", () => {
-    const schema = stringToSchemaMapper({
-      schema: schemaCombine({ n: number }),
-    });
-    expect(validate(schema, '{"n":42}')).toEqual({ value: { n: 42 } });
-  });
-
-  it("returns issue for non-string input", () => {
-    const schema = stringToSchemaMapper({ schema: number });
-    const result = validate(schema, 42) as StandardSchemaV1.FailureResult;
-    expect(result.issues[0]?.message).toBe("Expected string");
-  });
-
-  it("returns issue for invalid JSON", () => {
-    const schema = stringToSchemaMapper({ schema: number });
-    const result = validate(
-      schema,
-      "not json",
-    ) as StandardSchemaV1.FailureResult;
-    expect(result.issues[0]?.message).toBe("Invalid JSON string");
-  });
-
-  it("returns issue when parsed value fails inner schema", () => {
-    const schema = stringToSchemaMapper({ schema: number });
-    const result = validate(
-      schema,
-      '"hello"',
-    ) as StandardSchemaV1.FailureResult;
-    expect(result.issues[0]?.message).toBe("Expected number");
-  });
-
-  it("nullable: passes null through and parses value", () => {
-    const schema = stringToSchemaMapper({ schema: number, nullable: true });
-    expect(validate(schema, null)).toEqual({ value: null });
-    expect(validate(schema, "7")).toEqual({ value: 7 });
   });
 });

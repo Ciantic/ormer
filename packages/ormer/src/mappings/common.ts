@@ -40,31 +40,3 @@ export function selectType<S extends StandardSchemaV1<any, any>>(
 ): <T extends Params>(params: T) => SelectToSchema<T, S> {
   return (params) => selectTypeToSchema(params, schema);
 }
-
-export function schemaMapper<
-  T extends Params & { schema: StandardSchemaV1<any, any> },
->(p: T): SelectToSchema<T, T["schema"]> {
-  return selectTypeToSchema(p, p.schema) as SelectToSchema<T, T["schema"]>;
-}
-
-export function schemaToStringMapper<
-  T extends Params & { schema: StandardSchemaV1<any, any> },
->(
-  params: T,
-): SelectToSchema<
-  T,
-  StandardSchemaV1<StandardSchemaV1.InferInput<T["schema"]>, string>
-> {
-  return selectTypeToSchema(params, s.schemaToJsonString(params.schema)) as any;
-}
-
-export function stringToSchemaMapper<
-  T extends Params & { schema: StandardSchemaV1<any, any> },
->(
-  params: T,
-): SelectToSchema<
-  T,
-  StandardSchemaV1<string, StandardSchemaV1.InferOutput<T["schema"]>>
-> {
-  return selectTypeToSchema(params, s.jsonStringToSchema(params.schema)) as any;
-}

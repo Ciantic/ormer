@@ -6,9 +6,6 @@ import {
   schemaMapOpt,
   schemaOpt,
   schemaCombine,
-  schemaPipe,
-  schemaToJsonString,
-  jsonStringToSchema,
   typedValidate,
   typedValidateLoose,
 } from "./simplevalidation.js";
@@ -159,94 +156,6 @@ const numToStr: StandardSchemaV1<number, string> = {
     validate: (v) => ({ value: String(v) }),
   },
 };
-
-describe("schemaPipe", () => {
-  it("type-level: infers piped input/output types", () => {
-    const piped = schemaPipe(number, numToStr);
-
-    type Test = Expect<Equal<typeof piped, StandardSchemaV1<number, string>>>;
-    true satisfies Test;
-
-    expect(true).toBe(true);
-  });
-
-  it("pipes output of first schema into second", () => {
-    const piped = schemaPipe(number, numToStr);
-    expect(piped["~standard"].validate(42)).toEqual({ value: "42" });
-  });
-
-  it("returns issues from first schema", () => {
-    const piped = schemaPipe(number, numToStr);
-    const result = piped["~standard"].validate(
-      "not a number",
-    ) as StandardSchemaV1.FailureResult;
-    expect(result.issues[0]?.message).toBe("Expected number");
-  });
-});
-
-describe("schemaToJson", () => {
-  it("type-level: infers input type from schema, output as string", () => {
-    const s = schemaToJsonString(number);
-
-    type Test = Expect<Equal<typeof s, StandardSchemaV1<number, string>>>;
-    true satisfies Test;
-
-    expect(true).toBe(true);
-  });
-
-  it("serializes valid value to JSON string", () => {
-    const s = schemaToJsonString(schemaCombine({ n: number }));
-    expect(s["~standard"].validate({ n: 1 })).toEqual({ value: '{"n":1}' });
-  });
-
-  it("returns issues for invalid input", () => {
-    const s = schemaToJsonString(number);
-    const result = s["~standard"].validate(
-      "bad",
-    ) as StandardSchemaV1.FailureResult;
-    expect(result.issues[0]?.message).toBe("Expected number");
-  });
-});
-
-describe("jsonToSchema", () => {
-  it("type-level: input is string, output from schema", () => {
-    const s = jsonStringToSchema(number);
-
-    type Test = Expect<Equal<typeof s, StandardSchemaV1<string, number>>>;
-    true satisfies Test;
-
-    expect(true).toBe(true);
-  });
-
-  it("parses JSON string and validates", () => {
-    const s = jsonStringToSchema(schemaCombine({ n: number }));
-    expect(s["~standard"].validate('{"n":1}')).toEqual({ value: { n: 1 } });
-  });
-
-  it("returns issue for non-string input", () => {
-    const s = jsonStringToSchema(number);
-    const result = s["~standard"].validate(
-      42 as any,
-    ) as StandardSchemaV1.FailureResult;
-    expect(result.issues[0]?.message).toBe("Expected string");
-  });
-
-  it("returns issue for invalid JSON", () => {
-    const s = jsonStringToSchema(number);
-    const result = s["~standard"].validate(
-      "not json",
-    ) as StandardSchemaV1.FailureResult;
-    expect(result.issues[0]?.message).toBe("Invalid JSON string");
-  });
-
-  it("returns issues from inner schema for invalid parsed value", () => {
-    const s = jsonStringToSchema(number);
-    const result = s["~standard"].validate(
-      '"not a number"',
-    ) as StandardSchemaV1.FailureResult;
-    expect(result.issues[0]?.message).toBe("Expected number");
-  });
-});
 
 describe("typedValidate", () => {
   it("type-level: accepts valid input", () => {

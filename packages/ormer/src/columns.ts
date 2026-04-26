@@ -10,27 +10,33 @@ type R<T, B> = {
   [K in keyof T]: K extends keyof B ? T[K] : never;
 };
 
+// Combine two types, with properties from U taking precedence over T
+type Combine<T, U> = Omit<T, keyof U> & U;
+
 // deno-lint-ignore ban-types
 export type Params<ExtraProps extends object = {}> = FinalType<
   Readonly<
-    ExtraProps & {
-      primaryKey?: boolean;
-      unique?: boolean;
-      updateKey?: boolean;
-      notInsertable?: boolean;
-      notUpdatable?: boolean;
-      nullable?: boolean;
-      default?: unknown;
-      foreignKeyTable?: string;
-      foreignKeyColumn?: string;
-      autoIncrement?: boolean;
-      schema?: UnknownSchema;
+    Combine<
+      {
+        primaryKey?: boolean;
+        unique?: boolean;
+        updateKey?: boolean;
+        notInsertable?: boolean;
+        notUpdatable?: boolean;
+        nullable?: boolean;
+        default?: unknown;
+        foreignKeyTable?: string;
+        foreignKeyColumn?: string;
+        autoIncrement?: boolean;
+        schema?: UnknownSchema;
 
-      // Should not use these
-      // columnName?: string; // Automatically assigned by table()
-      // tableName?: string; // Automatically assigned by table()
-    }
-  > & {}
+        // Should not use these
+        // columnName?: string; // Automatically assigned by table()
+        // tableName?: string; // Automatically assigned by table()
+      },
+      ExtraProps
+    >
+  >
 >;
 
 export type ColumnTypeSingualr<Type extends string> = { readonly type: Type };

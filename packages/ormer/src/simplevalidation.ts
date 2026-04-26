@@ -201,13 +201,15 @@ export const string = validator<string, string>((value) => {
   return { value };
 });
 
-export const jsonToString = validator<any, string>((value) => {
-  try {
-    return { value: JSON.stringify(value) };
-  } catch (e) {
-    return { issues: [{ message: "Value cannot be stringified" }] };
-  }
-});
+export const jsonToString = validator<StandardSchemaV1, string>(
+  <T extends StandardSchemaV1>(value: T) => {
+    try {
+      return { value: JSON.stringify(value) };
+    } catch (e) {
+      return { issues: [{ message: "Value cannot be stringified" }] };
+    }
+  },
+);
 
 export function varchar(params: {
   maxLength: number;
@@ -408,51 +410,6 @@ export const schemaNullable = <I, O>(
     return { value: res.value };
   });
 };
-
-export function schemaPipe<I, M, O>(
-  first: StandardSchemaV1<I, M>,
-  second: StandardSchemaV1<M, O>,
-): StandardSchemaV1<I, O> {
-  return validator<I, O>((value) => {
-    const res = first["~standard"].validate(value);
-    if (res instanceof Promise) {
-      return { issues: [{ message: "Async validation not supported" }] };
-    }
-    if (res.issues) return { issues: res.issues };
-    const res2 = second["~standard"].validate(res.value);
-    if (res2 instanceof Promise) {
-      return { issues: [{ message: "Async validation not supported" }] };
-    }
-    return res2;
-  });
-}
-
-export function schemaToJsonString<I, O>(
-  schema: StandardSchemaV1<I, O>,
-): StandardSchemaV1<I, string> {
-  return schemaPipe(schema, jsonToString);
-}
-
-export function jsonStringToSchema<I, O>(
-  schema: StandardSchemaV1<I, O>,
-): StandardSchemaV1<string, O> {
-  return validator<string, O>((value) => {
-    if (typeof value !== "string") {
-      return { issues: [{ message: "Expected string" }] };
-    }
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(value);
-    } catch {
-      return { issues: [{ message: "Invalid JSON string" }] };
-    }
-    const res = schema["~standard"].validate(parsed);
-    if (res instanceof Promise) {
-      return { issues: [{ message: "Async validation not supported" }] };
-    }
-    return res;
-  });
-}
 
 export function typedValidate<I, O>(
   schema: StandardSchemaV1<I, O>,
