@@ -8,12 +8,15 @@ export type SelectToSchema<
 > =
   S extends StandardSchemaV1<infer I, infer O>
     ? T extends { nullable: true }
-      ? T extends { default: {} }
+      ? T extends { default: any }
         ? StandardSchemaV1<I | null | undefined, O | null | undefined>
         : StandardSchemaV1<I | null, O | null>
-      : T extends { default: {} }
+      : T extends { default: any }
         ? StandardSchemaV1<I | undefined, O | undefined>
-        : S
+        : StandardSchemaV1<
+            StandardSchemaV1.InferInput<S>,
+            StandardSchemaV1.InferOutput<S>
+          >
     : never;
 
 export function selectTypeToSchema<
@@ -30,7 +33,7 @@ export function selectTypeToSchema<
     if (params.default !== undefined) {
       return s.schemaOpt(schema) as SelectToSchema<T, S>;
     } else {
-      return schema as SelectToSchema<T, S>;
+      return schema as any as SelectToSchema<T, S>;
     }
   }
 }
