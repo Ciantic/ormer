@@ -9,7 +9,7 @@ import { table } from "../table.ts";
 import { database } from "../database.ts";
 import { createTableSql } from "../sql.ts";
 import { POSTGRES_TYPES, POSTGRES_OPTS } from "../drivers/postgres.ts";
-import { PGLITE_SELECT_SCHEMAS } from "./pglite.ts";
+import { PGLITE_SELECT_SCHEMAS_OLD } from "./pglite.ts";
 
 const allTypesTable = table("all_types", {
   // integer types
@@ -166,19 +166,19 @@ describe("pglite createTableSql", () => {
 
 describe("PGLITE_SELECT_SCHEMAS", () => {
   it("int32: infers number and validates numbers", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.int32({});
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.int32({});
     expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<number, number>>();
     expect(s.typedValidate(schema, 42)).toEqual({ value: 42 });
   });
 
   it("int64: infers bigint and validates bigints", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.int64({});
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.int64({});
     expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<bigint, bigint>>();
     expect(s.typedValidate(schema, 42n)).toEqual({ value: 42n });
   });
 
   it("bigint: infers string and validates strings", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.bigint({});
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.bigint({});
     expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<string, string>>();
     expect(s.typedValidate(schema, "12345678901234567890")).toEqual({
       value: "12345678901234567890",
@@ -186,13 +186,13 @@ describe("PGLITE_SELECT_SCHEMAS", () => {
   });
 
   it("float32: infers number and validates numbers", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.float32({});
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.float32({});
     expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<number, number>>();
     expect(s.typedValidate(schema, 1.5)).toEqual({ value: 1.5 });
   });
 
   it("float64: infers number and validates numbers", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.float64({});
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.float64({});
     expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<number, number>>();
     expect(s.typedValidate(schema, 3.141592653589793)).toEqual({
       value: 3.141592653589793,
@@ -200,13 +200,13 @@ describe("PGLITE_SELECT_SCHEMAS", () => {
   });
 
   it("decimal: infers string and validates strings", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.decimal({});
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.decimal({});
     expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<string, string>>();
     expect(s.typedValidate(schema, "9.99")).toEqual({ value: "9.99" });
   });
 
   it("uuid: infers string and validates strings", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.uuid({});
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.uuid({});
     expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<string, string>>();
     expect(
       s.typedValidate(schema, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"),
@@ -214,45 +214,45 @@ describe("PGLITE_SELECT_SCHEMAS", () => {
   });
 
   it("string: infers string and validates strings", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.string({});
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.string({});
     expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<string, string>>();
     expect(s.typedValidate(schema, "hello")).toEqual({ value: "hello" });
   });
 
   it("varchar: infers string and validates strings", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.varchar({});
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.varchar({});
     expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<string, string>>();
     expect(s.typedValidate(schema, "world")).toEqual({ value: "world" });
   });
 
   it("boolean: infers boolean and validates booleans", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.boolean({});
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.boolean({});
     expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<boolean, boolean>>();
     expect(s.typedValidate(schema, true)).toEqual({ value: true });
   });
 
   it("datetime: infers Date and validates Date objects", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.datetime({});
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.datetime({});
     expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<Date, Date>>();
     const d = new Date("2024-06-15T12:34:56.000Z");
     expect(s.typedValidate(schema, d)).toEqual({ value: d });
   });
 
   it("datepart: infers Date and validates Date objects", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.datepart({});
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.datepart({});
     expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<Date, Date>>();
     const d = new Date("2024-06-15T00:00:00.000Z");
     expect(s.typedValidate(schema, d)).toEqual({ value: d });
   });
 
   it("timepart: infers string and validates strings", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.timepart({});
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.timepart({});
     expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<string, string>>();
     expect(s.typedValidate(schema, "12:34:56")).toEqual({ value: "12:34:56" });
   });
 
   it("nullable modifier: wraps schema to accept null", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.string({ nullable: true });
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.string({ nullable: true });
     expectTypeOf(schema).toEqualTypeOf<
       StandardSchemaV1<string | null, string | null>
     >();
@@ -261,13 +261,13 @@ describe("PGLITE_SELECT_SCHEMAS", () => {
   });
 
   it("default modifier: wraps schema to accept undefined", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.string({ default: "fallback" });
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.string({ default: "fallback" });
     expect(s.typedValidate(schema, undefined)).toEqual({ value: undefined });
     expect(s.typedValidate(schema, "hello")).toEqual({ value: "hello" });
   });
 
   it("jsonb: returns schema-based validator using the provided schema", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.jsonb({
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.jsonb({
       schema: z.object({ key: z.string(), num: z.number() }),
     });
     expectTypeOf(schema).toEqualTypeOf<
@@ -282,7 +282,7 @@ describe("PGLITE_SELECT_SCHEMAS", () => {
   });
 
   it("jsonb: nullable modifier accepts null", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.jsonb({
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.jsonb({
       schema: z.object({ key: z.string() }),
       nullable: true,
     });
@@ -296,7 +296,7 @@ describe("PGLITE_SELECT_SCHEMAS", () => {
   });
 
   it("jsonb: default modifier accepts undefined", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.jsonb({
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.jsonb({
       schema: z.object({ key: z.string() }),
       default: null,
     });
@@ -310,7 +310,7 @@ describe("PGLITE_SELECT_SCHEMAS", () => {
   });
 
   it("json: returns schema-based validator using the provided schema", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.json({
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.json({
       schema: z.object({ key: z.string(), num: z.number() }),
     });
     expectTypeOf(schema).toEqualTypeOf<
@@ -325,7 +325,7 @@ describe("PGLITE_SELECT_SCHEMAS", () => {
   });
 
   it("json: nullable modifier accepts null", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.json({
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.json({
       schema: z.object({ key: z.string() }),
       nullable: true,
     });
@@ -339,7 +339,7 @@ describe("PGLITE_SELECT_SCHEMAS", () => {
   });
 
   it("json: default modifier accepts undefined", () => {
-    const schema = PGLITE_SELECT_SCHEMAS.json({
+    const schema = PGLITE_SELECT_SCHEMAS_OLD.json({
       schema: z.object({ key: z.string() }),
       default: null,
     });

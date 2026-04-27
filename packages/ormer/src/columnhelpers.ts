@@ -190,6 +190,17 @@ export type MapColumnsTo<T> = {
   ) => T;
 };
 
+// Map column types to a new value via a function
+export type MapColumnsToValue<T> = {
+  [K in keyof typeof c as ReturnType<(typeof c)[K]> extends {
+    type: infer U extends string;
+  }
+    ? string extends U
+      ? never
+      : U
+    : never]: T;
+};
+
 // export type RecordOfColumnTypes = {
 //   [k in AllColumnTypes]: ReturnType<MapColumnsTo<unknown>[k]>;
 // };

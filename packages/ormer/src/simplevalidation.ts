@@ -246,7 +246,13 @@ const ISO_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})$/;
 
-export const datetimeCoerced = validator<string | number, Date>((value) => {
+export const datetimeCoerced = validator<Date | string | number, Date>((value) => {
+  if (value instanceof Date) {
+    if (isNaN(value.getTime())) {
+      return { issues: [{ message: "Invalid Date" }] };
+    }
+    return { value };
+  }
   if (typeof value === "string") {
     if (ISO_DATETIME_RE.test(value)) {
       return { value: new Date(value + "Z") };
@@ -310,6 +316,13 @@ export const email = validator<string, string>((value) => {
   }
   if (!EMAIL_RE.test(value)) {
     return { issues: [{ message: "Invalid email" }] };
+  }
+  return { value };
+});
+
+export const object = validator<object, object>((value) => {
+  if (typeof value !== "object" || value === null) {
+    return { issues: [{ message: "Expected object" }] };
   }
   return { value };
 });
