@@ -264,21 +264,19 @@ type ApplyNullable<T, Col> = Col extends { nullable: true } ? T | null : T;
 
 // Keys that should be required in patch schema (primaryKey or updateKey)
 type PatchRequiredKeys<Table> = {
-  [K in keyof Table]: Table[K] extends { primaryKey: true }
+  [K in keyof Table]: Table[K] extends
+    | { primaryKey: true }
+    | { updateKey: true }
     ? K
-    : Table[K] extends { updateKey: true }
-      ? K
-      : never;
+    : never;
 }[keyof Table];
 
 // Keys that should be omitted from patch schema (notUpdatable and not primaryKey/updateKey)
 type PatchOmittedKeys<Table> = {
   [K in keyof Table]: Table[K] extends { notUpdatable: true }
-    ? Table[K] extends { primaryKey: true }
+    ? Table[K] extends { primaryKey: true } | { updateKey: true }
       ? never
-      : Table[K] extends { updateKey: true }
-        ? never
-        : K
+      : K
     : never;
 }[keyof Table];
 
