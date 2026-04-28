@@ -490,6 +490,119 @@ describe("getInsertSchema", () => {
       >
     >();
   });
+
+  it("getInsertSchema handles jsonb with schema", () => {
+    const jsonbTable = table("jsonb_insert_table", {
+      id: c.int32(),
+      metadata: c.jsonb({
+        schema: z.object({ count: z.number(), tags: z.string().array() }),
+      }),
+    });
+
+    const insertSchema = getInsertSchema(jsonbTable.columns, {
+      int32: z.number(),
+      jsonb: z.object({}), // Fallback
+    });
+
+    type SchemaType = typeof insertSchema;
+
+    // Should use the column's jsonb schema
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        { id: number; metadata: { count: number; tags: string[] } },
+        { id: number; metadata: { count: number; tags: string[] } }
+      >
+    >();
+  });
+
+  it("getInsertSchema handles json with schema", () => {
+    const jsonTable = table("json_insert_table", {
+      id: c.int32(),
+      data: c.json({
+        schema: z.object({ id: z.number(), label: z.string() }),
+      }),
+    });
+
+    const insertSchema = getInsertSchema(jsonTable.columns, {
+      int32: z.number(),
+      json: z.object({}), // Fallback
+    });
+
+    type SchemaType = typeof insertSchema;
+
+    // Should use the column's json schema
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        { id: number; data: { id: number; label: string } },
+        { id: number; data: { id: number; label: string } }
+      >
+    >();
+  });
+
+  it("getInsertSchema handles jsonb with nullable schema", () => {
+    const nullableJsonbTable = table("nullable_jsonb_insert_table", {
+      id: c.int32(),
+      optional_metadata: c.jsonb({
+        nullable: true,
+        schema: z.object({ count: z.number(), tags: z.string().array() }),
+      }),
+    });
+
+    const insertSchema = getInsertSchema(nullableJsonbTable.columns, {
+      int32: z.number(),
+      jsonb: z.object({}), // Fallback
+    });
+
+    type SchemaType = typeof insertSchema;
+
+    // Nullable jsonb should be optional with the schema shape
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        {
+          id: number;
+          optional_metadata?:
+            | { count: number; tags: string[] }
+            | null
+            | undefined;
+        },
+        {
+          id: number;
+          optional_metadata?:
+            | { count: number; tags: string[] }
+            | null
+            | undefined;
+        }
+      >
+    >();
+  });
+
+  it("getInsertSchema handles json with default schema", () => {
+    const defaultJsonTable = table("default_json_insert_table", {
+      id: c.int32(),
+      default_data: c.json({
+        default: { id: 1, label: "default" },
+        schema: z.object({ id: z.number(), label: z.string() }),
+      }),
+    });
+
+    const insertSchema = getInsertSchema(defaultJsonTable.columns, {
+      int32: z.number(),
+      json: z.object({}), // Fallback
+    });
+
+    type SchemaType = typeof insertSchema;
+
+    // Json with default should be optional with the schema shape
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        {
+          id: number;
+          default_data?: { id: number; label: string } | undefined;
+        },
+        { id: number; default_data?: { id: number; label: string } | undefined }
+      >
+    >();
+  });
 });
 
 describe("getPatchSchema", () => {
@@ -636,6 +749,185 @@ describe("getPatchSchema", () => {
           external_id: string;
           name?: string | undefined;
           status?: string | null | undefined;
+        }
+      >
+    >();
+  });
+
+  it("getPatchSchema handles jsonb with schema", () => {
+    const jsonbPatchTable = table("jsonb_patch_table", {
+      id: h.pkAutoInc(),
+      metadata: c.jsonb({
+        schema: z.object({ count: z.number(), tags: z.string().array() }),
+      }),
+    });
+
+    const patchSchema = getPatchSchema(jsonbPatchTable.columns, {
+      int64: z.bigint(),
+      jsonb: z.object({}), // Fallback
+    });
+
+    type SchemaType = typeof patchSchema;
+
+    // Should use the column's jsonb schema
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        {
+          id: bigint;
+          metadata?: { count: number; tags: string[] } | undefined;
+        },
+        { id: bigint; metadata?: { count: number; tags: string[] } | undefined }
+      >
+    >();
+  });
+
+  it("getPatchSchema handles json with schema", () => {
+    const jsonPatchTable = table("json_patch_table", {
+      id: h.pkAutoInc(),
+      data: c.json({
+        schema: z.object({ id: z.number(), label: z.string() }),
+      }),
+    });
+
+    const patchSchema = getPatchSchema(jsonPatchTable.columns, {
+      int64: z.bigint(),
+      json: z.object({}), // Fallback
+    });
+
+    type SchemaType = typeof patchSchema;
+
+    // Should use the column's json schema
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        { id: bigint; data?: { id: number; label: string } | undefined },
+        { id: bigint; data?: { id: number; label: string } | undefined }
+      >
+    >();
+  });
+
+  it("getPatchSchema handles jsonb with nullable schema", () => {
+    const nullableJsonbPatchTable = table("nullable_jsonb_patch_table", {
+      id: h.pkAutoInc(),
+      optional_metadata: c.jsonb({
+        nullable: true,
+        schema: z.object({ count: z.number(), tags: z.string().array() }),
+      }),
+    });
+
+    const patchSchema = getPatchSchema(nullableJsonbPatchTable.columns, {
+      int64: z.bigint(),
+      jsonb: z.object({}), // Fallback
+    });
+
+    type SchemaType = typeof patchSchema;
+
+    // Nullable jsonb should be optional with the schema shape
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        {
+          id: bigint;
+          optional_metadata?:
+            | { count: number; tags: string[] }
+            | null
+            | undefined;
+        },
+        {
+          id: bigint;
+          optional_metadata?:
+            | { count: number; tags: string[] }
+            | null
+            | undefined;
+        }
+      >
+    >();
+  });
+
+  it("getPatchSchema handles json with default schema", () => {
+    const defaultJsonPatchTable = table("default_json_patch_table", {
+      id: h.pkAutoInc(),
+      default_data: c.json({
+        default: { id: 1, label: "default" },
+        schema: z.object({ id: z.number(), label: z.string() }),
+      }),
+    });
+
+    const patchSchema = getPatchSchema(defaultJsonPatchTable.columns, {
+      int64: z.bigint(),
+      json: z.object({}), // Fallback
+    });
+
+    type SchemaType = typeof patchSchema;
+
+    // Json with default should be optional with the schema shape
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        {
+          id: bigint;
+          default_data?: { id: number; label: string } | undefined;
+        },
+        { id: bigint; default_data?: { id: number; label: string } | undefined }
+      >
+    >();
+  });
+
+  it("getPatchSchema handles jsonb with notUpdatable", () => {
+    const readonlyJsonbTable = table("readonly_jsonb_patch_table", {
+      id: h.pkAutoInc(),
+      metadata: c.jsonb({
+        schema: z.object({ count: z.number(), tags: z.string().array() }),
+        notUpdatable: true,
+      }),
+    });
+
+    const patchSchema = getPatchSchema(readonlyJsonbTable.columns, {
+      int64: z.bigint(),
+      jsonb: z.object({}), // Fallback
+    });
+
+    type SchemaType = typeof patchSchema;
+
+    // notUpdatable jsonb should be omitted
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<{ id: bigint }, { id: bigint }>
+    >();
+  });
+
+  it("getPatchSchema handles json with notInsertable", () => {
+    const readonlyJsonTable = table("readonly_json_patch_table", {
+      id: h.pkAutoInc(),
+      data: c.json({
+        schema: z.object({ id: z.number(), label: z.string() }),
+        notInsertable: true,
+      }),
+    });
+
+    const patchSchema = getPatchSchema(readonlyJsonTable.columns, {
+      int64: z.bigint(),
+      json: z.object({}), // Fallback
+    });
+
+    type SchemaType = typeof patchSchema;
+
+    // notInsertable json should be omitted
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        {
+          data?:
+            | {
+                id: number;
+                label: string;
+              }
+            | undefined;
+          id: bigint;
+        },
+        {
+          data?:
+            | {
+                id: number;
+                label: string;
+              }
+            | undefined;
+          id: bigint;
         }
       >
     >();
