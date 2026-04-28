@@ -5,7 +5,11 @@ import * as c from "./columns.ts";
 import { table } from "./table.ts";
 import { database } from "./database.ts";
 import { describe, it, expect, expectTypeOf } from "vitest";
-import { getSelectSchema, type InferKyselyTypes } from "./kysely.ts";
+import {
+  getSelectSchema,
+  getInsertSchema,
+  type InferKyselyTypes,
+} from "./kysely.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 const TEST_TABLE = table("test_table", {
@@ -241,7 +245,8 @@ describe("kysely", () => {
       };
     }>();
   });
-
+});
+describe("getSelectSchema", () => {
   it("getSelectSchema infers correct input/output types from type map", () => {
     const simpleTable = table("simple_table", {
       id: c.int32(),
@@ -346,6 +351,141 @@ describe("kysely", () => {
       StandardSchemaV1<
         { id: number; email: string; count: string },
         { id: number; email: EmailString; count: number }
+      >
+    >();
+  });
+});
+
+describe("getInsertSchema", () => {
+  it("getInsertSchema infers correct input/output types from type map", () => {
+    const simpleTable = table("simple_insert_table", {
+      id: c.int32(),
+      name: c.string(),
+      active: c.boolean(),
+    });
+
+    const insertSchema = getInsertSchema(simpleTable.columns, {
+      int32: z.number(),
+      string: z.string(),
+      boolean: z.boolean(),
+    });
+
+    type SchemaType = typeof insertSchema;
+
+    // Insert schema should match the type map schemas
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        { id: number; name: string; active: boolean },
+        { id: number; name: string; active: boolean }
+      >
+    >();
+  });
+
+  it("getInsertSchema omits notInsertable columns", () => {
+    const autoGenTable = table("auto_gen_table", {
+      id: h.pkAutoInc(), // notInsertable: true
+      name: c.string(),
+      created_at: h.createdAt(), // notInsertable: true
+    });
+
+    const insertSchema = getInsertSchema(autoGenTable.columns, {
+      int64: z.bigint(),
+      string: z.string(),
+      datetime: z.date(),
+    });
+
+    type SchemaType = typeof insertSchema;
+
+    // notInsertable columns (id, created_at) should be omitted
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<{ name: string }, { name: string }>
+    >();
+  });
+
+  it("getInsertSchema makes nullable columns optional", () => {
+    const nullableTable = table("nullable_insert_table", {
+      id: c.int32(),
+      optional_name: c.string({ nullable: true }),
+    });
+
+    const insertSchema = getInsertSchema(nullableTable.columns, {
+      int32: z.number(),
+      string: z.string(),
+    });
+
+    type SchemaType = typeof insertSchema;
+
+    // Nullable column should have string | null | undefined for insert input
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        { id: number; optional_name: string | null | undefined },
+        { id: number; optional_name: string | null }
+      >
+    >();
+  });
+
+  it("getInsertSchema makes default columns optional", () => {
+    const defaultTable = table("default_insert_table", {
+      id: c.int32(),
+      status: c.string({ default: "pending" }),
+    });
+
+    const insertSchema = getInsertSchema(defaultTable.columns, {
+      int32: z.number(),
+      string: z.string(),
+    });
+
+    type SchemaType = typeof insertSchema;
+
+    // Column with default should have | undefined for both input and output
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        { id: number; status: string | undefined },
+        { id: number; status: string | undefined }
+      >
+    >();
+  });
+
+  it("getInsertSchema combines nullable and default modifiers", () => {
+    const combinedTable = table("combined_insert_table", {
+      id: c.int32(),
+      description: c.string({ nullable: true, default: "no description" }),
+    });
+
+    const insertSchema = getInsertSchema(combinedTable.columns, {
+      int32: z.number(),
+      string: z.string(),
+    });
+
+    type SchemaType = typeof insertSchema;
+
+    // Column with both nullable and default should have all modifiers for both input and output
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        { id: number; description: string | null | undefined },
+        { id: number; description: string | null | undefined }
+      >
+    >();
+  });
+
+  it("getInsertSchema uses column schema when available", () => {
+    const schemaTable = table("schema_insert_table", {
+      id: c.int32(),
+      email: c.string({ schema: z.string().email() }),
+    });
+
+    const insertSchema = getInsertSchema(schemaTable.columns, {
+      int32: z.number(),
+      string: z.string(), // Fallback, but column schema should take precedence
+    });
+
+    type SchemaType = typeof insertSchema;
+
+    // Column schema should be used instead of type map
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        { id: number; email: string },
+        { id: number; email: string }
       >
     >();
   });

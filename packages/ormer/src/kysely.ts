@@ -82,8 +82,8 @@ export type InferKyselyTypes<
   };
 };
 
-// Wrap schema with nullable if column is nullable
-type WithNullable<
+// Wrap schema with select-specific modifiers (nullable)
+type WithSelectModifiers<
   Col,
   Schema extends StandardSchemaV1<any, any>,
 > = Col extends { nullable: true }
@@ -92,21 +92,21 @@ type WithNullable<
     : Schema
   : Schema;
 
-// Extract the schema for a column: either from column.schema or from the type map
-type GetColumnSchema<
+// Extract the select schema for a column
+type GetSelectColumnSchema<
   Col,
   TypeSchemas extends Record<string, StandardSchemaV1<any, any>>,
 > = Col extends { schema: infer S extends StandardSchemaV1<any, any> }
-  ? WithNullable<Col, S>
+  ? WithSelectModifiers<Col, S>
   : Col extends { type: infer T extends keyof TypeSchemas }
-    ? WithNullable<Col, TypeSchemas[T]>
+    ? WithSelectModifiers<Col, TypeSchemas[T]>
     : never;
 
 type GetSelectSchemaInput<
   Table extends Record<string, { type: string }>,
   SelectTypeSchemas extends Record<string, StandardSchemaV1<any, any>>,
 > = {
-  [K in keyof Table]: GetColumnSchema<
+  [K in keyof Table]: GetSelectColumnSchema<
     Table[K],
     SelectTypeSchemas
   > extends StandardSchemaV1<infer I, any>
@@ -118,7 +118,7 @@ type GetSelectSchemaOutput<
   Table extends Record<string, { type: string }>,
   SelectTypeSchemas extends Record<string, StandardSchemaV1<any, any>>,
 > = {
-  [K in keyof Table]: GetColumnSchema<
+  [K in keyof Table]: GetSelectColumnSchema<
     Table[K],
     SelectTypeSchemas
   > extends StandardSchemaV1<any, infer O>
@@ -137,6 +137,80 @@ export function getSelectSchema<
 ): StandardSchemaV1<
   GetSelectSchemaInput<Table, SelectTypeSchemas>,
   GetSelectSchemaOutput<Table, SelectTypeSchemas>
+> {
+  return {} as any;
+}
+
+// Wrap schema with insert-specific modifiers (nullable, default)
+type WithInsertModifiers<Col, Schema extends StandardSchemaV1<any, any>> =
+  Schema extends StandardSchemaV1<infer I, infer O>
+    ? Col extends { notInsertable: true }
+      ? never // Column is omitted entirely
+      : StandardSchemaV1<
+          | I
+          | (Col extends { nullable: true } ? null | undefined : never)
+          | (Col extends { default: infer _ } ? undefined : never),
+          | O
+          | (Col extends { nullable: true } ? null : never)
+          | (Col extends { default: infer _ } ? undefined : never)
+        >
+    : never;
+
+// Extract the insert schema for a column
+type GetInsertColumnSchema<
+  Col,
+  TypeSchemas extends Record<string, StandardSchemaV1<any, any>>,
+> = Col extends { schema: infer S extends StandardSchemaV1<any, any> }
+  ? WithInsertModifiers<Col, S>
+  : Col extends { type: infer T extends keyof TypeSchemas }
+    ? WithInsertModifiers<Col, TypeSchemas[T]>
+    : never;
+
+type GetInsertSchemaInput<
+  Table extends Record<string, { type: string }>,
+  InsertTypeSchemas extends Record<string, StandardSchemaV1<any, any>>,
+> = {
+  [K in keyof Table as GetInsertColumnSchema<
+    Table[K],
+    InsertTypeSchemas
+  > extends never
+    ? never
+    : K]: GetInsertColumnSchema<
+    Table[K],
+    InsertTypeSchemas
+  > extends StandardSchemaV1<infer I, any>
+    ? I
+    : never;
+};
+
+type GetInsertSchemaOutput<
+  Table extends Record<string, { type: string }>,
+  InsertTypeSchemas extends Record<string, StandardSchemaV1<any, any>>,
+> = {
+  [K in keyof Table as GetInsertColumnSchema<
+    Table[K],
+    InsertTypeSchemas
+  > extends never
+    ? never
+    : K]: GetInsertColumnSchema<
+    Table[K],
+    InsertTypeSchemas
+  > extends StandardSchemaV1<any, infer O>
+    ? O
+    : never;
+};
+
+export function getInsertSchema<
+  Table extends Record<string, { type: string }>,
+  InsertTypeSchemas extends Partial<
+    MapColumnsToValue<StandardSchemaV1<any, any>>
+  >,
+>(
+  table: Table,
+  insertTypeSchemas: InsertTypeSchemas,
+): StandardSchemaV1<
+  GetInsertSchemaInput<Table, InsertTypeSchemas>,
+  GetInsertSchemaOutput<Table, InsertTypeSchemas>
 > {
   return {} as any;
 }
