@@ -8,6 +8,7 @@ import { describe, it, expect, expectTypeOf } from "vitest";
 import {
   getSelectSchema,
   getInsertSchema,
+  getPatchSchema,
   type InferKyselyTypes,
 } from "./kysely.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
@@ -486,6 +487,156 @@ describe("getInsertSchema", () => {
       StandardSchemaV1<
         { id: number; email: string },
         { id: number; email: string }
+      >
+    >();
+  });
+});
+
+describe("getPatchSchema", () => {
+  it("getPatchSchema makes all fields optional except primaryKey and updateKey", () => {
+    const patchTable = table("patch_table", {
+      id: h.pkAutoInc(), // primaryKey: true - required
+      external_id: c.string({ updateKey: true }), // updateKey: true - required
+      name: c.string(), // regular field - optional
+      description: c.string(), // regular field - optional
+    });
+
+    const patchSchema = getPatchSchema(patchTable.columns, {
+      int64: z.bigint(),
+      string: z.string(),
+    });
+
+    type SchemaType = typeof patchSchema;
+
+    // Primary key and update key should be required, others optional
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        {
+          id: bigint;
+          external_id: string;
+          name?: string;
+          description?: string;
+        },
+        {
+          id: bigint;
+          external_id: string;
+          name?: string;
+          description?: string;
+        }
+      >
+    >();
+  });
+
+  it("getPatchSchema omits notUpdatable columns", () => {
+    const readonlyTable = table("readonly_patch_table", {
+      id: h.pkAutoInc(),
+      name: c.string(),
+      created_at: h.createdAt(), // notUpdatable: true
+    });
+
+    const patchSchema = getPatchSchema(readonlyTable.columns, {
+      int64: z.bigint(),
+      string: z.string(),
+      datetime: z.date(),
+    });
+
+    type SchemaType = typeof patchSchema;
+
+    // notUpdatable column (created_at) should be omitted
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        { id: bigint; name?: string },
+        { id: bigint; name?: string }
+      >
+    >();
+  });
+
+  it("getPatchSchema handles nullable columns", () => {
+    const nullablePatchTable = table("nullable_patch_table", {
+      id: h.pkAutoInc(),
+      name: c.string(),
+      optional_description: c.string({ nullable: true }),
+    });
+
+    const patchSchema = getPatchSchema(nullablePatchTable.columns, {
+      int64: z.bigint(),
+      string: z.string(),
+    });
+
+    type SchemaType = typeof patchSchema;
+
+    // Nullable column should have string | null | undefined for output
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        {
+          id: bigint;
+          name?: string;
+          optional_description?: string | null;
+        },
+        {
+          id: bigint;
+          name?: string;
+          optional_description?: string | null;
+        }
+      >
+    >();
+  });
+
+  it("getPatchSchema uses column schema when available", () => {
+    const schemaPatchTable = table("schema_patch_table", {
+      id: h.pkAutoInc(),
+      email: c.string({ schema: z.string().email() }),
+    });
+
+    const patchSchema = getPatchSchema(schemaPatchTable.columns, {
+      int64: z.bigint(),
+      string: z.string(), // Fallback, but column schema should take precedence
+    });
+
+    type SchemaType = typeof patchSchema;
+
+    // Column schema should be used instead of type map
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        { id: bigint; email?: string },
+        { id: bigint; email?: string }
+      >
+    >();
+  });
+
+  it("getPatchSchema combines primaryKey, updateKey, nullable, and notUpdatable", () => {
+    const complexPatchTable = table("complex_patch_table", {
+      id: h.pkAutoInc(), // primaryKey: true, notUpdatable: false (implicit) - required
+      external_id: c.string({ updateKey: true }), // updateKey: true - required
+      name: c.string(), // regular - optional
+      status: c.string({ nullable: true }), // nullable - optional with null
+      created_at: h.createdAt(), // notUpdatable: true - omitted
+      updated_at: h.updatedAt(), // notUpdatable: true - omitted
+    });
+
+    const patchSchema = getPatchSchema(complexPatchTable.columns, {
+      int64: z.bigint(),
+      string: z.string(),
+      datetime: z.date(),
+    });
+
+    type SchemaType = typeof patchSchema;
+
+    // Complex combination of modifiers
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        {
+          id: bigint;
+          external_id: string;
+          name?: string;
+          status?: string | null;
+        },
+        {
+          id: bigint;
+          external_id: string;
+          name?: string;
+          status?: string | null;
+        }
       >
     >();
   });
