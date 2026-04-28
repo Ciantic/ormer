@@ -1,6 +1,7 @@
 import * as z from "zod";
 import { describe, it, expect, expectTypeOf } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
+import { Kysely, PGliteDialect } from "kysely";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import * as c from "../columns.ts";
 import * as h from "../columnhelpers.ts";
@@ -9,7 +10,14 @@ import { table } from "../table.ts";
 import { database } from "../database.ts";
 import { createTableSql } from "../sql.ts";
 import { POSTGRES_TYPES, POSTGRES_OPTS } from "../drivers/postgres.ts";
-import { PGLITE_SELECT_SCHEMAS_OLD } from "./pglite.ts";
+import {
+  PGLITE_SELECT_SCHEMAS,
+  PGLITE_SELECT_SCHEMAS_OLD,
+  type PgliteInsertTypes,
+  type PgliteSelectTypes,
+  type PgliteUpdateTypes,
+} from "./pglite.ts";
+import type { InferKyselyTypes } from "../kysely.ts";
 
 const allTypesTable = table("all_types", {
   // integer types
@@ -161,6 +169,53 @@ describe("pglite createTableSql", () => {
     expect((result.rows[0] as any).d).toMatchInlineSnapshot(
       `2025-12-24T00:00:00.000Z`,
     );
+  });
+});
+
+describe("pglite kysely integration", () => {
+  it("kysely infers correct types from PGLITE_SELECT_SCHEMAS", async () => {
+    type KyselyDb = InferKyselyTypes<
+      typeof db,
+      PgliteSelectTypes,
+      PgliteInsertTypes,
+      PgliteUpdateTypes
+    >;
+    const connection = new PGlite();
+    const kysely = new Kysely<KyselyDb>({
+      dialect: new PGliteDialect({
+        pglite: connection,
+      }),
+    });
+
+    const createTable = createTableSql(POSTGRES_TYPES, db, POSTGRES_OPTS);
+    await connection.exec(createTable);
+
+    const insertedDatetime = new Date("2024-06-15T12:34:56.000Z");
+    await kysely
+      .insertInto("all_types")
+      .values({
+        int32_col: 42,
+        int32_nullable: null,
+        int64_col: 9007199254740992n, // beyond Number.MAX_SAFE_INTEGER
+        bigint_col: "12345678901234567890", // numeric passed as string
+        float32_col: 1.5,
+        float64_col: 3.141592653589793,
+        decimal_col: "9.99",
+        string_col: "hello",
+        varchar_col: "world",
+        bool_col: true,
+        uuid_col: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+        datetime_col: insertedDatetime,
+        datetime_ts: insertedDatetime,
+        datepart_col: new Date("2024-06-15T00:00:00.000Z"),
+        timepart_col: "12:34:56",
+        jsonb_col: JSON.stringify({ key: "value", num: 1 }),
+        json_col: JSON.stringify({ arr: [1, 2, 3] }),
+        unique_col: "unique-value",
+      })
+      .execute();
+
+    const rows = await kysely.selectFrom("all_types").selectAll().execute();
   });
 });
 

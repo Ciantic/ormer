@@ -5,7 +5,8 @@ import * as c from "./columns.ts";
 import { table } from "./table.ts";
 import { database } from "./database.ts";
 import { describe, it, expect, expectTypeOf } from "vitest";
-import type { InferKyselyTypes } from "./kysely.ts";
+import { getSelectSchema, type InferKyselyTypes } from "./kysely.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 const TEST_TABLE = table("test_table", {
   bigserial: h.pkAutoInc(),
@@ -173,7 +174,12 @@ describe("kysely", () => {
       float64: boolean; // map float64 to boolean instead of number
     };
 
-    type KyselyTypes = InferKyselyTypes<typeof db, CustomTypeMap>;
+    type KyselyTypes = InferKyselyTypes<
+      typeof db,
+      CustomTypeMap,
+      CustomTypeMap,
+      CustomTypeMap
+    >;
 
     expectTypeOf<KyselyTypes>().toEqualTypeOf<{
       custom_table: {
@@ -234,5 +240,113 @@ describe("kysely", () => {
         bad_schema: ColumnType<number, number, number>;
       };
     }>();
+  });
+
+  it("getSelectSchema infers correct input/output types from type map", () => {
+    const simpleTable = table("simple_table", {
+      id: c.int32(),
+      name: c.string(),
+      active: c.boolean(),
+    });
+
+    const selectSchema = getSelectSchema(simpleTable.columns, {
+      int32: z.number(),
+      string: z.string(),
+      boolean: z.boolean(),
+    });
+
+    type SchemaType = typeof selectSchema;
+
+    // Should infer exact input/output types from the type map
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        { id: number; name: string; active: boolean },
+        { id: number; name: string; active: boolean }
+      >
+    >();
+  });
+
+  it("getSelectSchema uses column schema when available", () => {
+    const tableWithSchema = table("schema_table", {
+      id: c.int32(),
+      // Column has its own schema - should use this instead of type map
+      email: c.string({ schema: z.string().email() }),
+      // jsonb with object schema
+      metadata: c.jsonb({
+        schema: z.object({ count: z.number(), tags: z.string().array() }),
+      }),
+    });
+
+    const selectSchema = getSelectSchema(tableWithSchema.columns, {
+      int32: z.number(),
+      string: z.string(),
+      jsonb: z.object({}), // Fallback, but column schema should take precedence
+    });
+
+    type SchemaType = typeof selectSchema;
+
+    // Output should use the column's email schema (string) and jsonb schema (object shape)
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        {
+          id: number;
+          email: string;
+          metadata: { count: number; tags: string[] };
+        },
+        {
+          id: number;
+          email: string;
+          metadata: { count: number; tags: string[] };
+        }
+      >
+    >();
+  });
+
+  it("getSelectSchema handles nullable columns", () => {
+    const nullableTable = table("nullable_table", {
+      id: c.int32(),
+      optional_name: c.string({ nullable: true }),
+    });
+
+    const selectSchema = getSelectSchema(nullableTable.columns, {
+      int32: z.number(),
+      string: z.string(),
+    });
+
+    type SchemaType = typeof selectSchema;
+
+    // Nullable column should have string | null type
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        { id: number; optional_name: string | null },
+        { id: number; optional_name: string | null }
+      >
+    >();
+  });
+
+  it("getSelectSchema uses column schema with different input/output types", () => {
+    const transformTable = table("transform_table", {
+      id: c.int32(),
+      // String column with email schema - input is string, output is branded string
+      email: c.string({ schema: z.email().brand<"Email">() }),
+      // String column with transform - input is string, output is number
+      count: c.string({ schema: z.string().transform((v) => parseInt(v, 10)) }),
+    });
+
+    const selectSchema = getSelectSchema(transformTable.columns, {
+      int32: z.number(),
+      string: z.string(), // Fallback, but column schemas should take precedence
+    });
+
+    type SchemaType = typeof selectSchema;
+    type EmailString = string & z.BRAND<"Email">;
+
+    // Column schemas should provide different input/output types
+    expectTypeOf<SchemaType>().toEqualTypeOf<
+      StandardSchemaV1<
+        { id: number; email: string; count: string },
+        { id: number; email: EmailString; count: number }
+      >
+    >();
   });
 });

@@ -21,7 +21,7 @@
     "@duckdb/node-api": "1.5.2-r.1",
     "@electric-sql/pglite": "^0.4.4",
     "@standard-schema/spec": "^1.1.0",
-    "kysely": "^0.28.16",
+    "kysely": "^0.29.0-rc.0",
     "libsql": "^0.6.0-pre.32",
     "typescript": "^6.0.3",
     "valibot": "^1.3.1",
