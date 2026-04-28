@@ -416,11 +416,11 @@ describe("getInsertSchema", () => {
 
     type SchemaType = typeof insertSchema;
 
-    // Nullable column should have string | null | undefined for insert input
+    // Nullable column should be optional with string | null | undefined
     expectTypeOf<SchemaType>().toEqualTypeOf<
       StandardSchemaV1<
-        { id: number; optional_name: string | null | undefined },
-        { id: number; optional_name: string | null }
+        { id: number; optional_name?: string | null | undefined },
+        { id: number; optional_name?: string | null | undefined }
       >
     >();
   });
@@ -438,11 +438,11 @@ describe("getInsertSchema", () => {
 
     type SchemaType = typeof insertSchema;
 
-    // Column with default should have | undefined for both input and output
+    // Column with default should be optional with string | undefined
     expectTypeOf<SchemaType>().toEqualTypeOf<
       StandardSchemaV1<
-        { id: number; status: string | undefined },
-        { id: number; status: string | undefined }
+        { id: number; status?: string | undefined },
+        { id: number; status?: string | undefined }
       >
     >();
   });
@@ -460,11 +460,11 @@ describe("getInsertSchema", () => {
 
     type SchemaType = typeof insertSchema;
 
-    // Column with both nullable and default should have all modifiers for both input and output
+    // Column with both nullable and default should be optional with string | null | undefined
     expectTypeOf<SchemaType>().toEqualTypeOf<
       StandardSchemaV1<
-        { id: number; description: string | null | undefined },
-        { id: number; description: string | null | undefined }
+        { id: number; description?: string | null | undefined },
+        { id: number; description?: string | null | undefined }
       >
     >();
   });
@@ -514,14 +514,14 @@ describe("getPatchSchema", () => {
         {
           id: bigint;
           external_id: string;
-          name?: string;
-          description?: string;
+          name?: string | undefined;
+          description?: string | undefined;
         },
         {
           id: bigint;
           external_id: string;
-          name?: string;
-          description?: string;
+          name?: string | undefined;
+          description?: string | undefined;
         }
       >
     >();
@@ -545,8 +545,8 @@ describe("getPatchSchema", () => {
     // notUpdatable column (created_at) should be omitted
     expectTypeOf<SchemaType>().toEqualTypeOf<
       StandardSchemaV1<
-        { id: bigint; name?: string },
-        { id: bigint; name?: string }
+        { id: bigint; name?: string | undefined },
+        { id: bigint; name?: string | undefined }
       >
     >();
   });
@@ -570,13 +570,13 @@ describe("getPatchSchema", () => {
       StandardSchemaV1<
         {
           id: bigint;
-          name?: string;
-          optional_description?: string | null;
+          name?: string | undefined;
+          optional_description?: string | null | undefined;
         },
         {
           id: bigint;
-          name?: string;
-          optional_description?: string | null;
+          name?: string | undefined;
+          optional_description?: string | null | undefined;
         }
       >
     >();
@@ -598,8 +598,8 @@ describe("getPatchSchema", () => {
     // Column schema should be used instead of type map
     expectTypeOf<SchemaType>().toEqualTypeOf<
       StandardSchemaV1<
-        { id: bigint; email?: string },
-        { id: bigint; email?: string }
+        { id: bigint; email?: string | undefined },
+        { id: bigint; email?: string | undefined }
       >
     >();
   });
@@ -628,14 +628,14 @@ describe("getPatchSchema", () => {
         {
           id: bigint;
           external_id: string;
-          name?: string;
-          status?: string | null;
+          name?: string | undefined;
+          status?: string | null | undefined;
         },
         {
           id: bigint;
           external_id: string;
-          name?: string;
-          status?: string | null;
+          name?: string | undefined;
+          status?: string | null | undefined;
         }
       >
     >();

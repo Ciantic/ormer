@@ -143,41 +143,29 @@ export function getSelectSchema<
   return {} as any;
 }
 
-// Wrap schema with insert-specific modifiers (nullable, default)
-type WithInsertModifiers<Col, Schema extends StandardSchemaV1<any, any>> =
-  Schema extends StandardSchemaV1<infer I, infer O>
-    ? Col extends { notInsertable: true }
-      ? never // Column is omitted entirely
-      : StandardSchemaV1<
-          | I
-          | (Col extends { nullable: true } ? null | undefined : never)
-          | (Col extends { default: infer _ } ? undefined : never),
-          | O
-          | (Col extends { nullable: true } ? null : never)
-          | (Col extends { default: infer _ } ? undefined : never)
-        >
-    : never;
+// Keys that should be omitted from insert schema (notInsertable)
+type InsertOmittedKeys<Table> = {
+  [K in keyof Table]: Table[K] extends { notInsertable: true } ? K : never;
+}[keyof Table];
 
-// Extract the insert schema for a column
-type GetInsertColumnSchema<
-  Col,
-  TypeSchemas extends Record<string, StandardSchemaV1<any, any>>,
-> = Col extends { schema: infer S extends StandardSchemaV1<any, any> }
-  ? WithInsertModifiers<Col, S>
-  : Col extends { type: infer T extends keyof TypeSchemas }
-    ? WithInsertModifiers<Col, TypeSchemas[T]>
-    : never;
+// Keys that remain in the insert schema
+type InsertKeptKeys<Table> = Exclude<keyof Table, InsertOmittedKeys<Table>>;
 
-type GetInsertSchemaInput<
+// Keys that should be required in insert schema (not nullable, no default, kept)
+type InsertRequiredKeys<Table> = {
+  [K in InsertKeptKeys<Table>]: Table[K] extends { nullable: true }
+    ? never
+    : Table[K] extends { default: infer _ }
+      ? never
+      : K;
+}[InsertKeptKeys<Table>];
+
+// Required part of insert schema
+type GetInsertSchemaRequiredInput<
   Table extends Record<string, { type: string }>,
   InsertTypeSchemas extends Record<string, StandardSchemaV1<any, any>>,
 > = {
-  [K in keyof Table as GetInsertColumnSchema<
-    Table[K],
-    InsertTypeSchemas
-  > extends never
-    ? never
-    : K]: GetInsertColumnSchema<
+  [K in InsertRequiredKeys<Table>]: GetBaseSchema<
     Table[K],
     InsertTypeSchemas
   > extends StandardSchemaV1<infer I, any>
@@ -185,16 +173,11 @@ type GetInsertSchemaInput<
     : never;
 };
 
-type GetInsertSchemaOutput<
+type GetInsertSchemaRequiredOutput<
   Table extends Record<string, { type: string }>,
   InsertTypeSchemas extends Record<string, StandardSchemaV1<any, any>>,
 > = {
-  [K in keyof Table as GetInsertColumnSchema<
-    Table[K],
-    InsertTypeSchemas
-  > extends never
-    ? never
-    : K]: GetInsertColumnSchema<
+  [K in InsertRequiredKeys<Table>]: GetBaseSchema<
     Table[K],
     InsertTypeSchemas
   > extends StandardSchemaV1<any, infer O>
@@ -202,6 +185,55 @@ type GetInsertSchemaOutput<
     : never;
 };
 
+// Optional part of insert schema (all kept keys that are nullable or have default)
+type GetInsertSchemaOptionalInput<
+  Table extends Record<string, { type: string }>,
+  InsertTypeSchemas extends Record<string, StandardSchemaV1<any, any>>,
+> = {
+  [K in Exclude<
+    InsertKeptKeys<Table>,
+    InsertRequiredKeys<Table>
+  >]?: GetBaseSchema<Table[K], InsertTypeSchemas> extends StandardSchemaV1<
+    infer I,
+    any
+  >
+    ? ApplyNullable<I, Table[K]> | undefined
+    : never;
+};
+
+type GetInsertSchemaOptionalOutput<
+  Table extends Record<string, { type: string }>,
+  InsertTypeSchemas extends Record<string, StandardSchemaV1<any, any>>,
+> = {
+  [K in Exclude<
+    InsertKeptKeys<Table>,
+    InsertRequiredKeys<Table>
+  >]?: GetBaseSchema<Table[K], InsertTypeSchemas> extends StandardSchemaV1<
+    any,
+    infer O
+  >
+    ? ApplyNullable<O, Table[K]> | undefined
+    : never;
+};
+
+// Combine required and optional parts
+type GetInsertSchemaInput<
+  Table extends Record<string, { type: string }>,
+  InsertTypeSchemas extends Record<string, StandardSchemaV1<any, any>>,
+> = GetInsertSchemaRequiredInput<Table, InsertTypeSchemas> &
+  GetInsertSchemaOptionalInput<Table, InsertTypeSchemas>;
+
+type GetInsertSchemaOutput<
+  Table extends Record<string, { type: string }>,
+  InsertTypeSchemas extends Record<string, StandardSchemaV1<any, any>>,
+> = GetInsertSchemaRequiredOutput<Table, InsertTypeSchemas> &
+  GetInsertSchemaOptionalOutput<Table, InsertTypeSchemas>;
+
+/**
+ * Return schema where non-insertable fields are omitted, nullable and default
+ * fields are optional, and all other fields are required. Nullable optional
+ * fields also accept null in input and null in output.
+ */
 export function getInsertSchema<
   Table extends Record<string, { type: string }>,
   InsertTypeSchemas extends Partial<
@@ -290,7 +322,7 @@ type GetPatchSchemaOptionalInput<
     infer I,
     any
   >
-    ? ApplyNullable<I, Table[K]>
+    ? ApplyNullable<I, Table[K]> | undefined
     : never;
 };
 
@@ -305,7 +337,7 @@ type GetPatchSchemaOptionalOutput<
     any,
     infer O
   >
-    ? ApplyNullable<O, Table[K]>
+    ? ApplyNullable<O, Table[K]> | undefined
     : never;
 };
 
@@ -322,6 +354,11 @@ type GetPatchSchemaOutput<
 > = GetPatchSchemaRequiredOutput<Table, PatchTypeSchemas> &
   GetPatchSchemaOptionalOutput<Table, PatchTypeSchemas>;
 
+/**
+ * Return schema where updateable fields are optional, but primary keys and
+ * update keys are required. Nullable fields are still nullable, and default
+ * values are still optional in both input and output.
+ */
 export function getPatchSchema<
   Table extends Record<string, { type: string }>,
   PatchTypeSchemas extends Partial<
