@@ -2,6 +2,27 @@ import type { MapColumnsTo } from "../columnhelpers.ts";
 import type { Params } from "../columns.ts";
 import type { Opts } from "../sql.ts";
 
+export type PostgresType =
+  | "serial"
+  | "integer"
+  | "bigserial"
+  | "bigint"
+  | "numeric"
+  | "real"
+  | "double precision"
+  | "uuid"
+  | "text"
+  | `decimal(${number}, ${number})`
+  | `varchar(${number})`
+  | "boolean"
+  | "timestamp"
+  | "timestamptz"
+  | "date"
+  | "xmin"
+  | "time"
+  | "jsonb"
+  | "json";
+
 type Int32Fn = <A extends boolean>(
   params: Params<{
     autoIncrement?: A;
@@ -38,21 +59,21 @@ export const POSTGRES_TYPES = {
     autoIncrement ? "serial" : "integer") as Int32Fn,
   int64: (({ autoIncrement }) =>
     autoIncrement ? "bigserial" : "bigint") as Int64Fn,
-  bigint: (_) => "numeric" as const,
-  float32: (_) => "real" as const,
-  float64: (_) => "double precision" as const,
+  bigint: () => "numeric" as const,
+  float32: () => "real" as const,
+  float64: () => "double precision" as const,
   decimal: (({ precision, scale }) =>
     `decimal(${precision}, ${scale})`) satisfies DecimalFn,
-  uuid: (_) => "uuid" as const,
-  string: (_) => "text" as const,
+  uuid: () => "uuid" as const,
+  string: () => "text" as const,
   varchar: (({ maxLength }) => `varchar(${maxLength})`) satisfies VarcharFn,
-  boolean: (_) => "boolean" as const,
+  boolean: () => "boolean" as const,
   datetime: (({ postgres }) => postgres?.type ?? "timestamptz") as DatetimeFn,
-  datepart: (_) => "date" as const,
-  timepart: (_) => "time" as const,
-  jsonb: (_) => "jsonb" as const,
-  json: (_) => "json" as const,
-} satisfies MapColumnsTo<string>;
+  datepart: () => "date" as const,
+  timepart: () => "time" as const,
+  jsonb: () => "jsonb" as const,
+  json: () => "json" as const,
+} satisfies MapColumnsTo<PostgresType>;
 
 export const POSTGRES_OPTS: Opts = {
   colNameFn: (colName) => `"${colName}"`,
