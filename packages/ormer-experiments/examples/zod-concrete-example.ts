@@ -54,3 +54,14 @@ type InvoiceRowOutput = z.output<typeof InvoiceRowSchema>;
 
 type PersonInput = z.input<typeof PersonSchema>;
 type PersonOutput = z.output<typeof PersonSchema>;
+
+const TestAlternativeSchema = z.object({
+  id: z.number().db("bigint", { primaryKey: true, autoIncrement: true }),
+  name: z.string().db("varchar", { maxLength: 255 }),
+  some_object: z
+    .object({
+      a: z.string(),
+      b: z.number(),
+    })
+    .db("jsonb"),
+});

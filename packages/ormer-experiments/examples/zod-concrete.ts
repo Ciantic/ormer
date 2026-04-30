@@ -49,6 +49,23 @@ function params<O extends object, P extends Params>(
 
 // --- Database type functions
 
+type KnownDbTypes =
+  | "int32"
+  | "int64"
+  | "bigint"
+  | "float32"
+  | "float64"
+  | "decimal"
+  | "uuid"
+  | "string"
+  | "varchar"
+  | "boolean"
+  | "datetime"
+  | "datepart"
+  | "timepart"
+  | "jsonb"
+  | "json";
+
 export function int64() {
   return dbtype(z.int(), "int64");
 }
@@ -255,6 +272,27 @@ function navigateMany<
   return params(this, { navigateMany: true } as const satisfies Params);
 }
 
+export type CustomType<T extends string> = T & { _customType: true };
+
+export function customType<T extends string>(v: T): CustomType<T> {
+  return v as any;
+}
+
+function db<
+  Z extends z.ZodTypeAny,
+  T extends KnownDbTypes | CustomType<string>,
+>(this: Z, dbtype: T): Z & DbType<T>;
+
+function db<
+  Z extends z.ZodTypeAny,
+  T extends KnownDbTypes | CustomType<string>,
+  P extends Params,
+>(this: Z, dbtype: T, params?: P): Z & DbType<T> & P;
+
+function db(this: any, dbtype: any, params?: any) {
+  return Object.assign(this, { dbtype: dbtype, ...params }) as any;
+}
+
 declare module "zod" {
   interface ZodType {
     pk: typeof pk;
@@ -265,6 +303,7 @@ declare module "zod" {
     concurrencyStamp: typeof concurrencyStamp;
     navigateOne: typeof navigateOne;
     navigateMany: typeof navigateMany;
+    db: typeof db;
   }
 }
 
@@ -276,6 +315,7 @@ z.ZodType.prototype.foreignKey = foreignKey;
 z.ZodType.prototype.concurrencyStamp = concurrencyStamp;
 z.ZodType.prototype.navigateOne = navigateOne;
 z.ZodType.prototype.navigateMany = navigateMany;
+z.ZodType.prototype.db = db;
 
 type UnwrapZod<T> =
   T extends z.ZodOptional<infer U>
