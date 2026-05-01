@@ -14,6 +14,9 @@ const invoiceTable = o.table("invoice", {
   concurrencyStamp: o.concurrencyStamp(),
   created_at: o.createdAt(),
   updated_at: o.updatedAt(),
+  get rows() {
+    return o.navigationMany(invoiceRowTable, "invoice_id");
+  },
 });
 
 const invoiceRowTable = o.table("invoice_row", {
@@ -22,7 +25,12 @@ const invoiceRowTable = o.table("invoice_row", {
   price: o.float64(),
   tax_percentage: o.float64(),
   quantity: o.float64(),
-  invoice_id: o.foreignKey(invoiceTable, "id"),
+  invoice_id: o.foreignKey(invoiceTable, "id", {
+    onDeleteSetNull: true,
+  }),
+  get invoice() {
+    return o.navigationOne(invoiceRowTable, "invoice_id");
+  },
   concurrencyStamp: o.concurrencyStamp(),
 });
 

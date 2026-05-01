@@ -54,16 +54,27 @@ type ColType<Col, TypeMap extends Record<string, unknown>> = Col extends {
     ? TypeMap[Col["type"]]
     : never;
 
+type IgnoreIfNoTypeProperty<T> = T extends { type: any } ? T : never;
+type IgnoreRecordIfNoTypeProperty<T> =
+  T extends Record<string, infer V>
+    ? Record<string, IgnoreIfNoTypeProperty<V>>
+    : never;
+
+// Filter keys of a record to only those whose value has a `type` property
+type KeysWithColumnType<T> = {
+  [K in keyof T]: T[K] extends { type: string } ? K : never;
+}[keyof T];
+
 // Infer kysely types from database
 export type InferKyselyTypes<
-  D extends Record<string, { columns: Record<string, { type: string }> }>,
+  D extends Record<string, { columns: Record<string, any> }>,
   SelectTypeMap extends Record<string, unknown> = CommonTypes,
   InsertTypeMap extends Record<string, unknown> = CommonTypes,
   UpdateTypeMap extends Record<string, unknown> = CommonTypes,
 > = {
   // prettier-ignore
   [K in keyof D]: {
-    [C in keyof D[K]["columns"]]: ColumnTypeKysely<
+    [C in KeysWithColumnType<D[K]["columns"]>]: ColumnTypeKysely<
       // Select
       | ColType<D[K]["columns"][C], SelectTypeMap>
       | (D[K]["columns"][C] extends { nullable: true } ? null : never),

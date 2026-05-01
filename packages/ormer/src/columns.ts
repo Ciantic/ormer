@@ -150,16 +150,23 @@ export function varchar<T extends VarCharCol>(
   };
 }
 
+export type ForeignKeyCol = {
+  nullable?: boolean;
+  onDeleteCascade?: boolean;
+  onDeleteSetNull?: boolean;
+  onUpdateCascade?: boolean;
+  onUpdateSetNull?: boolean;
+};
 export function foreignKey<
   C extends keyof T["columns"],
   // deno-lint-ignore no-explicit-any
   T extends Table<any, any>,
   // deno-lint-ignore ban-types
-  P extends Params = {},
+  P extends ForeignKeyCol = {},
 >(
   table: T,
   column: C,
-  params?: R<P, Params>,
+  params?: R<P, ForeignKeyCol>,
   // wrapped: ColumnType<T["columns"][C]["type"], unknown>
 ): ColumnType<
   T["columns"][C]["type"],

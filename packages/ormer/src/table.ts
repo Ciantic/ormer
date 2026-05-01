@@ -54,3 +54,31 @@ export function table<
     },
   };
 }
+
+export function navigationOne<
+  T extends Table<any, any>,
+  C extends keyof T["columns"] & string,
+>(
+  table: T,
+  column: C,
+): { relationshipTable: T; relationshipColumn: C; navigationOne: true } {
+  return {
+    navigationOne: true,
+    relationshipTable: table,
+    relationshipColumn: column,
+  };
+}
+
+export function navigationMany<
+  T extends Table<any, any>,
+  C extends keyof T["columns"] & string,
+>(
+  table: T,
+  column: C,
+): { relationshipTable: T; relationshipColumn: C; navigationMany: true } {
+  return {
+    navigationMany: true,
+    relationshipTable: table,
+    relationshipColumn: column,
+  };
+}
