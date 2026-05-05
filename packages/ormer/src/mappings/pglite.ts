@@ -4,84 +4,80 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { selectType, selectTypeToSchema } from "./common.ts";
 import type { Params } from "../columns.ts";
 import type { MapColumnsTo, MapColumnsToValue } from "../columnhelpers.ts";
+import type { BasePostgresType, PostgresType } from "../drivers/postgres.ts";
 
-export const PGLITE_SELECT_SCHEMAS = {
-  int32: s.number,
-  int64: s.bigint,
-  bigint: s.string,
-  float32: s.number,
-  float64: s.number,
-  decimal: s.string,
-  uuid: s.string,
-  string: s.string,
-  varchar: s.string,
+export const PGLITE_TYPE_MAPPING = {
+  // Numeric types
+  int2: s.number,
+  int4: s.number,
+  int8: s.bigint,
+  serial2: s.number,
+  serial4: s.number,
+  serial8: s.number,
+  float4: s.number,
+  float8: s.number,
+  money: s.string,
+
+  // Character types
+  text: s.string,
+
+  // Binary types
+  bytea: s.uint8Array,
+
+  // Date/Time types
+  timestamp: s.datetime,
+  timestamptz: s.datetime,
+  date: s.datetime,
+  time: s.string,
+  timetz: s.string,
+  interval: s.string,
+
+  // Boolean type
   boolean: s.boolean,
-  datetime: s.datetime,
-  datepart: s.datetime,
-  timepart: s.string,
+
+  // UUID type
+  uuid: s.string,
+
+  // JSON types
   jsonb: s.object,
   json: s.object,
-} satisfies MapColumnsToValue<StandardSchemaV1<any, any>>;
 
-export const PGLITE_INSERT_SCHEMAS = {
-  int32: s.number,
-  int64: s.bigint,
-  bigint: s.string,
-  float32: s.number,
-  float64: s.number,
-  decimal: s.string,
-  uuid: s.string,
-  string: s.string,
-  varchar: s.string,
-  boolean: s.boolean,
-  datetime: s.datetime,
-  datepart: s.datepartCoerced,
-  timepart: s.string,
-  jsonb: s.object,
-  json: s.object,
-} satisfies MapColumnsToValue<StandardSchemaV1<any, any>>;
+  // Network address types
+  inet: s.string,
+  cidr: s.string,
+  macaddr: s.string,
+  macaddr8: s.string,
 
-export const PGLITE_UPDATE_SCHEMAS = PGLITE_INSERT_SCHEMAS;
+  // Bit string types
+  bit: ({ length }: { length: number }) => s.string,
+  varbit: ({ maxLength }: { maxLength: number }) => s.string,
 
-export type PgliteSelectTypes = {
-  [K in keyof typeof PGLITE_SELECT_SCHEMAS]: StandardSchemaV1.InferInput<
-    (typeof PGLITE_SELECT_SCHEMAS)[K]
-  >;
-};
+  // Text search types
+  tsvector: s.string,
+  tsquery: s.string,
 
-export type PgliteInsertTypes = {
-  [K in keyof typeof PGLITE_INSERT_SCHEMAS]: StandardSchemaV1.InferInput<
-    (typeof PGLITE_INSERT_SCHEMAS)[K]
-  >;
-};
+  // XML type
+  xml: s.string,
 
-export type PgliteUpdateTypes = {
-  [K in keyof typeof PGLITE_UPDATE_SCHEMAS]: StandardSchemaV1.InferInput<
-    (typeof PGLITE_UPDATE_SCHEMAS)[K]
-  >;
-};
+  // Geometric types
+  point: s.string,
+  line: s.string,
+  lseg: s.string,
+  box: s.string,
+  path: s.string,
+  polygon: s.string,
+  circle: s.string,
 
-export const PGLITE_SELECT_SCHEMAS_OLD = {
-  int32: selectType(s.number),
-  int64: selectType(s.bigint),
-  bigint: selectType(s.string),
-  float32: selectType(s.number),
-  float64: selectType(s.number),
-  decimal: selectType(s.string),
-  uuid: selectType(s.string),
-  string: selectType(s.string),
-  varchar: selectType(s.string),
-  boolean: selectType(s.boolean),
-  datetime: selectType(s.datetime),
-  datepart: selectType(s.datetime),
-  timepart: selectType(s.string),
-  jsonb: <
-    S extends StandardSchemaV1<any, any>,
-    P extends Params<{ schema: S }>,
-  >(
-    p: P & { schema: S },
-  ) => selectTypeToSchema(p, p.schema),
-  json: <S extends StandardSchemaV1<any, any>, P extends Params<{ schema: S }>>(
-    p: P & { schema: S },
-  ) => selectTypeToSchema(p, p.schema),
-} satisfies MapColumnsTo<StandardSchemaV1<any, any>>;
+  // Object identifier / system types
+  xmin: s.number,
+  pg_lsn: s.string,
+  pg_snapshot: s.string,
+
+  // Parametric types (factory functions)
+  decimal: (params?: { precision: number; scale: number }) => s.decimal(params),
+  varchar: ({ maxLength }: { maxLength: number }) => s.varchar({ maxLength }),
+  char: ({ maxLength }: { maxLength: number }) => s.varchar({ maxLength }),
+} satisfies Record<
+  BasePostgresType | "bit" | "varbit" | "decimal" | "varchar" | "char",
+  any
+>;

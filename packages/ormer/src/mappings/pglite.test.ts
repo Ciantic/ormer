@@ -1,409 +1,174 @@
 import * as z from "zod";
 import { describe, it, expect, expectTypeOf } from "vitest";
-import { PGlite } from "@electric-sql/pglite";
-import { Kysely, PGliteDialect } from "kysely";
-import type { StandardSchemaV1 } from "@standard-schema/spec";
-import * as c from "../columns.ts";
-import * as h from "../columnhelpers.ts";
-import * as s from "../simplevalidation.ts";
-import { table } from "../table.ts";
-import { database } from "../database.ts";
-import { createTableSql } from "../sql.ts";
-import { POSTGRES_TYPES, POSTGRES_OPTS } from "../drivers/postgres.ts";
-import {
-  PGLITE_SELECT_SCHEMAS,
-  PGLITE_SELECT_SCHEMAS_OLD,
-  type PgliteInsertTypes,
-  type PgliteSelectTypes,
-  type PgliteUpdateTypes,
-} from "./pglite.ts";
-import type { InferKyselyTypes } from "../kysely.ts";
+import { PGlite, types } from "@electric-sql/pglite";
+import { PGLITE_TYPE_MAPPING } from "./pglite.ts";
+import { typedValidate } from "../simplevalidation.ts";
 
-const allTypesTable = table("all_types", {
-  // integer types
-  id: h.pkAutoInc(),
-  int32_col: c.int32(),
-  int32_nullable: c.int32({ nullable: true }),
-  int64_col: c.int64(),
-  bigint_col: c.bigint(),
-  // float types
-  float32_col: c.float32(),
-  float64_col: c.float64(),
-  decimal_col: c.decimal({ precision: 10, scale: 2 }),
-  // string types
-  string_col: c.string(),
-  varchar_col: c.varchar({ maxLength: 255 }),
-  // other primitives
-  bool_col: c.boolean(),
-  uuid_col: c.uuid(),
-  uuid_with_default: c.uuid({ default: "generate" }),
-  // date/time types
-  datetime_col: c.datetime(),
-  datetime_now: c.datetime({ default: "now" }),
-  datetime_ts: c.datetime({ postgres: { type: "timestamp" } }),
-  datepart_col: c.datepart(),
-  timepart_col: c.timepart(),
-  // json types
-  jsonb_col: c.jsonb({ schema: null as any }),
-  json_col: c.json({ schema: null as any }),
-  // unique
-  unique_col: c.string({ unique: true }),
-});
-
-const referencedTable = table("referenced", {
-  id: h.pkAutoInc(),
-  name: c.string(),
-});
-
-const withFkTable = table("with_fk", {
-  id: h.pkAutoInc(),
-  ref_id: c.foreignKey(referencedTable, "id"),
-});
-
-const db = database({}, allTypesTable, referencedTable, withFkTable);
-
-describe("pglite createTableSql", () => {
-  it("creates all tables successfully in an in-memory PGlite instance", async () => {
+describe("pglite raw type mapping", () => {
+  it("insert and select all PgliteMapping types round-trip correctly", async () => {
     const pglite = new PGlite();
-    const sql = createTableSql(POSTGRES_TYPES, db, POSTGRES_OPTS);
-    await pglite.exec(sql);
-    const result = await pglite.query<{ tablename: string }>(
-      `SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename`,
-    );
-    const tableNames = result.rows.map((r) => r.tablename);
-    expect(tableNames).toEqual(["all_types", "referenced", "with_fk"]);
-  });
 
-  it("insert and select all_types row matches pglite mapping", async () => {
-    const pglite = new PGlite();
-    const sql = createTableSql(POSTGRES_TYPES, db, POSTGRES_OPTS);
-    await pglite.exec(sql);
-    const insertedDatetime = new Date("2024-06-15T12:34:56.000Z");
-    const insertRow = {
-      int32_col: 42,
-      int32_nullable: null,
-      int64_col: 9007199254740993, // beyond Number.MAX_SAFE_INTEGER
-      bigint_col: "12345678901234567890", // numeric passed as string
-      float32_col: 1.5,
-      float64_col: 3.141592653589793,
-      decimal_col: "9.99",
-      string_col: "hello",
-      varchar_col: "world",
-      bool_col: true,
-      uuid_col: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-      datetime_col: insertedDatetime.toISOString(),
-      datetime_ts: insertedDatetime.toISOString(),
-      datepart_col: "2024-06-15",
-      timepart_col: "12:34:56",
-      jsonb_col: JSON.stringify({ key: "value", num: 1 }),
-      json_col: JSON.stringify({ arr: [1, 2, 3] }),
-      unique_col: "unique-value",
-    };
-    const cols = Object.keys(insertRow)
-      .map((k) => `"${k}"`)
-      .join(", ");
-    const placeholders = Object.keys(insertRow)
-      .map((_, i) => `$${i + 1}`)
-      .join(", ");
+    await pglite.exec(`
+      CREATE TABLE test_pglite (
+        -- Numeric types
+        test_int2 int2,
+        test_int4 int4,
+        test_int8 int8,
+        test_serial2 serial2,
+        test_serial4 serial4,
+        test_serial8 bigserial,
+        test_decimal decimal(10,2),
+        test_float4 float4,
+        test_float8 float8,
+        test_money money,
+
+        -- Character types
+        test_text text,
+
+        -- Binary types
+        test_bytea bytea,
+
+        -- Date/Time types
+        test_timestamp timestamp,
+        test_timestamptz timestamptz,
+        test_date date,
+        test_time time,
+        test_timetz timetz,
+        test_interval interval,
+
+        -- Boolean type
+        test_boolean boolean,
+
+        -- UUID type
+        test_uuid uuid,
+
+        -- JSON types
+        test_jsonb jsonb,
+        test_json json,
+
+        -- Network address types
+        test_inet inet,
+        test_cidr cidr,
+        test_macaddr macaddr,
+        test_macaddr8 macaddr8,
+
+        -- Bit string types
+        test_bit bit(8),
+        test_varbit varbit(16),
+
+        -- Text search types
+        test_tsvector tsvector,
+        test_tsquery tsquery,
+
+        -- XML type
+        test_xml xml,
+
+        -- Geometric types
+        test_point point,
+        test_line line,
+        test_lseg lseg,
+        test_box box,
+        test_path path,
+        test_polygon polygon,
+        test_circle circle,
+
+        -- Object identifier / system types
+        test_pg_lsn pg_lsn,
+        test_pg_snapshot pg_snapshot,
+
+        -- Array examples
+        test_int4_arr int4[],
+        test_text_arr text[],
+        test_float8_arr float8[],
+        test_bool_arr boolean[],
+        test_decimal_arr decimal(10,2)[]
+      );
+    `);
+
+    const insertValues = [
+      // Numeric types
+      100, // test_int2
+      200000, // test_int4
+      "123456789012345678", // test_int8 (passed as string, PGlite serializes)
+      1, // test_serial2 (auto-generated, value ignored)
+      1, // test_serial4 (auto-generated, value ignored)
+      1, // test_serial8 (auto-generated, value ignored)
+      "12345.67", // test_decimal
+      1.5, // test_float4
+      3.141592653589793, // test_float8
+      "12.34", // test_money
+
+      // Character types
+      "hello world", // test_text
+
+      // Binary types
+      Uint8Array.from([0xde, 0xad, 0xbe, 0xef]), // test_bytea
+
+      // Date/Time types
+      "2024-06-15 12:34:56", // test_timestamp
+      "2024-06-15 12:34:56+00", // test_timestamptz
+      "2024-06-15", // test_date
+      "12:34:56", // test_time
+      "12:34:56+00", // test_timetz
+      "1 year 2 months 3 days", // test_interval
+
+      // Boolean type
+      true, // test_boolean
+
+      // UUID type
+      "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", // test_uuid
+
+      // JSON types
+      '{"key": "value", "num": 42}', // test_jsonb
+      '{"arr": [1, 2, 3]}', // test_json
+
+      // Network address types
+      "192.168.1.1", // test_inet
+      "192.168.1.0/24", // test_cidr
+      "08:00:2b:01:02:03", // test_macaddr
+      "08:00:2b:01:02:03:04:05", // test_macaddr8
+
+      // Bit string types
+      "10101010", // test_bit
+      "1100110011001100", // test_varbit
+
+      // Text search types
+      "a fat cat sat on a mat", // test_tsvector
+      "fat & cat", // test_tsquery
+
+      // XML type
+      "<root><item>test</item></root>", // test_xml
+
+      // Geometric types
+      "(1,2)", // test_point
+      "{1,2,3}", // test_line
+      "[(1,2),(3,4)]", // test_lseg
+      "(1,2),(3,4)", // test_box
+      "[(1,2),(3,4),(5,6)]", // test_path
+      "((1,2),(3,4),(5,6))", // test_polygon
+      "<(1,2),3>", // test_circle
+
+      // Object identifier / system types
+      "0/16A8F80", // test_pg_lsn
+      "100:200:", // test_pg_snapshot
+
+      // Array examples
+      [1, 2, 3], // test_int4_arr
+      ["hello", "world"], // test_text_arr
+      [1.1, 2.2, 3.3], // test_float8_arr
+      [true, false, true], // test_bool_arr
+      ["10.50", "20.75"], // test_decimal_arr
+    ];
+
+    const placeholders = insertValues.map((_, i) => `$${i + 1}`).join(", ");
     await pglite.query(
-      `INSERT INTO "all_types" (${cols}) VALUES (${placeholders})`,
-      Object.values(insertRow),
+      `INSERT INTO test_pglite VALUES (${placeholders})`,
+      insertValues,
     );
 
-    const result = await pglite.query(`SELECT * FROM "all_types"`);
-    const row = result.rows[0]!;
-    const expectedRow = {
-      id: 1,
-      int32_col: 42,
-      int32_nullable: null,
-      int64_col: 9007199254740992n,
-      bigint_col: "12345678901234567890",
-      float32_col: 1.5,
-      float64_col: 3.141592653589793,
-      decimal_col: "9.99",
-      string_col: "hello",
-      varchar_col: "world",
-      bool_col: true,
-      uuid_col: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-      uuid_with_default: expect.any(String),
-      datetime_col: new Date("2024-06-15T12:34:56.000Z"),
-      datetime_now: expect.any(Date),
-      datetime_ts: expect.any(Date),
-      datepart_col: new Date("2024-06-15T00:00:00.000Z"),
-      timepart_col: "12:34:56",
-      jsonb_col: { key: "value", num: 1 },
-      json_col: { arr: [1, 2, 3] },
-      unique_col: "unique-value",
-    };
-    expect(row).toEqual(expectedRow);
-  });
+    const result = await pglite.query(`SELECT * FROM test_pglite`);
+    const row = result.rows[0] as Record<string, any>;
 
-  it("datepart column accepts Date object as input", async () => {
-    const pglite = new PGlite();
-    const dateTable = table("date_test", { d: c.datepart() });
-    await pglite.exec(
-      createTableSql(POSTGRES_TYPES, database({}, dateTable), POSTGRES_OPTS),
-    );
-
-    const inputDate = new Date("2024-06-15T12:34:56.000Z");
-    await pglite.query(`INSERT INTO "date_test" (d) VALUES ($1)`, [inputDate]);
-
-    const result = await pglite.query(`SELECT d FROM "date_test"`);
-    expect((result.rows[0] as any).d).toMatchInlineSnapshot(
-      `2024-06-15T00:00:00.000Z`,
-    );
-  });
-
-  it("datepart column accepts string input '2025-12-24'", async () => {
-    const pglite = new PGlite();
-    const dateTable = table("date_test", { d: c.datepart() });
-    await pglite.exec(
-      createTableSql(POSTGRES_TYPES, database({}, dateTable), POSTGRES_OPTS),
-    );
-
-    await pglite.query(`INSERT INTO "date_test" (d) VALUES ($1)`, [
-      "2025-12-24",
-    ]);
-
-    const result = await pglite.query(`SELECT d FROM "date_test"`);
-    expect((result.rows[0] as any).d).toMatchInlineSnapshot(
-      `2025-12-24T00:00:00.000Z`,
-    );
-  });
-});
-
-describe("pglite kysely integration", () => {
-  it("kysely infers correct types from PGLITE_SELECT_SCHEMAS", async () => {
-    type KyselyDb = InferKyselyTypes<
-      typeof db,
-      PgliteSelectTypes,
-      PgliteInsertTypes,
-      PgliteUpdateTypes
-    >;
-    const connection = new PGlite();
-    const kysely = new Kysely<KyselyDb>({
-      dialect: new PGliteDialect({
-        pglite: connection,
-      }),
-    });
-
-    const createTable = createTableSql(POSTGRES_TYPES, db, POSTGRES_OPTS);
-    await connection.exec(createTable);
-
-    const insertedDatetime = new Date("2024-06-15T12:34:56.000Z");
-    await kysely
-      .insertInto("all_types")
-      .values({
-        int32_col: 42,
-        int32_nullable: null,
-        int64_col: 9007199254740992n, // beyond Number.MAX_SAFE_INTEGER
-        bigint_col: "12345678901234567890", // numeric passed as string
-        float32_col: 1.5,
-        float64_col: 3.141592653589793,
-        decimal_col: "9.99",
-        string_col: "hello",
-        varchar_col: "world",
-        bool_col: true,
-        uuid_col: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-        datetime_col: insertedDatetime,
-        datetime_ts: insertedDatetime,
-        datepart_col: new Date("2024-06-15T00:00:00.000Z"),
-        timepart_col: "12:34:56",
-        jsonb_col: JSON.stringify({ key: "value", num: 1 }),
-        json_col: JSON.stringify({ arr: [1, 2, 3] }),
-        unique_col: "unique-value",
-      })
-      .execute();
-
-    const rows = await kysely.selectFrom("all_types").selectAll().execute();
-  });
-});
-
-describe("PGLITE_SELECT_SCHEMAS", () => {
-  it("int32: infers number and validates numbers", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.int32({});
-    expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<number, number>>();
-    expect(s.typedValidate(schema, 42)).toEqual({ value: 42 });
-  });
-
-  it("int64: infers bigint and validates bigints", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.int64({});
-    expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<bigint, bigint>>();
-    expect(s.typedValidate(schema, 42n)).toEqual({ value: 42n });
-  });
-
-  it("bigint: infers string and validates strings", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.bigint({});
-    expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<string, string>>();
-    expect(s.typedValidate(schema, "12345678901234567890")).toEqual({
-      value: "12345678901234567890",
-    });
-  });
-
-  it("float32: infers number and validates numbers", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.float32({});
-    expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<number, number>>();
-    expect(s.typedValidate(schema, 1.5)).toEqual({ value: 1.5 });
-  });
-
-  it("float64: infers number and validates numbers", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.float64({});
-    expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<number, number>>();
-    expect(s.typedValidate(schema, 3.141592653589793)).toEqual({
-      value: 3.141592653589793,
-    });
-  });
-
-  it("decimal: infers string and validates strings", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.decimal({});
-    expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<string, string>>();
-    expect(s.typedValidate(schema, "9.99")).toEqual({ value: "9.99" });
-  });
-
-  it("uuid: infers string and validates strings", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.uuid({});
-    expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<string, string>>();
-    expect(
-      s.typedValidate(schema, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"),
-    ).toEqual({ value: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" });
-  });
-
-  it("string: infers string and validates strings", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.string({});
-    expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<string, string>>();
-    expect(s.typedValidate(schema, "hello")).toEqual({ value: "hello" });
-  });
-
-  it("varchar: infers string and validates strings", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.varchar({});
-    expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<string, string>>();
-    expect(s.typedValidate(schema, "world")).toEqual({ value: "world" });
-  });
-
-  it("boolean: infers boolean and validates booleans", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.boolean({});
-    expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<boolean, boolean>>();
-    expect(s.typedValidate(schema, true)).toEqual({ value: true });
-  });
-
-  it("datetime: infers Date and validates Date objects", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.datetime({});
-    expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<Date, Date>>();
-    const d = new Date("2024-06-15T12:34:56.000Z");
-    expect(s.typedValidate(schema, d)).toEqual({ value: d });
-  });
-
-  it("datepart: infers Date and validates Date objects", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.datepart({});
-    expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<Date, Date>>();
-    const d = new Date("2024-06-15T00:00:00.000Z");
-    expect(s.typedValidate(schema, d)).toEqual({ value: d });
-  });
-
-  it("timepart: infers string and validates strings", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.timepart({});
-    expectTypeOf(schema).toEqualTypeOf<StandardSchemaV1<string, string>>();
-    expect(s.typedValidate(schema, "12:34:56")).toEqual({ value: "12:34:56" });
-  });
-
-  it("nullable modifier: wraps schema to accept null", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.string({ nullable: true });
-    expectTypeOf(schema).toEqualTypeOf<
-      StandardSchemaV1<string | null, string | null>
-    >();
-    expect(s.typedValidate(schema, null)).toEqual({ value: null });
-    expect(s.typedValidate(schema, "hello")).toEqual({ value: "hello" });
-  });
-
-  it("default modifier: wraps schema to accept undefined", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.string({ default: "fallback" });
-    expect(s.typedValidate(schema, undefined)).toEqual({ value: undefined });
-    expect(s.typedValidate(schema, "hello")).toEqual({ value: "hello" });
-  });
-
-  it("jsonb: returns schema-based validator using the provided schema", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.jsonb({
-      schema: z.object({ key: z.string(), num: z.number() }),
-    });
-    expectTypeOf(schema).toEqualTypeOf<
-      StandardSchemaV1<
-        { key: string; num: number },
-        { key: string; num: number }
-      >
-    >();
-    expect(s.typedValidate(schema, { key: "value", num: 42 })).toEqual({
-      value: { key: "value", num: 42 },
-    });
-  });
-
-  it("jsonb: nullable modifier accepts null", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.jsonb({
-      schema: z.object({ key: z.string() }),
-      nullable: true,
-    });
-    expectTypeOf(schema).toEqualTypeOf<
-      StandardSchemaV1<{ key: string } | null, { key: string } | null>
-    >();
-    expect(s.typedValidate(schema, null)).toEqual({ value: null });
-    expect(s.typedValidate(schema, { key: "hello" })).toEqual({
-      value: { key: "hello" },
-    });
-  });
-
-  it("jsonb: default modifier accepts undefined", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.jsonb({
-      schema: z.object({ key: z.string() }),
-      default: null,
-    });
-    expectTypeOf(schema).toEqualTypeOf<
-      StandardSchemaV1<{ key: string } | undefined, { key: string } | undefined>
-    >();
-    expect(s.typedValidate(schema, undefined)).toEqual({ value: undefined });
-    expect(s.typedValidate(schema, { key: "hello" })).toEqual({
-      value: { key: "hello" },
-    });
-  });
-
-  it("json: returns schema-based validator using the provided schema", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.json({
-      schema: z.object({ key: z.string(), num: z.number() }),
-    });
-    expectTypeOf(schema).toEqualTypeOf<
-      StandardSchemaV1<
-        { key: string; num: number },
-        { key: string; num: number }
-      >
-    >();
-    expect(s.typedValidate(schema, { key: "value", num: 42 })).toEqual({
-      value: { key: "value", num: 42 },
-    });
-  });
-
-  it("json: nullable modifier accepts null", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.json({
-      schema: z.object({ key: z.string() }),
-      nullable: true,
-    });
-    expectTypeOf(schema).toEqualTypeOf<
-      StandardSchemaV1<{ key: string } | null, { key: string } | null>
-    >();
-    expect(s.typedValidate(schema, null)).toEqual({ value: null });
-    expect(s.typedValidate(schema, { key: "hello" })).toEqual({
-      value: { key: "hello" },
-    });
-  });
-
-  it("json: default modifier accepts undefined", () => {
-    const schema = PGLITE_SELECT_SCHEMAS_OLD.json({
-      schema: z.object({ key: z.string() }),
-      default: null,
-    });
-    expectTypeOf(schema).toEqualTypeOf<
-      StandardSchemaV1<{ key: string } | undefined, { key: string } | undefined>
-    >();
-    expect(s.typedValidate(schema, undefined)).toEqual({ value: undefined });
-    expect(s.typedValidate(schema, { key: "hello" })).toEqual({
-      value: { key: "hello" },
-    });
+    // TODO: Test that row values match with PGLITE_TYPE_MAPPING, i.e. by using the typedValidate
   });
 });

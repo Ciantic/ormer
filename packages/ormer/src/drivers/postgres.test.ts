@@ -54,13 +54,13 @@ describe("postgres createTableSql", () => {
     const sql = createTableSql(POSTGRES_TYPES, db, POSTGRES_OPTS);
     expect(sql).toMatchInlineSnapshot(`
       "CREATE TABLE "all_types" (
-        "id" bigserial NOT NULL PRIMARY KEY,
-        "int32_col" integer NOT NULL,
-        "int32_nullable" integer,
-        "int64_col" bigint NOT NULL,
-        "bigint_col" numeric NOT NULL,
-        "float32_col" real NOT NULL,
-        "float64_col" double precision NOT NULL,
+        "id" serial8 NOT NULL PRIMARY KEY,
+        "int32_col" int4 NOT NULL,
+        "int32_nullable" int4,
+        "int64_col" int8 NOT NULL,
+        "bigint_col" decimal NOT NULL,
+        "float32_col" float4 NOT NULL,
+        "float64_col" float8 NOT NULL,
         "decimal_col" decimal(10, 2) NOT NULL,
         "string_col" text NOT NULL,
         "varchar_col" varchar(255) NOT NULL,
@@ -78,13 +78,13 @@ describe("postgres createTableSql", () => {
       );
 
       CREATE TABLE "referenced" (
-        "id" bigserial NOT NULL PRIMARY KEY,
+        "id" serial8 NOT NULL PRIMARY KEY,
         "name" text NOT NULL
       );
 
       CREATE TABLE "with_fk" (
-        "id" bigserial NOT NULL PRIMARY KEY,
-        "ref_id" bigint NOT NULL,
+        "id" serial8 NOT NULL PRIMARY KEY,
+        "ref_id" int8 NOT NULL,
         FOREIGN KEY ("ref_id") REFERENCES "referenced"("id")
       );"
     `);

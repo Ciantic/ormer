@@ -146,7 +146,7 @@ export const float64 = validator<number, number>((value) => {
   return { value };
 });
 
-export function decimal(params: {
+export function decimal(params?: {
   precision: number;
   scale: number;
 }): StandardSchemaV1<string, string> {
@@ -160,7 +160,7 @@ export function decimal(params: {
     if (value.length < 3) {
       return { issues: [{ message: "Invalid length" }] };
     }
-    if (value.length > params.precision + params.scale + 1) {
+    if (params && value.length > params.precision + params.scale + 1) {
       return { issues: [{ message: "Invalid length" }] };
     }
     if (!/^-?\d+\.\d+$/.test(value)) {
@@ -246,30 +246,32 @@ const ISO_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 const ISO_TIMESTAMP_RE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})$/;
 
-export const datetimeCoerced = validator<Date | string | number, Date>((value) => {
-  if (value instanceof Date) {
-    if (isNaN(value.getTime())) {
-      return { issues: [{ message: "Invalid Date" }] };
+export const datetimeCoerced = validator<Date | string | number, Date>(
+  (value) => {
+    if (value instanceof Date) {
+      if (isNaN(value.getTime())) {
+        return { issues: [{ message: "Invalid Date" }] };
+      }
+      return { value };
     }
-    return { value };
-  }
-  if (typeof value === "string") {
-    if (ISO_DATETIME_RE.test(value)) {
-      return { value: new Date(value + "Z") };
+    if (typeof value === "string") {
+      if (ISO_DATETIME_RE.test(value)) {
+        return { value: new Date(value + "Z") };
+      }
+      if (ISO_TIMESTAMP_RE.test(value)) {
+        return { value: new Date(value) };
+      }
+      return { issues: [{ message: "Invalid datetime string" }] };
     }
-    if (ISO_TIMESTAMP_RE.test(value)) {
-      return { value: new Date(value) };
+    if (typeof value === "number") {
+      // Milliseconds if > 9999999999, otherwise seconds
+      return {
+        value: value > 9999999999 ? new Date(value) : new Date(value * 1000),
+      };
     }
-    return { issues: [{ message: "Invalid datetime string" }] };
-  }
-  if (typeof value === "number") {
-    // Milliseconds if > 9999999999, otherwise seconds
-    return {
-      value: value > 9999999999 ? new Date(value) : new Date(value * 1000),
-    };
-  }
-  return { issues: [{ message: "Expected string or number" }] };
-});
+    return { issues: [{ message: "Expected string or number" }] };
+  },
+);
 
 export const datetimeToIsoString = validator<Date, string>((value) => {
   if (!(value instanceof Date)) {
@@ -323,6 +325,13 @@ export const email = validator<string, string>((value) => {
 export const object = validator<object, object>((value) => {
   if (typeof value !== "object" || value === null) {
     return { issues: [{ message: "Expected object" }] };
+  }
+  return { value };
+});
+
+export const uint8Array = validator<Uint8Array, Uint8Array>((value) => {
+  if (!(value instanceof Uint8Array)) {
+    return { issues: [{ message: "Expected Uint8Array" }] };
   }
   return { value };
 });
