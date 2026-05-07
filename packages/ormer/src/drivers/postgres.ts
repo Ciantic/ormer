@@ -55,7 +55,7 @@ export type BasePostgresType =
   | "pg_lsn"
   | "pg_snapshot";
 
-type BaseVariadicTypes =
+export type BasePostgresVariadicTypes =
   | `decimal(${number}, ${number})` // numeric(precision, scale)
   // Character types
   | `varchar(${number})`
@@ -64,10 +64,23 @@ type BaseVariadicTypes =
   | `bit(${number})`
   | `varbit(${number})`;
 
+export type BasePostgresVariadicTypeNames =
+  BasePostgresVariadicTypes extends `${infer Name}(${string}` ? Name : never;
+
 export type PostgresType =
   | BasePostgresType
-  | BaseVariadicTypes
-  | `${BasePostgresType}[]`;
+  | BasePostgresVariadicTypes
+  | `${BasePostgresType}[]`
+  | `${BasePostgresVariadicTypes}[]`;
+
+export type PostgresTypeBuilder<T, V = T> = Omit<
+  {
+    [k in BasePostgresType]: T;
+  },
+  BasePostgresVariadicTypeNames
+> & {
+  [k in BasePostgresVariadicTypeNames]: V;
+};
 
 type Int32Fn = <A extends boolean>(
   params: Params<{

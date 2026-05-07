@@ -1,10 +1,6 @@
-import * as z from "zod";
 import * as s from "../simplevalidation.ts";
+import type { PostgresTypeBuilder } from "../drivers/postgres.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { selectType, selectTypeToSchema } from "./common.ts";
-import type { Params } from "../columns.ts";
-import type { MapColumnsTo, MapColumnsToValue } from "../columnhelpers.ts";
-import type { BasePostgresType, PostgresType } from "../drivers/postgres.ts";
 
 export const PGLITE_TYPE_MAPPING = {
   // Numeric types
@@ -77,7 +73,9 @@ export const PGLITE_TYPE_MAPPING = {
   decimal: (params?: { precision: number; scale: number }) => s.decimal(params),
   varchar: ({ maxLength }: { maxLength: number }) => s.varchar({ maxLength }),
   char: ({ maxLength }: { maxLength: number }) => s.varchar({ maxLength }),
-} satisfies Record<
-  BasePostgresType | "bit" | "varbit" | "decimal" | "varchar" | "char",
-  any
+} satisfies PostgresTypeBuilder<
+  // Base types
+  StandardSchemaV1,
+  // Variadic types
+  (params: any) => StandardSchemaV1
 >;
