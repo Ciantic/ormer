@@ -1,5 +1,5 @@
 import * as s from "../simplevalidation.ts";
-import type { PostgresTypeBuilder } from "../drivers/postgres.ts";
+import type { PostgresTypeBuilder } from "../drivers/postgres-types.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 export const PGLITE_TYPE_MAPPING = {

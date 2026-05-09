@@ -8,6 +8,7 @@ export * from "./sql.ts";
 export * from "./mappings/pglite.ts";
 export * from "./mappings/common.ts";
 
-export * from "./drivers/postgres.ts";
+export * from "./drivers/postgres-driver.ts";
+export * from "./drivers/postgres-types.ts";
 export * from "./drivers/duckdb.ts";
 export * from "./drivers/sqlite.ts";

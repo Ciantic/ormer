@@ -329,6 +329,34 @@ export const object = validator<object, object>((value) => {
   return { value };
 });
 
+export function array<I, O>(
+  schema: StandardSchemaV1<I, O>,
+): StandardSchemaV1<I[], O[]> {
+  return validator<I[], O[]>((value) => {
+    if (!Array.isArray(value)) {
+      return { issues: [{ message: "Expected array" }] };
+    }
+    const result: O[] = [];
+    for (let i = 0; i < value.length; i++) {
+      const res = schema["~standard"].validate(value[i]);
+      if (res instanceof Promise) {
+        return { issues: [{ message: "Async validation not supported" }] };
+      }
+      if (res.issues) {
+        return {
+          issues: [
+            {
+              message: `Error at index ${i}: ${res.issues[0]?.message}`,
+            },
+          ],
+        };
+      }
+      result.push(res.value);
+    }
+    return { value: result };
+  });
+}
+
 export const uint8Array = validator<Uint8Array, Uint8Array>((value) => {
   if (!(value instanceof Uint8Array)) {
     return { issues: [{ message: "Expected Uint8Array" }] };
