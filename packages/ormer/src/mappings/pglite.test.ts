@@ -142,10 +142,7 @@ describe("pglite raw type mapping", () => {
       if (type === "decimal") {
         validator = PGLITE_TYPE_MAPPING.decimal();
       } else if (type === "decimal(10, 2)") {
-        validator = PGLITE_TYPE_MAPPING.decimal({
-          precision: 10,
-          scale: 2,
-        });
+        validator = PGLITE_TYPE_MAPPING.decimal({ precision: 10, scale: 2 });
       } else if (type === "bit(3)") {
         validator = PGLITE_TYPE_MAPPING.bit({ length: 3 });
       } else if (type === "varbit(16)") {
