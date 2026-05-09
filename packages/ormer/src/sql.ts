@@ -42,9 +42,22 @@ export function createTableSql<
       string,
       any,
     ][]) {
-      const typeFn = mapping[col.type as keyof ColumnMapping] as (
-        params: any,
-      ) => string;
+      // Allow relation/navigation fields on table definitions by skipping entries
+      // that do not represent a concrete SQL column type.
+      if (typeof col?.type !== "string") {
+        continue;
+      }
+
+      const typeFn = mapping[col.type as keyof ColumnMapping] as
+        | ((params: any) => string)
+        | undefined;
+
+      if (!typeFn) {
+        throw new Error(
+          `No SQL type mapping found for column type "${col.type}" on ${tableDef.table}.${colName}`,
+        );
+      }
+
       const sqlType = typeFn(col);
 
       const parts: string[] = [`${colNameFn(colName)} ${sqlType}`];

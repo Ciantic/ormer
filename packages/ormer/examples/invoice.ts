@@ -1,5 +1,8 @@
 import * as o from "ormer";
 import * as k from "kysely";
+import { PGlite } from "@electric-sql/pglite";
+import { assert } from "vitest";
+import process from "node:process";
 
 const invoiceTable = o.table("invoice", {
   id: o.pkAutoInc(),
@@ -51,10 +54,26 @@ const personTable = o.table("person", {
 
 const exampleDb = o.database({}, invoiceTable, invoiceRowTable, personTable);
 
-type KyselyType = o.InferKyselyTypes<typeof exampleDb>;
+const pglite = new PGlite();
 const db = new k.Kysely<KyselyType>({
-  dialect: null as any,
+  dialect: new k.PGliteDialect({
+    pglite,
+  }),
 });
+const schema = o.createTableSql(o.POSTGRES_TYPES, exampleDb, o.POSTGRES_OPTS);
+await pglite.exec(schema);
+console.log("Schema created", schema);
+
+type KyselyType = o.InferKyselyTypes<typeof exampleDb>;
+
+// Insert example data
+await db
+  .insertInto("invoice")
+  .values({
+    title: "Test Invoice",
+    description: "This is a test invoice",
+  })
+  .execute();
 
 const results = await db
   .selectFrom("invoice")
@@ -63,3 +82,5 @@ const results = await db
   .execute();
 
 console.log(results);
+
+process.exit(0);
