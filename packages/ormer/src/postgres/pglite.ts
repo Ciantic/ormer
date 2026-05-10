@@ -21,12 +21,7 @@ export const PGLITE_TYPE_MAPPING = {
   bytea: () => s.uint8Array,
 
   // Date/Time types
-  // timestamp: s.datetime,
-  // timestamptz: s.datetime,
   date: () => s.datetime,
-  // time: s.string,
-  // timetz: s.string,
-  // interval: s.string,
 
   // Boolean type
   boolean: () => s.boolean,
@@ -70,11 +65,11 @@ export const PGLITE_TYPE_MAPPING = {
   pg_snapshot: () => s.string,
 
   // Parametric types (factory functions)
-  timestamp: (_?: { precision: number }) => s.datetime,
-  timestamptz: (_?: { precision: number }) => s.datetime,
-  time: (_?: { precision: number }) => s.string,
-  timetz: (_?: { precision: number }) => s.string,
-  interval: (_?: { precision: number }) => s.string,
+  timestamp: (_?) => s.datetime,
+  timestamptz: (_?) => s.datetime,
+  time: (_?) => s.string,
+  timetz: (_?) => s.string,
+  interval: (_?) => s.string,
   decimal: s.decimal,
   varchar: s.varchar,
   char: s.char,

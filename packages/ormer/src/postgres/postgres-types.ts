@@ -57,35 +57,52 @@ export const BASE_POSTGRES_TYPES = [
 
 type DecimalFn = {
   (): "decimal";
-  (params: {
-    precision: number;
-    scale: number;
-  }): `decimal(${number},${number})`;
+  <const P extends number, const S extends number>(params: {
+    precision: P;
+    scale: S;
+  }): `decimal(${P},${S})`;
 };
 
 type TimestampFn = {
   (): "timestamp";
-  (params: { precision: number }): `timestamp(${number})`;
+  <const P extends number>(params: { precision: P }): `timestamp(${P})`;
 };
 
 type TimestamptzFn = {
   (): "timestamptz";
-  (params: { precision: number }): `timestamptz(${number})`;
+  <const P extends number>(params: { precision: P }): `timestamptz(${P})`;
 };
 
 type TimeFn = {
   (): "time";
-  (params: { precision: number }): `time(${number})`;
+  <const P extends number>(params: { precision: P }): `time(${P})`;
 };
 
 type TimetzFn = {
   (): "timetz";
-  (params: { precision: number }): `timetz(${number})`;
+  <const P extends number>(params: { precision: P }): `timetz(${P})`;
 };
 
 type IntervalFn = {
   (): "interval";
-  (params: { precision: number }): `interval(${number})`;
+  <const P extends number>(params: { precision: P }): `interval(${P})`;
+};
+
+// These types have a parameter as requirement:
+type VarcharFn = {
+  <const N extends number>(params: { maxLength: N }): `varchar(${N})`;
+};
+
+type CharFn = {
+  <const N extends number>(params: { length: N }): `char(${N})`;
+};
+
+type BitFn = {
+  <const N extends number>(params: { length: N }): `bit(${N})`;
+};
+
+type VarbitFn = {
+  <const N extends number>(params: { maxLength: N }): `varbit(${N})`;
 };
 
 // prettier-ignore
@@ -97,10 +114,10 @@ export const BASE_POSTGRES_VARIADIC_TYPES = {
   timetz: ((p) => (!p ? "timetz" : `timetz(${p.precision})`)) as TimetzFn,
   interval: ((p) => !p ? "interval" : `interval(${p.precision})`) as IntervalFn,
 
-  varchar: (p: { maxLength: number }) => `varchar(${p.maxLength})` as const,
-  char: (p: { length: number }) => `char(${p.length})` as const,
-  bit: (p: { length: number }) => `bit(${p.length})` as const,
-  varbit: (p: { maxLength: number }) => `varbit(${p.maxLength})` as const,
+  varchar: ((p) => (!p ? "varchar" : `varchar(${p.maxLength})`)) as VarcharFn,
+  char: ((p) => (!p ? "char" : `char(${p.length})`)) as CharFn,
+  bit: ((p) => (!p ? "bit" : `bit(${p.length})`)) as BitFn,
+  varbit: ((p) => (!p ? "varbit" : `varbit(${p.maxLength})`)) as VarbitFn,
 } as const;
 
 type ArrayDim<
@@ -187,8 +204,8 @@ export type PostgresTypeBuilder<T> = Omit<
   },
   BasePostgresVariadicTypeNames
 > & {
-  [k in BasePostgresVariadicTypeNames]: (
-    params: Parameters<(typeof BASE_POSTGRES_VARIADIC_TYPES)[k]>[0],
+  [k in keyof typeof BASE_POSTGRES_VARIADIC_TYPES]: (
+    ...params: Parameters<(typeof BASE_POSTGRES_VARIADIC_TYPES)[k]>
   ) => T;
 };
 
