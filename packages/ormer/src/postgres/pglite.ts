@@ -70,11 +70,11 @@ export const PGLITE_TYPE_MAPPING = {
   pg_snapshot: () => s.string,
 
   // Parametric types (factory functions)
-  timestamp: (_: { precision: number }) => s.datetime,
-  timestamptz: (_: { precision: number }) => s.datetime,
-  time: (_: { precision: number }) => s.string,
-  timetz: (_: { precision: number }) => s.string,
-  interval: (_: { precision: number }) => s.string,
+  timestamp: (_?: { precision: number }) => s.datetime,
+  timestamptz: (_?: { precision: number }) => s.datetime,
+  time: (_?: { precision: number }) => s.string,
+  timetz: (_?: { precision: number }) => s.string,
+  interval: (_?: { precision: number }) => s.string,
   decimal: s.decimal,
   varchar: s.varchar,
   char: s.char,

@@ -55,24 +55,52 @@ export const BASE_POSTGRES_TYPES = [
   "pg_snapshot",
 ] as const;
 
+type DecimalFn = {
+  (): "decimal";
+  (params: {
+    precision: number;
+    scale: number;
+  }): `decimal(${number},${number})`;
+};
+
+type TimestampFn = {
+  (): "timestamp";
+  (params: { precision: number }): `timestamp(${number})`;
+};
+
+type TimestamptzFn = {
+  (): "timestamptz";
+  (params: { precision: number }): `timestamptz(${number})`;
+};
+
+type TimeFn = {
+  (): "time";
+  (params: { precision: number }): `time(${number})`;
+};
+
+type TimetzFn = {
+  (): "timetz";
+  (params: { precision: number }): `timetz(${number})`;
+};
+
+type IntervalFn = {
+  (): "interval";
+  (params: { precision: number }): `interval(${number})`;
+};
+
+// prettier-ignore
 export const BASE_POSTGRES_VARIADIC_TYPES = {
-  decimal: ({ precision, scale }: { precision: number; scale: number }) =>
-    `decimal(${precision},${scale})` as const,
-  varchar: ({ maxLength }: { maxLength: number }) =>
-    `varchar(${maxLength})` as const,
-  char: ({ length }: { length: number }) => `char(${length})` as const,
-  bit: ({ length }: { length: number }) => `bit(${length})` as const,
-  varbit: ({ maxLength }: { maxLength: number }) =>
-    `varbit(${maxLength})` as const,
-  timestamp: (params: { precision: number }) =>
-    `timestamp(${params.precision})` as const,
-  timestamptz: (params: { precision: number }) =>
-    `timestamptz(${params.precision})` as const,
-  time: (params: { precision: number }) => `time(${params.precision})` as const,
-  timetz: (params: { precision: number }) =>
-    `timetz(${params.precision})` as const,
-  interval: (params: { precision: number }) =>
-    `interval(${params.precision})` as const,
+  decimal: ((p) => !p ? "decimal" : `decimal(${p.precision},${p.scale})`) as DecimalFn,
+  timestamp: ((p) => !p ? "timestamp" : `timestamp(${p.precision})`) as TimestampFn,
+  timestamptz: ((p) => !p ? "timestamptz" : `timestamptz(${p.precision})`) as TimestamptzFn,
+  time: ((p) => (!p ? "time" : `time(${p.precision})`)) as TimeFn,
+  timetz: ((p) => (!p ? "timetz" : `timetz(${p.precision})`)) as TimetzFn,
+  interval: ((p) => !p ? "interval" : `interval(${p.precision})`) as IntervalFn,
+
+  varchar: (p: { maxLength: number }) => `varchar(${p.maxLength})` as const,
+  char: (p: { length: number }) => `char(${p.length})` as const,
+  bit: (p: { length: number }) => `bit(${p.length})` as const,
+  varbit: (p: { maxLength: number }) => `varbit(${p.maxLength})` as const,
 } as const;
 
 type ArrayDim<
