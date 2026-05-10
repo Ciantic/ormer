@@ -60,7 +60,11 @@ const db = new k.Kysely<KyselyType>({
     pglite,
   }),
 });
-const schema = o.createTableSql(o.POSTGRES_TYPES, exampleDb, o.POSTGRES_OPTS);
+const schema = o.createTableSql(
+  o.COMMON_TO_POSTGRES,
+  exampleDb,
+  o.POSTGRES_OPTS,
+);
 await pglite.exec(schema);
 console.log("Schema created", schema);
 

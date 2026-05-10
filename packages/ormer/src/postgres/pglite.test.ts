@@ -4,7 +4,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { PGLITE_TYPE_MAPPING } from "./pglite.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { typedValidate } from "../simplevalidation.ts";
-import { type PostgresType } from "../drivers/postgres-types.ts";
+import { type PostgresType } from "./postgres-types.ts";
 
 const TABLE = {
   // Numeric types
@@ -81,7 +81,7 @@ const TABLE = {
   // Variadic types
   test_bit: { type: "bit(3)", value: "101" },
   test_varbit: { type: "varbit(16)", value: "10011010" },
-  test_char: { type: "char(512)", value: "a".repeat(512) },
+  test_char: { type: "char(5)", value: "a".repeat(5) },
   test_varchar: { type: "varchar(255)", value: "hello" },
   test_decimal_variadic: { type: "decimal(10, 2)", value: "12345.67" },
 
@@ -90,7 +90,7 @@ const TABLE = {
   test_text_arr: { type: "text[]", value: ["hello", "world"] },
   test_float8_arr: { type: "float8[]", value: [1.1, 2.2, 3.3] },
   test_bool_arr: { type: "boolean[]", value: [true, false, true] },
-  test_decimal_arr: { type: "decimal(10, 2)[]", value: ["10.50", "20.75"] },
+  test_decimal_arr: { type: "decimal(10,2)[]", value: ["10.50", "20.75"] },
 } satisfies Record<string, { type: PostgresType; value: any }>;
 
 describe("pglite raw type mapping", () => {
@@ -133,43 +133,34 @@ describe("pglite raw type mapping", () => {
     });
 
     Object.entries(TABLE).forEach(([columnName, { type, value }]) => {
-      let validator:
-        | StandardSchemaV1<any, any>
-        | ((p: any) => StandardSchemaV1<any, any>)
-        | undefined =
+      let validator: (p?: any) => StandardSchemaV1<any, any> =
         PGLITE_TYPE_MAPPING[type as keyof typeof PGLITE_TYPE_MAPPING];
 
-      if (type === "decimal") {
-        validator = PGLITE_TYPE_MAPPING.decimal();
-      } else if (type === "decimal(10, 2)") {
-        validator = PGLITE_TYPE_MAPPING.decimal({ precision: 10, scale: 2 });
+      if (type === "decimal(10, 2)") {
+        validator = () =>
+          PGLITE_TYPE_MAPPING.decimal({ precision: 10, scale: 2 });
       } else if (type === "bit(3)") {
-        validator = PGLITE_TYPE_MAPPING.bit({ length: 3 });
+        validator = () => PGLITE_TYPE_MAPPING.bit({ length: 3 });
       } else if (type === "varbit(16)") {
-        validator = PGLITE_TYPE_MAPPING.varbit({ maxLength: 16 });
-      } else if (type === "char(512)") {
-        validator = PGLITE_TYPE_MAPPING.char({ maxLength: 512 });
+        validator = () => PGLITE_TYPE_MAPPING.varbit({ maxLength: 16 });
+      } else if (type === "char(5)") {
+        validator = () => PGLITE_TYPE_MAPPING.char({ length: 5 });
       } else if (type === "varchar(255)") {
-        validator = PGLITE_TYPE_MAPPING.varchar({ maxLength: 255 });
+        validator = () => PGLITE_TYPE_MAPPING.varchar({ maxLength: 255 });
       } else if (type === "int4[]") {
-        validator = s.array(PGLITE_TYPE_MAPPING.int4);
+        validator = () => s.array(PGLITE_TYPE_MAPPING.int4());
       } else if (type === "text[]") {
-        validator = s.array(PGLITE_TYPE_MAPPING.text);
+        validator = () => s.array(PGLITE_TYPE_MAPPING.text());
       } else if (type === "float8[]") {
-        validator = s.array(PGLITE_TYPE_MAPPING.float8);
+        validator = () => s.array(PGLITE_TYPE_MAPPING.float8());
       } else if (type === "boolean[]") {
-        validator = s.array(PGLITE_TYPE_MAPPING.boolean);
-      } else if (type === "decimal(10, 2)[]") {
-        validator = s.array(
-          PGLITE_TYPE_MAPPING.decimal({ precision: 10, scale: 2 }),
-        );
+        validator = () => s.array(PGLITE_TYPE_MAPPING.boolean());
+      } else if (type === "decimal(10,2)[]") {
+        validator = () =>
+          s.array(PGLITE_TYPE_MAPPING.decimal({ precision: 10, scale: 2 }));
       }
 
-      if (!validator || typeof validator === "function") {
-        throw new Error(`No validator found for type "${type}"`);
-      }
-
-      const result = typedValidate(validator, row[columnName]);
+      const result = typedValidate(validator(), row[columnName]);
       expect(result.issues).toBeUndefined();
       if (!result.issues) {
         if (type === "timestamp") {

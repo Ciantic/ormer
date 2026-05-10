@@ -56,12 +56,23 @@ export const BASE_POSTGRES_TYPES = [
 ] as const;
 
 export const BASE_POSTGRES_VARIADIC_TYPES = {
-  decimal: (precision: number, scale: number) =>
-    `decimal(${precision}, ${scale})` as const,
-  varchar: (n: number) => `varchar(${n})` as const,
-  char: (n: number) => `char(${n})` as const,
-  bit: (n: number) => `bit(${n})` as const,
-  varbit: (n: number) => `varbit(${n})` as const,
+  decimal: ({ precision, scale }: { precision: number; scale: number }) =>
+    `decimal(${precision},${scale})` as const,
+  varchar: ({ maxLength }: { maxLength: number }) =>
+    `varchar(${maxLength})` as const,
+  char: ({ length }: { length: number }) => `char(${length})` as const,
+  bit: ({ length }: { length: number }) => `bit(${length})` as const,
+  varbit: ({ maxLength }: { maxLength: number }) =>
+    `varbit(${maxLength})` as const,
+  timestamp: (params: { precision: number }) =>
+    `timestamp(${params.precision})` as const,
+  timestamptz: (params: { precision: number }) =>
+    `timestamptz(${params.precision})` as const,
+  time: (params: { precision: number }) => `time(${params.precision})` as const,
+  timetz: (params: { precision: number }) =>
+    `timetz(${params.precision})` as const,
+  interval: (params: { precision: number }) =>
+    `interval(${params.precision})` as const,
 } as const;
 
 type ArrayDim<
@@ -142,11 +153,19 @@ export type PostgresType =
 //   BasePostgresType | BasePostgresVariadicTypes
 // >;
 
-export type PostgresTypeBuilder<T, V = T> = Omit<
+export type PostgresTypeBuilder<T> = Omit<
   {
-    [k in BasePostgresType]: T;
+    [k in BasePostgresType]: () => T;
   },
   BasePostgresVariadicTypeNames
 > & {
-  [k in BasePostgresVariadicTypeNames]: V;
+  [k in BasePostgresVariadicTypeNames]: (
+    params: Parameters<(typeof BASE_POSTGRES_VARIADIC_TYPES)[k]>[0],
+  ) => T;
 };
+
+/*
+ & {
+  array: (baseType: T) => V;
+};
+*/

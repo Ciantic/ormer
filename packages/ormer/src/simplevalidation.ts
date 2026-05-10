@@ -225,6 +225,20 @@ export function varchar(params: {
   });
 }
 
+export function char(params: {
+  length: number;
+}): StandardSchemaV1<string, string> {
+  return validator<string, string>((value) => {
+    if (typeof value !== "string") {
+      return { issues: [{ message: "Expected string" }] };
+    }
+    if (value.length !== params.length) {
+      return { issues: [{ message: "Invalid length" }] };
+    }
+    return { value };
+  });
+}
+
 export const boolean = validator<boolean, boolean>((value) => {
   if (typeof value !== "boolean") {
     return { issues: [{ message: "Expected boolean" }] };

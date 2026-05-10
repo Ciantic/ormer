@@ -4,7 +4,7 @@ import * as h from "../columnhelpers.ts";
 import { table } from "../table.ts";
 import { database } from "../database.ts";
 import { createTableSql } from "../sql.ts";
-import { POSTGRES_TYPES, POSTGRES_OPTS } from "./postgres-driver.ts";
+import { COMMON_TO_POSTGRES, POSTGRES_OPTS } from "./postgres-driver.ts";
 
 const allTypesTable = table("all_types", {
   // integer types
@@ -51,7 +51,7 @@ const db = database({}, allTypesTable, referencedTable, withFkTable);
 
 describe("postgres createTableSql", () => {
   it("generates correct SQL for all column types", () => {
-    const sql = createTableSql(POSTGRES_TYPES, db, POSTGRES_OPTS);
+    const sql = createTableSql(COMMON_TO_POSTGRES, db, POSTGRES_OPTS);
     expect(sql).toMatchInlineSnapshot(`
       "CREATE TABLE "all_types" (
         "id" serial8 NOT NULL PRIMARY KEY,
@@ -61,7 +61,7 @@ describe("postgres createTableSql", () => {
         "bigint_col" decimal NOT NULL,
         "float32_col" float4 NOT NULL,
         "float64_col" float8 NOT NULL,
-        "decimal_col" decimal(10, 2) NOT NULL,
+        "decimal_col" decimal(10,2) NOT NULL,
         "string_col" text NOT NULL,
         "varchar_col" varchar(255) NOT NULL,
         "bool_col" boolean NOT NULL,

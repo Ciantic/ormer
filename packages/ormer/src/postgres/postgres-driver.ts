@@ -20,7 +20,7 @@ type DecimalFn = <P extends number, S extends number>(
     precision: P;
     scale: S;
   }>,
-) => `decimal(${P}, ${S})`;
+) => `decimal(${P},${S})`;
 
 type VarcharFn = <N extends number>(
   params: Params<{
@@ -34,7 +34,7 @@ type DatetimeFn = <T extends "timestamp" | "timestamptz" = "timestamptz">(
   }>,
 ) => T;
 
-export const POSTGRES_TYPES = {
+export const COMMON_TO_POSTGRES = {
   int32: (({ autoIncrement }) =>
     autoIncrement ? "serial4" : "int4") as Int32Fn,
   int64: (({ autoIncrement }) =>
@@ -43,7 +43,7 @@ export const POSTGRES_TYPES = {
   float32: () => "float4" as const,
   float64: () => "float8" as const,
   decimal: (({ precision, scale }) =>
-    `decimal(${precision}, ${scale})`) satisfies DecimalFn,
+    `decimal(${precision},${scale})`) satisfies DecimalFn,
   uuid: () => "uuid" as const,
   string: () => "text" as const,
   varchar: (({ maxLength }) => `varchar(${maxLength})`) satisfies VarcharFn,
