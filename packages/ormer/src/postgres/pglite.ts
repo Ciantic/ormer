@@ -13,15 +13,23 @@ export const PGLITE_TYPE_MAPPING = {
   float4: () => s.number,
   float8: () => s.number,
   money: () => s.string,
+  decimal: s.decimal,
 
   // Character types
   text: () => s.string,
+  varchar: s.varchar,
+  char: s.char,
 
   // Binary types
   bytea: () => s.uint8Array,
 
   // Date/Time types
-  date: () => s.datetime,
+  timestamp: (_?) => s.datetime,
+  timestamptz: (_?) => s.datetime,
+  date: () => s.datetime, // pglite has odd default: YYYY-MM-DD entries returned as Date objects
+  time: (_?) => s.string,
+  timetz: (_?) => s.string,
+  interval: (_?) => s.string,
 
   // Boolean type
   boolean: () => s.boolean,
@@ -63,14 +71,4 @@ export const PGLITE_TYPE_MAPPING = {
   xmin: () => s.number,
   pg_lsn: () => s.string,
   pg_snapshot: () => s.string,
-
-  // Parametric types (factory functions)
-  timestamp: (_?) => s.datetime,
-  timestamptz: (_?) => s.datetime,
-  time: (_?) => s.string,
-  timetz: (_?) => s.string,
-  interval: (_?) => s.string,
-  decimal: s.decimal,
-  varchar: s.varchar,
-  char: s.char,
 } satisfies PostgresTypeBuilder<StandardSchemaV1>;
