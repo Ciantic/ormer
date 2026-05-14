@@ -17,16 +17,16 @@ export const PG_TYPE_MAPPING = {
 
   // Character types
   text: () => s.string,
-  varchar: s.varchar,
-  char: s.char,
+  varchar: s.stringMaxLength,
+  char: s.stringLength,
 
   // Binary types
   bytea: () => s.buffer,
 
   // Date/Time types
-  timestamp: (_?) => s.datetime,
-  timestamptz: (_?) => s.datetime,
-  date: () => s.datetime,
+  timestamp: (_?) => s.dateObject,
+  timestamptz: (_?) => s.dateObject,
+  date: () => s.dateObject,
   time: (_?) => s.string,
   timetz: (_?) => s.string,
   interval: (_?) => s.object,
@@ -48,8 +48,8 @@ export const PG_TYPE_MAPPING = {
   macaddr8: () => s.string,
 
   // Bit string types
-  bit: (_: { length: number }) => s.string,
-  varbit: (_: { maxLength: number }) => s.string,
+  bit: s.stringLength,
+  varbit: s.stringMaxLength,
 
   // Text search types
   tsvector: () => s.string,

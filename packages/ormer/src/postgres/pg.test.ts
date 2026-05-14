@@ -61,6 +61,7 @@ const TABLE = {
   test_float8: { type: "float8", value: 3.141592653589793 },
   test_money: { type: "money", value: "$12.34" },
   test_decimal: { type: "decimal", value: "12345.67" },
+  test_decimal2: { type: "decimal", value: 12345.67 },
 
   // Character types
   test_text: { type: "text", value: "hello world" },
@@ -166,6 +167,8 @@ describe("pg raw type mapping", () => {
     const row = result.rows[0] as Record<string, any>;
     const matches = {
       ...insertValue,
+      // PG returns decimals as strings, even if inserted as numbers
+      test_decimal2: "12345.67",
       test_date: expect.any(Date),
       test_timestamp: expect.any(Date),
       test_timestamptz: expect.any(Date),

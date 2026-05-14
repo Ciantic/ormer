@@ -211,7 +211,7 @@ export const jsonToString = validator<StandardSchemaV1, string>(
   },
 );
 
-export function varchar(params: {
+export function stringMaxLength(params: {
   maxLength: number;
 }): StandardSchemaV1<string, string> {
   return validator<string, string>((value) => {
@@ -225,7 +225,7 @@ export function varchar(params: {
   });
 }
 
-export function char(params: {
+export function stringLength(params: {
   length: number;
 }): StandardSchemaV1<string, string> {
   return validator<string, string>((value) => {
@@ -246,7 +246,7 @@ export const boolean = validator<boolean, boolean>((value) => {
   return { value };
 });
 
-export const datetime = validator<Date, Date>((value) => {
+export const dateObject = validator<Date, Date>((value) => {
   if (!(value instanceof Date)) {
     return { issues: [{ message: "Expected Date" }] };
   }

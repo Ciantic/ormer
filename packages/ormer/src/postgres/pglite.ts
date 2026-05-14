@@ -13,20 +13,20 @@ export const PGLITE_TYPE_MAPPING = {
   float4: () => s.number,
   float8: () => s.number,
   money: () => s.string,
-  decimal: s.decimal,
+  decimal: (_?) => s.string,
 
   // Character types
   text: () => s.string,
-  varchar: s.varchar,
-  char: s.char,
+  varchar: s.stringMaxLength,
+  char: s.stringLength,
 
   // Binary types
   bytea: () => s.uint8Array,
 
   // Date/Time types
-  timestamp: (_?) => s.datetime,
-  timestamptz: (_?) => s.datetime,
-  date: () => s.datetime, // pglite has odd default: YYYY-MM-DD entries returned as Date objects
+  timestamp: (_?) => s.dateObject,
+  timestamptz: (_?) => s.dateObject,
+  date: () => s.dateObject, // pglite has odd default: YYYY-MM-DD entries returned as Date objects
   time: (_?) => s.string,
   timetz: (_?) => s.string,
   interval: (_?) => s.string,
@@ -48,8 +48,8 @@ export const PGLITE_TYPE_MAPPING = {
   macaddr8: () => s.string,
 
   // Bit string types
-  bit: (_: { length: number }) => s.string,
-  varbit: (_: { maxLength: number }) => s.string,
+  bit: s.stringLength,
+  varbit: s.stringMaxLength,
 
   // Text search types
   tsvector: () => s.string,
