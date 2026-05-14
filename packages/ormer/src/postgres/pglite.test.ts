@@ -92,6 +92,8 @@ const TABLE = {
   test_float8_arr: { type: "float8[]", value: [1.1, 2.2, 3.3] },
   test_bool_arr: { type: "boolean[]", value: [true, false, true] },
   test_decimal_arr: { type: "decimal(10,2)[]", value: ["10.50", "20.75"] },
+  test_point_arr: { type: "point[]", value: ["(1,2)", "(3,4)"] },
+  test_circle_arr: { type: "circle[]", value: ["<(1,2),3>", "<(4,5),6>"] },
 } satisfies Record<string, { type: PostgresType; value: any }>;
 
 describe("pglite raw type mapping", () => {
@@ -164,6 +166,10 @@ describe("pglite raw type mapping", () => {
       } else if (type === "decimal(10,2)[]") {
         mapping = () =>
           s.ioarray(PGLITE_TYPE_MAPPING.decimal({ precision: 10, scale: 2 }));
+      } else if (type === "point[]") {
+        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.point());
+      } else if (type === "circle[]") {
+        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.circle());
       }
 
       const result = typedValidate(mapping().output, row[columnName]);

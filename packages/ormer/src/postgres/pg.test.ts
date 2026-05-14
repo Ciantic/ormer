@@ -16,7 +16,7 @@ beforeAll(async () => {
     stdio: "ignore",
   });
   execSync(
-    `podman run --rm -d --name ${CONTAINER_NAME} -e POSTGRES_PASSWORD=test -e POSTGRES_DB=test -p 5432:5432 docker.io/library/postgres:17`,
+    `podman run --rm -d --name ${CONTAINER_NAME} -e POSTGRES_PASSWORD=test -e POSTGRES_DB=test -p 5432:5432 --timeout 120 docker.io/library/postgres:17`,
     { stdio: "ignore" },
   );
 
@@ -133,6 +133,8 @@ const TABLE = {
   test_float8_arr: { type: "float8[]", value: [1.1, 2.2, 3.3] },
   test_bool_arr: { type: "boolean[]", value: [true, false, true] },
   test_decimal_arr: { type: "decimal(10,2)[]", value: [10.5, 20.75] },
+  test_point_arr: { type: "point[]", value: ["(1,2)", "(3,4)"] },
+  test_circle_arr: { type: "circle[]", value: ["<(1,2),3>", "<(4,5),6>"] },
 } satisfies Record<string, { type: PostgresType; value: any }>;
 
 describe("pg raw type mapping", () => {
@@ -184,6 +186,14 @@ describe("pg raw type mapping", () => {
         months: 2,
         years: 1,
       },
+      test_point_arr: [
+        { x: 1, y: 2 },
+        { x: 3, y: 4 },
+      ],
+
+      // Circle array is broken in PG by default, it returns it as string
+      // instead of parsing it like point[]
+      test_circle_arr: '{"<(1,2),3>","<(4,5),6>"}',
     };
 
     expect(row).toMatchObject(matches);
@@ -220,6 +230,11 @@ describe("pg raw type mapping", () => {
       } else if (type === "decimal(10,2)[]") {
         mapping = () =>
           s.ioarray(PG_TYPE_MAPPING.decimal({ precision: 10, scale: 2 }));
+      } else if (type === "point[]") {
+        mapping = () => s.ioarray(PG_TYPE_MAPPING.point());
+      } else if (type === "circle[]") {
+        // pg returns circle[] as a raw string, not a parsed array
+        mapping = () => s.io(s.string);
       }
 
       const result = typedValidate(mapping().output, row[columnName]);
