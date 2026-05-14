@@ -172,8 +172,17 @@ describe("pglite raw type mapping", () => {
         mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.circle());
       }
 
+      const inputResult = typedValidate(mapping().input, value);
+      expect(
+        inputResult.issues,
+        `Input validation failed for column "${columnName}"`,
+      ).toBeUndefined();
+
       const result = typedValidate(mapping().output, row[columnName]);
-      expect(result.issues).toBeUndefined();
+      expect(
+        result.issues,
+        `Output validation failed for column "${columnName}"`,
+      ).toBeUndefined();
     });
   });
 });

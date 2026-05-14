@@ -234,19 +234,23 @@ describe("pg raw type mapping", () => {
         mapping = () => s.ioarray(PG_TYPE_MAPPING.point());
       } else if (type === "circle[]") {
         // pg returns circle[] as a raw string, not a parsed array
-        mapping = () => s.io(s.string);
+        mapping = () => ({
+          input: s.array(s.string),
+          output: s.string,
+        });
       }
 
+      const inputResult = typedValidate(mapping().input, value);
+      expect(
+        inputResult.issues,
+        `Input validation failed for column "${columnName}"`,
+      ).toBeUndefined();
+
       const result = typedValidate(mapping().output, row[columnName]);
-      expect(result.issues, columnName).toBeUndefined();
-      // if (!result.issues) {
-      //   if (type === "timestamp" || type === "timestamptz" || type === "date") {
-      //     // Timestamps are naive local datetimes in pglite
-      //     expect(result.value, columnName).toBeInstanceOf(Date);
-      //   } else {
-      //     expect(result.value, columnName).toEqual(matches[columnName]);
-      //   }
-      // }
+      expect(
+        result.issues,
+        `Output validation failed for column "${columnName}"`,
+      ).toBeUndefined();
     });
   });
 });
