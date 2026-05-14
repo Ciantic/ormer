@@ -18,26 +18,22 @@ beforeAll(async () => {
     { stdio: "ignore" },
   );
 
+  // Retry connection until PostgreSQL is truly ready
   for (let i = 0; i < 30; i++) {
     try {
-      execSync(`podman exec ${CONTAINER_NAME} pg_isready -U postgres`, {
-        stdio: "ignore",
-      });
-      await new Promise((r) => setTimeout(r, 500));
-      break;
-    } catch {
+      client = await new pg.Client({
+        host: "localhost",
+        port: 5432,
+        user: "postgres",
+        password: "test",
+        database: "test",
+      }).connect();
+      return;
+    } catch (er) {
       await new Promise((r) => setTimeout(r, 1000));
     }
   }
-
-  client = new pg.Client({
-    host: "localhost",
-    port: 5432,
-    user: "postgres",
-    password: "test",
-    database: "test",
-  });
-  await client.connect();
+  throw new Error("Failed to connect to PostgreSQL after multiple attempts");
 }, 120000);
 
 afterAll(async () => {
