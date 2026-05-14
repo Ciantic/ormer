@@ -343,6 +343,33 @@ export const object = validator<object, object>((value) => {
   return { value };
 });
 
+export function union<S1 extends StandardSchemaV1, S2 extends StandardSchemaV1>(
+  schema1: S1,
+  schema2: S2,
+): StandardSchemaV1<
+  StandardSchemaV1.InferInput<S1> | StandardSchemaV1.InferInput<S2>,
+  StandardSchemaV1.InferOutput<S1> | StandardSchemaV1.InferOutput<S2>
+> {
+  return validator<
+    StandardSchemaV1.InferInput<S1> | StandardSchemaV1.InferInput<S2>,
+    StandardSchemaV1.InferOutput<S1> | StandardSchemaV1.InferOutput<S2>
+  >((value) => {
+    const res1 = schema1["~standard"].validate(
+      value as StandardSchemaV1.InferInput<S1>,
+    );
+    if (!(res1 instanceof Promise) && !res1.issues) {
+      return { value: res1.value };
+    }
+    const res2 = schema2["~standard"].validate(
+      value as StandardSchemaV1.InferInput<S2>,
+    );
+    if (!(res2 instanceof Promise) && !res2.issues) {
+      return { value: res2.value };
+    }
+    return { issues: [{ message: "Value does not match any schema" }] };
+  });
+}
+
 export function array<I, O>(
   schema: StandardSchemaV1<I, O>,
 ): StandardSchemaV1<I[], O[]> {
@@ -370,6 +397,13 @@ export function array<I, O>(
     return { value: result };
   });
 }
+
+export const buffer = validator<Buffer, Buffer>((value) => {
+  if (!Buffer.isBuffer(value)) {
+    return { issues: [{ message: "Expected Buffer" }] };
+  }
+  return { value };
+});
 
 export const uint8Array = validator<Uint8Array, Uint8Array>((value) => {
   if (!(value instanceof Uint8Array)) {
