@@ -1,7 +1,7 @@
 {
   "name": "ormer-workspace",
   "private": true,
-  "packageManager": "pnpm@10.22.0",
+  "packageManager": "pnpm@11.1.1",
   "scripts": {
     "test": "pnpm -r test",
     "check": "pnpm -r check",

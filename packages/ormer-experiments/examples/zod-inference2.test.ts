@@ -1,4 +1,7 @@
 import { z } from "zod";
+import "./zod-inference2.ts";
+import "./zod-concrete.ts";
+import { describe, it, expect } from "vitest";
 
 const InvoiceSchema = z.object({
   id: z.int64().pg("bigserial", { autoIncrement: true }),
@@ -48,4 +51,10 @@ const PersonSchema = z.object({
   updatedAt: z
     .date()
     .pg("timestamp", { notUpdatable: true, notInsertable: true }),
+});
+
+describe("Zod inference", () => {
+  it("checks InvoiceSchema", () => {
+    expect(true).toBe(true);
+  });
 });
