@@ -34,7 +34,7 @@ export const PG_TYPE_MAPPING = {
   date: () => io(s.dateObject),
   time: (_?) => io(s.string),
   timetz: (_?) => io(s.string),
-  interval: (_?) => io(s.object),
+  interval: (_?) => io(s.string, s.object),
 
   // Boolean type
   boolean: () => io(s.boolean),
@@ -64,13 +64,13 @@ export const PG_TYPE_MAPPING = {
   xml: () => io(s.string),
 
   // Geometric types
-  point: () => io(s.union(s.string, s.object), s.object),
+  point: () => io(s.string, s.object),
   line: () => io(s.string),
   lseg: () => io(s.string),
   box: () => io(s.string),
   path: () => io(s.string),
   polygon: () => io(s.string),
-  circle: () => io(s.object),
+  circle: () => io(s.string, s.object),
 
   // Object identifier / system types
   xmin: () => io(s.number),
