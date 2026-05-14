@@ -527,6 +527,11 @@ export function typedValidateLoose<I extends Record<string, unknown>, O>(
   ) as StandardSchemaV1.Result<O>;
 }
 
+/**
+ * Input type is for UPDATE/INSERT input, output type is for SELECT output.
+ *
+ * If only input is given, it will be used for both input and output.
+ */
 export function io<I extends StandardSchemaV1<any, any>>(
   inputSchema: I,
 ): { input: I; output: I };
