@@ -137,34 +137,36 @@ describe("pglite raw type mapping", () => {
     });
 
     Object.entries(TABLE).forEach(([columnName, { type, value }]) => {
-      let validator: (p?: any) => StandardSchemaV1<any, any> =
-        PGLITE_TYPE_MAPPING[type as keyof typeof PGLITE_TYPE_MAPPING];
+      let mapping: (p?: any) => {
+        input: StandardSchemaV1<any, any>;
+        output: StandardSchemaV1<any, any>;
+      } = PGLITE_TYPE_MAPPING[type as keyof typeof PGLITE_TYPE_MAPPING];
 
       if (type === "decimal(10, 2)") {
-        validator = () =>
+        mapping = () =>
           PGLITE_TYPE_MAPPING.decimal({ precision: 10, scale: 2 });
       } else if (type === "bit(3)") {
-        validator = () => PGLITE_TYPE_MAPPING.bit({ length: 3 });
+        mapping = () => PGLITE_TYPE_MAPPING.bit({ length: 3 });
       } else if (type === "varbit(16)") {
-        validator = () => PGLITE_TYPE_MAPPING.varbit({ maxLength: 16 });
+        mapping = () => PGLITE_TYPE_MAPPING.varbit({ maxLength: 16 });
       } else if (type === "char(5)") {
-        validator = () => PGLITE_TYPE_MAPPING.char({ length: 5 });
+        mapping = () => PGLITE_TYPE_MAPPING.char({ length: 5 });
       } else if (type === "varchar(255)") {
-        validator = () => PGLITE_TYPE_MAPPING.varchar({ maxLength: 255 });
+        mapping = () => PGLITE_TYPE_MAPPING.varchar({ maxLength: 255 });
       } else if (type === "int4[]") {
-        validator = () => s.array(PGLITE_TYPE_MAPPING.int4());
+        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.int4());
       } else if (type === "text[]") {
-        validator = () => s.array(PGLITE_TYPE_MAPPING.text());
+        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.text());
       } else if (type === "float8[]") {
-        validator = () => s.array(PGLITE_TYPE_MAPPING.float8());
+        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.float8());
       } else if (type === "boolean[]") {
-        validator = () => s.array(PGLITE_TYPE_MAPPING.boolean());
+        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.boolean());
       } else if (type === "decimal(10,2)[]") {
-        validator = () =>
-          s.array(PGLITE_TYPE_MAPPING.decimal({ precision: 10, scale: 2 }));
+        mapping = () =>
+          s.ioarray(PGLITE_TYPE_MAPPING.decimal({ precision: 10, scale: 2 }));
       }
 
-      const result = typedValidate(validator(), row[columnName]);
+      const result = typedValidate(mapping().output, row[columnName]);
       expect(result.issues).toBeUndefined();
     });
   });

@@ -526,3 +526,41 @@ export function typedValidateLoose<I extends Record<string, unknown>, O>(
     value as unknown,
   ) as StandardSchemaV1.Result<O>;
 }
+
+export function io<I extends StandardSchemaV1<any, any>>(
+  inputSchema: I,
+): { input: I; output: I };
+
+export function io<
+  I extends StandardSchemaV1<any, any>,
+  O extends StandardSchemaV1<any, any>,
+>(inputSchema: I, outputSchema: O): { input: I; output: O };
+
+export function io(inputSchema: any, outputSchema?: any) {
+  return {
+    input: inputSchema,
+    output: outputSchema ?? inputSchema,
+  };
+}
+
+export function ioarray<
+  S1 extends StandardSchemaV1<any, any>,
+  S2 extends StandardSchemaV1<any, any>,
+>(schemas: {
+  input: S1;
+  output: S2;
+}): {
+  input: StandardSchemaV1<
+    StandardSchemaV1.InferInput<S1>[],
+    StandardSchemaV1.InferOutput<S1>[]
+  >;
+  output: StandardSchemaV1<
+    StandardSchemaV1.InferInput<S2>[],
+    StandardSchemaV1.InferOutput<S2>[]
+  >;
+} {
+  return {
+    input: array(schemas.input),
+    output: array(schemas.output),
+  };
+}

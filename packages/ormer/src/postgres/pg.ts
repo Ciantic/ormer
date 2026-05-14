@@ -1,74 +1,82 @@
 import * as s from "../simplevalidation.ts";
+import { io } from "../simplevalidation.ts";
 import type { PostgresTypeBuilder } from "./postgres-types.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 export const PG_TYPE_MAPPING = {
   // Numeric types
-  int2: () => s.number,
-  int4: () => s.number,
-  int8: () => s.string,
-  serial2: () => s.number,
-  serial4: () => s.number,
-  serial8: () => s.string,
-  float4: () => s.number,
-  float8: () => s.number,
-  money: () => s.string,
-  decimal: (_?) => s.union(s.string, s.number),
+  int2: () => io(s.number),
+  int4: () => io(s.number),
+  int8: () => io(s.string),
+  serial2: () => io(s.number),
+  serial4: () => io(s.number),
+  serial8: () => io(s.string),
+  float4: () => io(s.number),
+  float8: () => io(s.number),
+  money: () => io(s.string),
+
+  // Decimal: Sometimes it returns values as numbers and sometimes as strings, I
+  // noticed in arrays it returns as numbers, but in single values it returns as
+  // strings, so we need to support both
+  decimal: (_?) => io(s.union(s.string, s.number), s.union(s.string, s.number)),
 
   // Character types
-  text: () => s.string,
-  varchar: s.stringMaxLength,
-  char: s.stringLength,
+  text: () => io(s.string),
+  varchar: (p) => io(s.stringMaxLength(p)),
+  char: (p) => io(s.stringLength(p)),
 
   // Binary types
-  bytea: () => s.buffer,
+  bytea: () => io(s.buffer),
 
   // Date/Time types
-  timestamp: (_?) => s.dateObject,
-  timestamptz: (_?) => s.dateObject,
-  date: () => s.dateObject,
-  time: (_?) => s.string,
-  timetz: (_?) => s.string,
-  interval: (_?) => s.object,
+  timestamp: (_?) => io(s.dateObject),
+  timestamptz: (_?) => io(s.dateObject),
+  date: () => io(s.dateObject),
+  time: (_?) => io(s.string),
+  timetz: (_?) => io(s.string),
+  interval: (_?) => io(s.object),
 
   // Boolean type
-  boolean: () => s.boolean,
+  boolean: () => io(s.boolean),
 
   // UUID type
-  uuid: () => s.string,
+  uuid: () => io(s.string),
 
   // JSON types
-  jsonb: () => s.object,
-  json: () => s.object,
+  jsonb: () => io(s.object),
+  json: () => io(s.object),
 
   // Network address types
-  inet: () => s.string,
-  cidr: () => s.string,
-  macaddr: () => s.string,
-  macaddr8: () => s.string,
+  inet: () => io(s.string),
+  cidr: () => io(s.string),
+  macaddr: () => io(s.string),
+  macaddr8: () => io(s.string),
 
   // Bit string types
-  bit: s.stringLength,
-  varbit: s.stringMaxLength,
+  bit: (p) => io(s.stringLength(p)),
+  varbit: (p) => io(s.stringMaxLength(p)),
 
   // Text search types
-  tsvector: () => s.string,
-  tsquery: () => s.string,
+  tsvector: () => io(s.string),
+  tsquery: () => io(s.string),
 
   // XML type
-  xml: () => s.string,
+  xml: () => io(s.string),
 
   // Geometric types
-  point: () => s.union(s.string, s.object),
-  line: () => s.string,
-  lseg: () => s.string,
-  box: () => s.string,
-  path: () => s.string,
-  polygon: () => s.string,
-  circle: () => s.object,
+  point: () => io(s.union(s.string, s.object), s.object),
+  line: () => io(s.string),
+  lseg: () => io(s.string),
+  box: () => io(s.string),
+  path: () => io(s.string),
+  polygon: () => io(s.string),
+  circle: () => io(s.object),
 
   // Object identifier / system types
-  xmin: () => s.number,
-  pg_lsn: () => s.string,
-  pg_snapshot: () => s.string,
-} satisfies PostgresTypeBuilder<StandardSchemaV1>;
+  xmin: () => io(s.number),
+  pg_lsn: () => io(s.string),
+  pg_snapshot: () => io(s.string),
+} satisfies PostgresTypeBuilder<{
+  input: StandardSchemaV1;
+  output: StandardSchemaV1;
+}>;

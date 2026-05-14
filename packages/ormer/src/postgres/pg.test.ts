@@ -194,33 +194,35 @@ describe("pg raw type mapping", () => {
     );
 
     Object.entries(TABLE).forEach(([columnName, { type, value }]) => {
-      let validator: (p?: any) => StandardSchemaV1<any, any> =
-        PG_TYPE_MAPPING[type as keyof typeof PG_TYPE_MAPPING];
+      let mapping: (p?: any) => {
+        input: StandardSchemaV1<any, any>;
+        output: StandardSchemaV1<any, any>;
+      } = PG_TYPE_MAPPING[type as keyof typeof PG_TYPE_MAPPING];
 
       if (type === "decimal(10, 2)") {
-        validator = () => PG_TYPE_MAPPING.decimal({ precision: 10, scale: 2 });
+        mapping = () => PG_TYPE_MAPPING.decimal({ precision: 10, scale: 2 });
       } else if (type === "bit(3)") {
-        validator = () => PG_TYPE_MAPPING.bit({ length: 3 });
+        mapping = () => PG_TYPE_MAPPING.bit({ length: 3 });
       } else if (type === "varbit(16)") {
-        validator = () => PG_TYPE_MAPPING.varbit({ maxLength: 16 });
+        mapping = () => PG_TYPE_MAPPING.varbit({ maxLength: 16 });
       } else if (type === "char(5)") {
-        validator = () => PG_TYPE_MAPPING.char({ length: 5 });
+        mapping = () => PG_TYPE_MAPPING.char({ length: 5 });
       } else if (type === "varchar(255)") {
-        validator = () => PG_TYPE_MAPPING.varchar({ maxLength: 255 });
+        mapping = () => PG_TYPE_MAPPING.varchar({ maxLength: 255 });
       } else if (type === "int4[]") {
-        validator = () => s.array(PG_TYPE_MAPPING.int4());
+        mapping = () => s.ioarray(PG_TYPE_MAPPING.int4());
       } else if (type === "text[]") {
-        validator = () => s.array(PG_TYPE_MAPPING.text());
+        mapping = () => s.ioarray(PG_TYPE_MAPPING.text());
       } else if (type === "float8[]") {
-        validator = () => s.array(PG_TYPE_MAPPING.float8());
+        mapping = () => s.ioarray(PG_TYPE_MAPPING.float8());
       } else if (type === "boolean[]") {
-        validator = () => s.array(PG_TYPE_MAPPING.boolean());
+        mapping = () => s.ioarray(PG_TYPE_MAPPING.boolean());
       } else if (type === "decimal(10,2)[]") {
-        validator = () =>
-          s.array(PG_TYPE_MAPPING.decimal({ precision: 10, scale: 2 }));
+        mapping = () =>
+          s.ioarray(PG_TYPE_MAPPING.decimal({ precision: 10, scale: 2 }));
       }
 
-      const result = typedValidate(validator(), row[columnName]);
+      const result = typedValidate(mapping().output, row[columnName]);
       expect(result.issues, columnName).toBeUndefined();
       // if (!result.issues) {
       //   if (type === "timestamp" || type === "timestamptz" || type === "date") {
