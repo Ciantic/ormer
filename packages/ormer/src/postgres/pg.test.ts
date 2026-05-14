@@ -12,7 +12,9 @@ const CONTAINER_NAME = "ormer-pg-test";
 let client: pg.Client;
 
 beforeAll(async () => {
-  execSync(`podman rm -f ${CONTAINER_NAME} 2>/dev/null || true`);
+  execSync(`podman rm -f ${CONTAINER_NAME} 2>/dev/null || true`, {
+    stdio: "ignore",
+  });
   execSync(
     `podman run --rm -d --name ${CONTAINER_NAME} -e POSTGRES_PASSWORD=test -e POSTGRES_DB=test -p 5432:5432 docker.io/library/postgres:17`,
     { stdio: "ignore" },
