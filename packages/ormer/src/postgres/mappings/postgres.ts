@@ -30,7 +30,7 @@ export const POSTGRES_TYPE_MAPPING = {
   // Date/Time types
   timestamp: (_?) => io(s.dateObject),
   timestamptz: (_?) => io(s.dateObject),
-  date: () => io(s.dateObject),
+  date: () => io(s.union(s.dateObject, s.string), s.dateObject),
   time: (_?) => io(s.string),
   timetz: (_?) => io(s.string),
   interval: (_?) => io(s.string),

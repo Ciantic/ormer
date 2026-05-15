@@ -3,11 +3,14 @@ import { io } from "../../simplevalidation.ts";
 import type { PostgresTypeBuilder } from "../types.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-// PG Lite accepts numeric value *inputs* as string, number or bigint
+// Common numeric type accepts string, number or bigint
 const numeric = s.union(s.string, s.number, s.bigint);
 
-// For serial8 and int8 output value type differs based on size of the number.
-// Big numbers are returned as bigint, smaller numbers as number.
+// Quirks of pglite:
+//
+// - For serial8 and int8 output value type differs based on size of the number:
+//   Big numbers are returned as bigint, smaller numbers as number.
+// - date is returned as Date object
 
 export const PGLITE_TYPE_MAPPING = {
   // Numeric types
@@ -33,7 +36,7 @@ export const PGLITE_TYPE_MAPPING = {
   // Date/Time types
   timestamp: (_?) => io(s.dateObject),
   timestamptz: (_?) => io(s.dateObject),
-  date: () => io(s.dateObject),
+  date: () => io(s.union(s.dateObject, s.string), s.dateObject),
   time: (_?) => io(s.string),
   timetz: (_?) => io(s.string),
   interval: (_?) => io(s.string),

@@ -93,6 +93,11 @@ const TABLE = {
     input: new Date("2024-06-15T12:34:56Z"),
   },
   test_date: { type: "date", input: new Date("2024-06-15T00:00:00Z") },
+  test_date_str: {
+    type: "date",
+    input: "2024-06-15", // YYYY-MM-DD string format
+    output: new Date("2024-06-15T00:00:00Z"),
+  },
   test_time: { type: "time", input: "12:34:56" },
   test_timetz: { type: "timetz", input: "12:34:56+00" },
   test_interval: { type: "interval", input: "1 year 2 mons 3 days" },
