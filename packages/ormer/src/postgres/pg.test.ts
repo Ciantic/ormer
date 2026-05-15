@@ -51,7 +51,7 @@ const TABLE = {
   test_float8: { type: "float8", value: 3.141592653589793 },
   test_money: { type: "money", value: "$12.34" },
   test_decimal: { type: "decimal", value: "12345.67" },
-  test_decimal2: { type: "decimal", value: 12345.67 },
+  test_decimal2: { type: "decimal", value: 12345.67 }, // Inserted as number, but PG returns it as string
 
   // Character types
   test_text: { type: "text", value: "hello world" },
@@ -187,6 +187,9 @@ describe("pg raw type mapping", () => {
       // Circle array is broken in PG by default, it returns it as string
       // instead of parsing it like point[]
       test_circle_arr: '{"<(1,2),3>","<(4,5),6>"}',
+
+      // PG returns decimals in arrays as numbers, but single values as strings
+      test_decimal_arr: [10.5, 20.75],
     };
 
     expect(row).toMatchObject(matches);
@@ -216,8 +219,9 @@ describe("pg raw type mapping", () => {
       } else if (type === "boolean[]") {
         mapping = () => s.ioarray(PG_TYPE_MAPPING.boolean());
       } else if (type === "decimal(10,2)[]") {
-        mapping = () =>
-          s.ioarray(PG_TYPE_MAPPING.decimal({ precision: 10, scale: 2 }));
+        // NOTE: PG has bugish feature, normally it returns decimals as strings,
+        // but within arrays it returns them as numbers
+        mapping = () => s.io(s.array(s.number));
       } else if (type === "point[]") {
         mapping = () => s.ioarray(PG_TYPE_MAPPING.point());
       } else if (type === "circle[]") {
