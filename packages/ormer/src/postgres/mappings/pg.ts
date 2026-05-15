@@ -3,21 +3,21 @@ import { io } from "../../simplevalidation.ts";
 import type { PostgresTypeBuilder } from "../types.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
+// PG accepts numeric value *inputs* as string, number or bigint
+const numeric = s.union(s.string, s.number, s.bigint);
+
 export const PG_TYPE_MAPPING = {
   // Numeric types
-  int2: () => io(s.number),
-  int4: () => io(s.number),
-  int8: () => io(s.string),
-  serial2: () => io(s.number),
-  serial4: () => io(s.number),
-  serial8: () => io(s.string),
-  float4: () => io(s.number),
-  float8: () => io(s.number),
+  int2: () => io(numeric, s.number),
+  int4: () => io(numeric, s.number),
+  int8: () => io(numeric, s.string),
+  serial2: () => io(numeric, s.number),
+  serial4: () => io(numeric, s.number),
+  serial8: () => io(numeric, s.string),
+  float4: () => io(numeric, s.number),
+  float8: () => io(numeric, s.number),
+  decimal: (_?) => io(numeric, s.string),
   money: () => io(s.string),
-
-  // Decimal: PG returns arrays of decimals as numbers, I consider this as a bug
-  // in PG. Because otherwise it returns them as strings.
-  decimal: (_?) => io(s.union(s.string, s.number), s.string),
 
   // Character types
   text: () => io(s.string),

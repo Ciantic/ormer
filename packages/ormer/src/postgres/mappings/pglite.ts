@@ -14,16 +14,13 @@ export const PGLITE_TYPE_MAPPING = {
   int2: () => io(numeric, s.number),
   int4: () => io(numeric, s.number),
   int8: () => io(numeric, s.union(s.number, s.bigint)),
-
   serial2: () => io(numeric, s.number),
   serial4: () => io(numeric, s.number),
   serial8: () => io(numeric, s.union(s.number, s.bigint)),
-
   float4: () => io(numeric, s.number),
   float8: () => io(numeric, s.number),
-
-  money: () => io(s.string),
   decimal: (_?) => io(numeric, s.string),
+  money: () => io(s.string),
 
   // Character types
   text: () => io(s.string),

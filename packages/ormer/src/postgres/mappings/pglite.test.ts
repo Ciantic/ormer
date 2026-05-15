@@ -45,11 +45,11 @@ const TABLE = {
   test_float8_b: { type: "float8", input: 1234n, output: 1234 },
   test_float8_s: { type: "float8", input: "3.14159", output: 3.14159 },
 
-
-  test_money: { type: "money", input: "$12.34" },
   test_decimal_n: { type: "decimal", input: 12345.67, output: "12345.67" },
   test_decimal_s: { type: "decimal", input: "12345.67" },
   test_decimal_b: { type: "decimal", input: 12341234n, output: "12341234" },
+
+  test_money: { type: "money", input: "$12.34" },
 
   // Character types
   test_text: { type: "text", input: "hello world" },
