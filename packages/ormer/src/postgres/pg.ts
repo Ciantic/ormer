@@ -15,9 +15,8 @@ export const PG_TYPE_MAPPING = {
   float8: () => io(s.number),
   money: () => io(s.string),
 
-  // Decimal: Sometimes it returns values as numbers and sometimes as strings, I
-  // noticed in arrays it returns as numbers, but in single values it returns as
-  // strings. I think the array handling is a bug in pg.
+  // Decimal: PG returns arrays of decimals as numbers, I consider this as a bug
+  // in PG. Because otherwise it returns them as strings.
   decimal: (_?) => io(s.union(s.string, s.number), s.string),
 
   // Character types
