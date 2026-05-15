@@ -10,8 +10,13 @@ const numeric = s.union(s.string, s.number, s.bigint);
 //
 // - For serial8 and int8 output value type differs based on size of the number:
 //   Big numbers are returned as bigint, smaller numbers as number.
-// - date is returned as Date object
-
+// - timestamp (no timezone): Input UTC Date → output converted to local time
+//   (Date without Z). String input interpreted as local time → UTC-adjusted
+//   output. Prefer timestamptz whenever possible.
+// - timestamptz: UTC Date/string in → UTC Date out, preserved correctly.
+// - date: Date object or string input → Date output preserved as-is.
+// - date string input ("YYYY-MM-DD") → Date at UTC midnight.
+//
 export const PGLITE_TYPE_MAPPING = {
   // Numeric types
   int2: () => io(numeric, s.number),
@@ -34,8 +39,8 @@ export const PGLITE_TYPE_MAPPING = {
   bytea: () => io(s.uint8Array),
 
   // Date/Time types
-  timestamp: (_?) => io(s.dateObject),
-  timestamptz: (_?) => io(s.dateObject),
+  timestamp: (_?) => io(s.union(s.dateObject, s.string), s.dateObject),
+  timestamptz: (_?) => io(s.union(s.dateObject, s.string), s.dateObject),
   date: () => io(s.union(s.dateObject, s.string), s.dateObject),
   time: (_?) => io(s.string),
   timetz: (_?) => io(s.string),

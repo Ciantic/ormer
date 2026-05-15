@@ -6,7 +6,19 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 // Common numeric type accepts string, number or bigint
 const numeric = s.union(s.string, s.number, s.bigint);
 
-// Quirks:
+// Quirks of npm:pg:
+//
+// - timestamp (no timezone): Input UTC Date → output converted to local time
+//   (Date without Z). The driver interprets timestamp as local time, shifting
+//   the value. Prefer timestamptz whenever possible.
+// - timestamptz: UTC Date in → UTC Date out, preserved correctly.
+// - date: Date object or string input → Date output preserved as-is.
+// - date string input ("YYYY-MM-DD") → Date at UTC midnight.
+// - interval, point, circle: string input → parsed to structured object output.
+// - point[]: objects in → objects out (parsed array elements).
+// - decimal[]: returned as array of numbers, not array of strings (bug).
+// - circle[]: not returned as array at all — returned as a single string
+//   (PostgreSQL text representation of the array).
 //
 
 export const PG_TYPE_MAPPING = {
