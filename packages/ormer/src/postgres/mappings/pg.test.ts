@@ -162,9 +162,6 @@ describe("pg raw type mapping", () => {
       // PG returns decimals as strings, even if inserted as numbers
       test_decimal2: "12345.67",
       test_date: new Date("2024-06-15T00:00:00"), // Local time value (no Z)
-      // test_date: expect.any(Date),
-      // test_timestamp: expect.any(Date),
-      // test_timestamptz: expect.any(Date),
       test_point: {
         x: 1,
         y: 2,
