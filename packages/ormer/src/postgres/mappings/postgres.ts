@@ -1,9 +1,9 @@
-import * as s from "../simplevalidation.ts";
-import { io } from "../simplevalidation.ts";
-import type { PostgresTypeBuilder } from "./postgres-types.ts";
+import * as s from "../../simplevalidation.ts";
+import { io } from "../../simplevalidation.ts";
+import type { PostgresTypeBuilder } from "../types.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-export const PG_TYPE_MAPPING = {
+export const POSTGRES_TYPE_MAPPING = {
   // Numeric types
   int2: () => io(s.number),
   int4: () => io(s.number),
@@ -14,9 +14,6 @@ export const PG_TYPE_MAPPING = {
   float4: () => io(s.number),
   float8: () => io(s.number),
   money: () => io(s.string),
-
-  // Decimal: PG returns arrays of decimals as numbers, I consider this as a bug
-  // in PG. Because otherwise it returns them as strings.
   decimal: (_?) => io(s.union(s.string, s.number), s.string),
 
   // Character types
@@ -25,7 +22,7 @@ export const PG_TYPE_MAPPING = {
   char: (p) => io(s.stringLength(p)),
 
   // Binary types
-  bytea: () => io(s.buffer),
+  bytea: () => io(s.uint8Array),
 
   // Date/Time types
   timestamp: (_?) => io(s.dateObject),
@@ -33,7 +30,7 @@ export const PG_TYPE_MAPPING = {
   date: () => io(s.dateObject),
   time: (_?) => io(s.string),
   timetz: (_?) => io(s.string),
-  interval: (_?) => io(s.string, s.object),
+  interval: (_?) => io(s.string),
 
   // Boolean type
   boolean: () => io(s.boolean),
@@ -63,13 +60,13 @@ export const PG_TYPE_MAPPING = {
   xml: () => io(s.string),
 
   // Geometric types
-  point: () => io(s.string, s.object),
+  point: () => io(s.string),
   line: () => io(s.string),
   lseg: () => io(s.string),
   box: () => io(s.string),
   path: () => io(s.string),
   polygon: () => io(s.string),
-  circle: () => io(s.string, s.object),
+  circle: () => io(s.string),
 
   // Object identifier / system types
   xmin: () => io(s.number),

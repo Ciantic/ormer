@@ -1,13 +1,19 @@
-import * as s from "../simplevalidation.ts";
+import * as s from "../../simplevalidation.ts";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import pg from "pg";
-import { PG_TYPE_MAPPING } from "./pg.ts";
+import postgres from "postgres";
+import { POSTGRES_TYPE_MAPPING } from "./postgres.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { typedValidate } from "../simplevalidation.ts";
-import { type PostgresType } from "./postgres-types.ts";
-import { startContainer } from "./postgres-container.ts";
+import { typedValidate } from "../../simplevalidation.ts";
+import { type PostgresType } from "../types.ts";
+import { startContainer } from "./test-container.ts";
 
-let client: pg.Client;
+let sql = postgres({
+  host: "localhost",
+  port: 5432,
+  user: "postgres",
+  password: "test",
+  database: "test",
+});
 
 beforeAll(async () => {
   await startContainer();
@@ -15,14 +21,9 @@ beforeAll(async () => {
   // Retry connection until PostgreSQL is truly ready
   for (let i = 0; i < 30; i++) {
     try {
-      client = await new pg.Client({
-        host: "localhost",
-        port: 5432,
-        user: "postgres",
-        password: "test",
-        database: "test",
-      }).connect();
-      await client.query("DROP TABLE IF EXISTS test_pg");
+      await sql`SELECT 1`;
+      await sql`DROP TABLE IF EXISTS test_postgres`;
+      await sql`DROP TABLE IF EXISTS test_bool_arr`;
       return;
     } catch (er) {
       await new Promise((r) => setTimeout(r, 1000));
@@ -32,11 +33,7 @@ beforeAll(async () => {
 }, 120000);
 
 afterAll(async () => {
-  try {
-    await client?.end();
-  } catch {
-    // ignore
-  }
+  await sql?.end();
 }, 30000);
 
 const TABLE = {
@@ -51,7 +48,7 @@ const TABLE = {
   test_float8: { type: "float8", value: 3.141592653589793 },
   test_money: { type: "money", value: "$12.34" },
   test_decimal: { type: "decimal", value: "12345.67" },
-  test_decimal2: { type: "decimal", value: 12345.67 }, // Inserted as number, but PG returns it as string
+  test_decimal2: { type: "decimal", value: 12345.67 },
 
   // Character types
   test_text: { type: "text", value: "hello world" },
@@ -63,7 +60,10 @@ const TABLE = {
   },
 
   // Date/Time types
-  test_timestamp: { type: "timestamp", value: new Date() },
+  test_timestamp: {
+    type: "timestamp",
+    value: new Date("2024-06-15T00:00:00Z"), // UTC Value!
+  },
   test_timestamptz: {
     type: "timestamptz",
     value: new Date("2024-06-15T12:34:56Z"),
@@ -123,22 +123,44 @@ const TABLE = {
   test_int4_arr: { type: "int4[]", value: [1, 2, 3] },
   test_text_arr: { type: "text[]", value: ["hello", "world"] },
   test_float8_arr: { type: "float8[]", value: [1.1, 2.2, 3.3] },
-  test_bool_arr: { type: "boolean[]", value: [true, false, true] },
-  test_decimal_arr: { type: "decimal(10,2)[]", value: [10.5, 20.75] },
+  // Porsager/postgres has bug https://github.com/porsager/postgres/issues/471
+  //   test_bool_arr: { type: "boolean[]", value: [true, false, true] },
+  test_decimal_arr: { type: "decimal(10,2)[]", value: ["10.50", "20.75"] },
   test_point_arr: { type: "point[]", value: ["(1,2)", "(3,4)"] },
   test_circle_arr: { type: "circle[]", value: ["<(1,2),3>", "<(4,5),6>"] },
 } satisfies Record<string, { type: PostgresType; value: any }>;
 
-describe("pg raw type mapping", () => {
+describe("postgres raw type mapping", () => {
+  it("porsager/postgres has bug https://github.com/porsager/postgres/issues/471", async () => {
+    // If it ever gets fixed, update the TABLE above
+    await sql
+      .unsafe(`CREATE TABLE test_bool_arr (values boolean[]);`)
+      .execute();
+
+    // PostgresError: column "values" is of type boolean[] but expression is of type boolean
+    try {
+      await sql`INSERT INTO test_bool_arr (values) VALUES (${[true, false, true]})`.execute();
+      expect.fail("Expected error was not thrown");
+    } catch (er) {
+      if (er instanceof Error) {
+        expect(er.message).contains(
+          'column "values" is of type boolean[] but expression is of type boolean',
+        );
+      } else {
+        throw er;
+      }
+    }
+  });
+
   it("insert and select all PglMapping types round-trip correctly", async () => {
     const createTableSql = `
-      CREATE TABLE test_pg (
+      CREATE TABLE test_postgres (
         ${Object.entries(TABLE)
           .map(([columnName, { type }]) => `"${columnName}" ${type} NOT NULL`)
           .join(",\n        ")}
       );
     `;
-    await client.query(createTableSql);
+    await sql.unsafe(createTableSql).execute();
 
     const insertValue = Object.fromEntries(
       Object.entries(TABLE).map(([columnName, { value }]) => [
@@ -150,46 +172,26 @@ describe("pg raw type mapping", () => {
     const columns = Object.keys(insertValue);
     const insertValues = Object.values(insertValue);
     const placeholders = insertValues.map((_, i) => `$${i + 1}`).join(", ");
-    await client.query(
-      `INSERT INTO test_pg (${columns.join(", ")}) VALUES (${placeholders})`,
-      insertValues,
-    );
+    await sql
+      .unsafe(
+        `INSERT INTO test_postgres (${columns.join(", ")}) VALUES (${placeholders})`,
+        insertValues,
+      )
+      .execute();
 
-    const result = await client.query(`SELECT * FROM test_pg`);
-    const row = result.rows[0] as Record<string, any>;
+    const result = [
+      ...(await sql.unsafe(`SELECT * FROM test_postgres`).execute()),
+    ];
+    const row = result[0] as Record<string, any>;
     const matches = {
       ...insertValue,
       // PG returns decimals as strings, even if inserted as numbers
       test_decimal2: "12345.67",
-      test_date: new Date("2024-06-15T00:00:00"), // Local time value (no Z)
-      // test_date: expect.any(Date),
-      // test_timestamp: expect.any(Date),
-      // test_timestamptz: expect.any(Date),
-      test_point: {
-        x: 1,
-        y: 2,
-      },
-      test_circle: {
-        radius: 3,
-        x: 1,
-        y: 2,
-      },
-      test_interval: {
-        days: 3,
-        months: 2,
-        years: 1,
-      },
-      test_point_arr: [
-        { x: 1, y: 2 },
-        { x: 3, y: 4 },
-      ],
 
-      // Circle array is broken in PG by default, it returns it as string
-      // instead of parsing it like point[]
-      test_circle_arr: '{"<(1,2),3>","<(4,5),6>"}',
-
-      // PG returns decimals in arrays as numbers, but single values as strings
-      test_decimal_arr: [10.5, 20.75],
+      // NOTE! We inserted in UTC but get back in local time, this is so bad that
+      // you should never use `timestamp` with postgres wrapper. Supposedly this
+      // is because timestamp is naive local time.
+      test_timestamp: new Date("2024-06-15T00:00:00"), // Local time value (no Z)
     };
 
     expect(row).toMatchObject(matches);
@@ -198,38 +200,34 @@ describe("pg raw type mapping", () => {
       let mapping: (p?: any) => {
         input: StandardSchemaV1<any, any>;
         output: StandardSchemaV1<any, any>;
-      } = PG_TYPE_MAPPING[type as keyof typeof PG_TYPE_MAPPING];
+      } = POSTGRES_TYPE_MAPPING[type as keyof typeof POSTGRES_TYPE_MAPPING];
 
       if (type === "decimal(10, 2)") {
-        mapping = () => PG_TYPE_MAPPING.decimal({ precision: 10, scale: 2 });
+        mapping = () =>
+          POSTGRES_TYPE_MAPPING.decimal({ precision: 10, scale: 2 });
       } else if (type === "bit(3)") {
-        mapping = () => PG_TYPE_MAPPING.bit({ length: 3 });
+        mapping = () => POSTGRES_TYPE_MAPPING.bit({ length: 3 });
       } else if (type === "varbit(16)") {
-        mapping = () => PG_TYPE_MAPPING.varbit({ maxLength: 16 });
+        mapping = () => POSTGRES_TYPE_MAPPING.varbit({ maxLength: 16 });
       } else if (type === "char(5)") {
-        mapping = () => PG_TYPE_MAPPING.char({ length: 5 });
+        mapping = () => POSTGRES_TYPE_MAPPING.char({ length: 5 });
       } else if (type === "varchar(255)") {
-        mapping = () => PG_TYPE_MAPPING.varchar({ maxLength: 255 });
+        mapping = () => POSTGRES_TYPE_MAPPING.varchar({ maxLength: 255 });
       } else if (type === "int4[]") {
-        mapping = () => s.ioarray(PG_TYPE_MAPPING.int4());
+        mapping = () => s.ioarray(POSTGRES_TYPE_MAPPING.int4());
       } else if (type === "text[]") {
-        mapping = () => s.ioarray(PG_TYPE_MAPPING.text());
+        mapping = () => s.ioarray(POSTGRES_TYPE_MAPPING.text());
       } else if (type === "float8[]") {
-        mapping = () => s.ioarray(PG_TYPE_MAPPING.float8());
-      } else if (type === "boolean[]") {
-        mapping = () => s.ioarray(PG_TYPE_MAPPING.boolean());
+        mapping = () => s.ioarray(POSTGRES_TYPE_MAPPING.float8());
+        //   } else if (type === "boolean[]") {
+        //     mapping = () => s.ioarray(POSTGRES_TYPE_MAPPING.boolean());
       } else if (type === "decimal(10,2)[]") {
-        // NOTE: PG has bugish feature, normally it returns decimals as strings,
-        // but within arrays it returns them as numbers
-        mapping = () => s.io(s.array(s.number));
+        mapping = () =>
+          s.ioarray(POSTGRES_TYPE_MAPPING.decimal({ precision: 10, scale: 2 }));
       } else if (type === "point[]") {
-        mapping = () => s.ioarray(PG_TYPE_MAPPING.point());
+        mapping = () => s.ioarray(POSTGRES_TYPE_MAPPING.point());
       } else if (type === "circle[]") {
-        // pg returns circle[] as a raw string, not a parsed array
-        mapping = () => ({
-          input: s.array(s.string),
-          output: s.string,
-        });
+        mapping = () => s.ioarray(POSTGRES_TYPE_MAPPING.circle());
       }
 
       const inputResult = typedValidate(mapping().input, value);

@@ -1,24 +1,57 @@
-import * as s from "../simplevalidation.ts";
-import { describe, it, expect } from "vitest";
-import { PGlite } from "@electric-sql/pglite";
-import { PGLITE_TYPE_MAPPING } from "./pglite.ts";
+import * as s from "../../simplevalidation.ts";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import pg from "pg";
+import { PG_TYPE_MAPPING } from "../mappings/pg.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { typedValidate } from "../simplevalidation.ts";
-import { type PostgresType } from "./postgres-types.ts";
+import { typedValidate } from "../../simplevalidation.ts";
+import { type PostgresType } from "../types.ts";
+import { startContainer } from "./test-container.ts";
+
+let client: pg.Client;
+
+beforeAll(async () => {
+  await startContainer();
+
+  // Retry connection until PostgreSQL is truly ready
+  for (let i = 0; i < 30; i++) {
+    try {
+      client = await new pg.Client({
+        host: "localhost",
+        port: 5432,
+        user: "postgres",
+        password: "test",
+        database: "test",
+      }).connect();
+      await client.query("DROP TABLE IF EXISTS test_pg");
+      return;
+    } catch (er) {
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  }
+  throw new Error("Failed to connect to PostgreSQL after multiple attempts");
+}, 120000);
+
+afterAll(async () => {
+  try {
+    await client?.end();
+  } catch {
+    // ignore
+  }
+}, 30000);
 
 const TABLE = {
   // Numeric types
   test_int2: { type: "int2", value: 100 },
   test_int4: { type: "int4", value: 200000 },
-  test_int8: { type: "int8", value: 123456789012345678n },
+  test_int8: { type: "int8", value: "123456789012345678" },
   test_serial2: { type: "serial2", value: 1 },
   test_serial4: { type: "serial4", value: 1 },
-  test_serial8: { type: "serial8", value: 1 },
+  test_serial8: { type: "serial8", value: "1" },
   test_float4: { type: "float4", value: 1.5 },
   test_float8: { type: "float8", value: 3.141592653589793 },
   test_money: { type: "money", value: "$12.34" },
   test_decimal: { type: "decimal", value: "12345.67" },
-  test_decimal2: { type: "decimal", value: 12345.67 },
+  test_decimal2: { type: "decimal", value: 12345.67 }, // Inserted as number, but PG returns it as string
 
   // Character types
   test_text: { type: "text", value: "hello world" },
@@ -26,14 +59,11 @@ const TABLE = {
   // Binary types
   test_bytea: {
     type: "bytea",
-    value: Uint8Array.from([0xde, 0xad, 0xbe, 0xef]),
+    value: Buffer.from([0xde, 0xad, 0xbe, 0xef]),
   },
 
   // Date/Time types
-  test_timestamp: {
-    type: "timestamp",
-    value: new Date("2024-06-15T00:00:00Z"), // NOTE: UTC Value!
-  },
+  test_timestamp: { type: "timestamp", value: new Date() },
   test_timestamptz: {
     type: "timestamptz",
     value: new Date("2024-06-15T12:34:56Z"),
@@ -94,22 +124,21 @@ const TABLE = {
   test_text_arr: { type: "text[]", value: ["hello", "world"] },
   test_float8_arr: { type: "float8[]", value: [1.1, 2.2, 3.3] },
   test_bool_arr: { type: "boolean[]", value: [true, false, true] },
-  test_decimal_arr: { type: "decimal(10,2)[]", value: ["10.50", "20.75"] },
+  test_decimal_arr: { type: "decimal(10,2)[]", value: [10.5, 20.75] },
   test_point_arr: { type: "point[]", value: ["(1,2)", "(3,4)"] },
   test_circle_arr: { type: "circle[]", value: ["<(1,2),3>", "<(4,5),6>"] },
 } satisfies Record<string, { type: PostgresType; value: any }>;
 
-describe("pglite raw type mapping", () => {
-  it("insert and select all PgliteMapping types round-trip correctly", async () => {
-    const pglite = new PGlite();
+describe("pg raw type mapping", () => {
+  it("insert and select all PglMapping types round-trip correctly", async () => {
     const createTableSql = `
-      CREATE TABLE test_pglite (
+      CREATE TABLE test_pg (
         ${Object.entries(TABLE)
           .map(([columnName, { type }]) => `"${columnName}" ${type} NOT NULL`)
           .join(",\n        ")}
       );
     `;
-    await pglite.exec(createTableSql);
+    await client.query(createTableSql);
 
     const insertValue = Object.fromEntries(
       Object.entries(TABLE).map(([columnName, { value }]) => [
@@ -121,66 +150,86 @@ describe("pglite raw type mapping", () => {
     const columns = Object.keys(insertValue);
     const insertValues = Object.values(insertValue);
     const placeholders = insertValues.map((_, i) => `$${i + 1}`).join(", ");
-    await pglite.query(
-      `INSERT INTO test_pglite (${columns.join(", ")}) VALUES (${placeholders})`,
+    await client.query(
+      `INSERT INTO test_pg (${columns.join(", ")}) VALUES (${placeholders})`,
       insertValues,
     );
 
-    const result = await pglite.query(`SELECT * FROM test_pglite`);
+    const result = await client.query(`SELECT * FROM test_pg`);
     const row = result.rows[0] as Record<string, any>;
-
-    expect(row).toEqual({
+    const matches = {
       ...insertValue,
-
-      // pglite returns decimals as strings, even if inserted as numbers
+      // PG returns decimals as strings, even if inserted as numbers
       test_decimal2: "12345.67",
+      test_date: new Date("2024-06-15T00:00:00"), // Local time value (no Z)
+      // test_date: expect.any(Date),
+      // test_timestamp: expect.any(Date),
+      // test_timestamptz: expect.any(Date),
+      test_point: {
+        x: 1,
+        y: 2,
+      },
+      test_circle: {
+        radius: 3,
+        x: 1,
+        y: 2,
+      },
+      test_interval: {
+        days: 3,
+        months: 2,
+        years: 1,
+      },
+      test_point_arr: [
+        { x: 1, y: 2 },
+        { x: 3, y: 4 },
+      ],
 
-      // pglite `timestamp` columns are returned in different value as input
-      // values it doesn't take time zone into account, so we just check that
-      // it's a Date object here
-      test_timestamp: expect.any(Date),
-    });
+      // Circle array is broken in PG by default, it returns it as string
+      // instead of parsing it like point[]
+      test_circle_arr: '{"<(1,2),3>","<(4,5),6>"}',
 
-    // NOTE! We inserted in UTC but get back in local time, this is so bad that
-    // you should never use `timestamp` with pglite wrapper. Supposedly this
-    // is because timestamp is naive local time.
-    expect(row.test_timestamp.getTime(), "test_timestamp").toBe(
-      // NOTE: Local time value
-      new Date("2024-06-15T00:00:00").getTime(),
-    );
+      // PG returns decimals in arrays as numbers, but single values as strings
+      test_decimal_arr: [10.5, 20.75],
+    };
+
+    expect(row).toMatchObject(matches);
 
     Object.entries(TABLE).forEach(([columnName, { type, value }]) => {
       let mapping: (p?: any) => {
         input: StandardSchemaV1<any, any>;
         output: StandardSchemaV1<any, any>;
-      } = PGLITE_TYPE_MAPPING[type as keyof typeof PGLITE_TYPE_MAPPING];
+      } = PG_TYPE_MAPPING[type as keyof typeof PG_TYPE_MAPPING];
 
       if (type === "decimal(10, 2)") {
-        mapping = () =>
-          PGLITE_TYPE_MAPPING.decimal({ precision: 10, scale: 2 });
+        mapping = () => PG_TYPE_MAPPING.decimal({ precision: 10, scale: 2 });
       } else if (type === "bit(3)") {
-        mapping = () => PGLITE_TYPE_MAPPING.bit({ length: 3 });
+        mapping = () => PG_TYPE_MAPPING.bit({ length: 3 });
       } else if (type === "varbit(16)") {
-        mapping = () => PGLITE_TYPE_MAPPING.varbit({ maxLength: 16 });
+        mapping = () => PG_TYPE_MAPPING.varbit({ maxLength: 16 });
       } else if (type === "char(5)") {
-        mapping = () => PGLITE_TYPE_MAPPING.char({ length: 5 });
+        mapping = () => PG_TYPE_MAPPING.char({ length: 5 });
       } else if (type === "varchar(255)") {
-        mapping = () => PGLITE_TYPE_MAPPING.varchar({ maxLength: 255 });
+        mapping = () => PG_TYPE_MAPPING.varchar({ maxLength: 255 });
       } else if (type === "int4[]") {
-        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.int4());
+        mapping = () => s.ioarray(PG_TYPE_MAPPING.int4());
       } else if (type === "text[]") {
-        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.text());
+        mapping = () => s.ioarray(PG_TYPE_MAPPING.text());
       } else if (type === "float8[]") {
-        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.float8());
+        mapping = () => s.ioarray(PG_TYPE_MAPPING.float8());
       } else if (type === "boolean[]") {
-        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.boolean());
+        mapping = () => s.ioarray(PG_TYPE_MAPPING.boolean());
       } else if (type === "decimal(10,2)[]") {
-        mapping = () =>
-          s.ioarray(PGLITE_TYPE_MAPPING.decimal({ precision: 10, scale: 2 }));
+        // NOTE: PG has bugish feature, normally it returns decimals as strings,
+        // but within arrays it returns them as numbers
+        mapping = () => s.io(s.array(s.number));
       } else if (type === "point[]") {
-        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.point());
+        mapping = () => s.ioarray(PG_TYPE_MAPPING.point());
       } else if (type === "circle[]") {
-        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.circle());
+        // pg returns circle[] as a raw string, not a parsed array
+        mapping = () => ({
+          input: s.array(s.string),
+          output: s.string,
+        });
       }
 
       const inputResult = typedValidate(mapping().input, value);

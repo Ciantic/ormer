@@ -4,7 +4,7 @@ import * as h from "../columnhelpers.ts";
 import { table } from "../table.ts";
 import { database } from "../database.ts";
 import { createTableSql } from "../sql.ts";
-import { COMMON_TO_POSTGRES, POSTGRES_OPTS } from "./postgres-driver.ts";
+import { COMMON_TO_POSTGRES, POSTGRES_OPTS } from "./driver.ts";
 
 const allTypesTable = table("all_types", {
   // integer types

@@ -1,49 +1,19 @@
-import * as s from "../simplevalidation.ts";
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import postgres from "postgres";
-import { POSTGRES_TYPE_MAPPING } from "./postgres.ts";
+import * as s from "../../simplevalidation.ts";
+import { describe, it, expect } from "vitest";
+import { PGlite } from "@electric-sql/pglite";
+import { PGLITE_TYPE_MAPPING } from "./pglite.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { typedValidate } from "../simplevalidation.ts";
-import { type PostgresType } from "./postgres-types.ts";
-import { startContainer } from "./postgres-container.ts";
-
-let sql = postgres({
-  host: "localhost",
-  port: 5432,
-  user: "postgres",
-  password: "test",
-  database: "test",
-});
-
-beforeAll(async () => {
-  await startContainer();
-
-  // Retry connection until PostgreSQL is truly ready
-  for (let i = 0; i < 30; i++) {
-    try {
-      await sql`SELECT 1`;
-      await sql`DROP TABLE IF EXISTS test_postgres`;
-      await sql`DROP TABLE IF EXISTS test_bool_arr`;
-      return;
-    } catch (er) {
-      await new Promise((r) => setTimeout(r, 1000));
-    }
-  }
-  throw new Error("Failed to connect to PostgreSQL after multiple attempts");
-}, 120000);
-
-afterAll(async () => {
-  await sql?.end();
-}, 30000);
+import { typedValidate } from "../../simplevalidation.ts";
+import { type PostgresType } from "../types.ts";
 
 const TABLE = {
   // Numeric types
   test_int2: { type: "int2", value: 100 },
   test_int4: { type: "int4", value: 200000 },
-  test_int8: { type: "int8", value: "123456789012345678" },
+  test_int8: { type: "int8", value: 123456789012345678n },
   test_serial2: { type: "serial2", value: 1 },
   test_serial4: { type: "serial4", value: 1 },
-  test_serial8: { type: "serial8", value: "1" },
+  test_serial8: { type: "serial8", value: 1 },
   test_float4: { type: "float4", value: 1.5 },
   test_float8: { type: "float8", value: 3.141592653589793 },
   test_money: { type: "money", value: "$12.34" },
@@ -56,13 +26,13 @@ const TABLE = {
   // Binary types
   test_bytea: {
     type: "bytea",
-    value: Buffer.from([0xde, 0xad, 0xbe, 0xef]),
+    value: Uint8Array.from([0xde, 0xad, 0xbe, 0xef]),
   },
 
   // Date/Time types
   test_timestamp: {
     type: "timestamp",
-    value: new Date("2024-06-15T00:00:00Z"), // UTC Value!
+    value: new Date("2024-06-15T00:00:00Z"), // NOTE: UTC Value!
   },
   test_timestamptz: {
     type: "timestamptz",
@@ -123,44 +93,23 @@ const TABLE = {
   test_int4_arr: { type: "int4[]", value: [1, 2, 3] },
   test_text_arr: { type: "text[]", value: ["hello", "world"] },
   test_float8_arr: { type: "float8[]", value: [1.1, 2.2, 3.3] },
-  // Porsager/postgres has bug https://github.com/porsager/postgres/issues/471
-  //   test_bool_arr: { type: "boolean[]", value: [true, false, true] },
+  test_bool_arr: { type: "boolean[]", value: [true, false, true] },
   test_decimal_arr: { type: "decimal(10,2)[]", value: ["10.50", "20.75"] },
   test_point_arr: { type: "point[]", value: ["(1,2)", "(3,4)"] },
   test_circle_arr: { type: "circle[]", value: ["<(1,2),3>", "<(4,5),6>"] },
 } satisfies Record<string, { type: PostgresType; value: any }>;
 
-describe("postgres raw type mapping", () => {
-  it("porsager/postgres has bug https://github.com/porsager/postgres/issues/471", async () => {
-    // If it ever gets fixed, update the TABLE above
-    await sql
-      .unsafe(`CREATE TABLE test_bool_arr (values boolean[]);`)
-      .execute();
-
-    // PostgresError: column "values" is of type boolean[] but expression is of type boolean
-    try {
-      await sql`INSERT INTO test_bool_arr (values) VALUES (${[true, false, true]})`.execute();
-      expect.fail("Expected error was not thrown");
-    } catch (er) {
-      if (er instanceof Error) {
-        expect(er.message).contains(
-          'column "values" is of type boolean[] but expression is of type boolean',
-        );
-      } else {
-        throw er;
-      }
-    }
-  });
-
-  it("insert and select all PglMapping types round-trip correctly", async () => {
+describe("pglite raw type mapping", () => {
+  it("insert and select all PgliteMapping types round-trip correctly", async () => {
+    const pglite = new PGlite();
     const createTableSql = `
-      CREATE TABLE test_postgres (
+      CREATE TABLE test_pglite (
         ${Object.entries(TABLE)
           .map(([columnName, { type }]) => `"${columnName}" ${type} NOT NULL`)
           .join(",\n        ")}
       );
     `;
-    await sql.unsafe(createTableSql).execute();
+    await pglite.exec(createTableSql);
 
     const insertValue = Object.fromEntries(
       Object.entries(TABLE).map(([columnName, { value }]) => [
@@ -172,62 +121,66 @@ describe("postgres raw type mapping", () => {
     const columns = Object.keys(insertValue);
     const insertValues = Object.values(insertValue);
     const placeholders = insertValues.map((_, i) => `$${i + 1}`).join(", ");
-    await sql
-      .unsafe(
-        `INSERT INTO test_postgres (${columns.join(", ")}) VALUES (${placeholders})`,
-        insertValues,
-      )
-      .execute();
+    await pglite.query(
+      `INSERT INTO test_pglite (${columns.join(", ")}) VALUES (${placeholders})`,
+      insertValues,
+    );
 
-    const result = [
-      ...(await sql.unsafe(`SELECT * FROM test_postgres`).execute()),
-    ];
-    const row = result[0] as Record<string, any>;
-    const matches = {
+    const result = await pglite.query(`SELECT * FROM test_pglite`);
+    const row = result.rows[0] as Record<string, any>;
+
+    expect(row).toEqual({
       ...insertValue,
-      // PG returns decimals as strings, even if inserted as numbers
+
+      // pglite returns decimals as strings, even if inserted as numbers
       test_decimal2: "12345.67",
 
-      // NOTE! We inserted in UTC but get back in local time, this is so bad that
-      // you should never use `timestamp` with postgres wrapper. Supposedly this
-      // is because timestamp is naive local time.
-      test_timestamp: new Date("2024-06-15T00:00:00"), // Local time value (no Z)
-    };
+      // pglite `timestamp` columns are returned in different value as input
+      // values it doesn't take time zone into account, so we just check that
+      // it's a Date object here
+      test_timestamp: expect.any(Date),
+    });
 
-    expect(row).toMatchObject(matches);
+    // NOTE! We inserted in UTC but get back in local time, this is so bad that
+    // you should never use `timestamp` with pglite wrapper. Supposedly this
+    // is because timestamp is naive local time.
+    expect(row.test_timestamp.getTime(), "test_timestamp").toBe(
+      // NOTE: Local time value
+      new Date("2024-06-15T00:00:00").getTime(),
+    );
 
     Object.entries(TABLE).forEach(([columnName, { type, value }]) => {
       let mapping: (p?: any) => {
         input: StandardSchemaV1<any, any>;
         output: StandardSchemaV1<any, any>;
-      } = POSTGRES_TYPE_MAPPING[type as keyof typeof POSTGRES_TYPE_MAPPING];
+      } = PGLITE_TYPE_MAPPING[type as keyof typeof PGLITE_TYPE_MAPPING];
 
       if (type === "decimal(10, 2)") {
         mapping = () =>
-          POSTGRES_TYPE_MAPPING.decimal({ precision: 10, scale: 2 });
+          PGLITE_TYPE_MAPPING.decimal({ precision: 10, scale: 2 });
       } else if (type === "bit(3)") {
-        mapping = () => POSTGRES_TYPE_MAPPING.bit({ length: 3 });
+        mapping = () => PGLITE_TYPE_MAPPING.bit({ length: 3 });
       } else if (type === "varbit(16)") {
-        mapping = () => POSTGRES_TYPE_MAPPING.varbit({ maxLength: 16 });
+        mapping = () => PGLITE_TYPE_MAPPING.varbit({ maxLength: 16 });
       } else if (type === "char(5)") {
-        mapping = () => POSTGRES_TYPE_MAPPING.char({ length: 5 });
+        mapping = () => PGLITE_TYPE_MAPPING.char({ length: 5 });
       } else if (type === "varchar(255)") {
-        mapping = () => POSTGRES_TYPE_MAPPING.varchar({ maxLength: 255 });
+        mapping = () => PGLITE_TYPE_MAPPING.varchar({ maxLength: 255 });
       } else if (type === "int4[]") {
-        mapping = () => s.ioarray(POSTGRES_TYPE_MAPPING.int4());
+        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.int4());
       } else if (type === "text[]") {
-        mapping = () => s.ioarray(POSTGRES_TYPE_MAPPING.text());
+        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.text());
       } else if (type === "float8[]") {
-        mapping = () => s.ioarray(POSTGRES_TYPE_MAPPING.float8());
-        //   } else if (type === "boolean[]") {
-        //     mapping = () => s.ioarray(POSTGRES_TYPE_MAPPING.boolean());
+        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.float8());
+      } else if (type === "boolean[]") {
+        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.boolean());
       } else if (type === "decimal(10,2)[]") {
         mapping = () =>
-          s.ioarray(POSTGRES_TYPE_MAPPING.decimal({ precision: 10, scale: 2 }));
+          s.ioarray(PGLITE_TYPE_MAPPING.decimal({ precision: 10, scale: 2 }));
       } else if (type === "point[]") {
-        mapping = () => s.ioarray(POSTGRES_TYPE_MAPPING.point());
+        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.point());
       } else if (type === "circle[]") {
-        mapping = () => s.ioarray(POSTGRES_TYPE_MAPPING.circle());
+        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.circle());
       }
 
       const inputResult = typedValidate(mapping().input, value);

@@ -1,16 +1,16 @@
-import * as s from "../simplevalidation.ts";
-import { io } from "../simplevalidation.ts";
-import type { PostgresTypeBuilder } from "./postgres-types.ts";
+import * as s from "../../simplevalidation.ts";
+import { io } from "../../simplevalidation.ts";
+import type { PostgresTypeBuilder } from "../types.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-export const POSTGRES_TYPE_MAPPING = {
+export const PGLITE_TYPE_MAPPING = {
   // Numeric types
   int2: () => io(s.number),
   int4: () => io(s.number),
-  int8: () => io(s.string),
+  int8: () => io(s.bigint),
   serial2: () => io(s.number),
   serial4: () => io(s.number),
-  serial8: () => io(s.string),
+  serial8: () => io(s.number),
   float4: () => io(s.number),
   float8: () => io(s.number),
   money: () => io(s.string),

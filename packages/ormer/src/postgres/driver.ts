@@ -1,7 +1,7 @@
 import type { MapColumnsTo } from "../columnhelpers.ts";
 import type { Params } from "../columns.ts";
 import type { Opts } from "../sql.ts";
-import type { PostgresType } from "./postgres-types.ts";
+import type { PostgresType } from "./types.ts";
 
 type Int32Fn = <A extends boolean>(
   params: Params<{
