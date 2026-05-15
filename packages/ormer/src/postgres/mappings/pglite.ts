@@ -3,18 +3,27 @@ import { io } from "../../simplevalidation.ts";
 import type { PostgresTypeBuilder } from "../types.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
+// PG Lite accepts numeric value *inputs* as string, number or bigint
+const numeric = s.union(s.string, s.number, s.bigint);
+
+// For serial8 and int8 utput value type differs based on size of the number.
+// Big numbers are returned as bigint, smaller numbers as number.
+
 export const PGLITE_TYPE_MAPPING = {
   // Numeric types
-  int2: () => io(s.number),
-  int4: () => io(s.number),
-  int8: () => io(s.union(s.number, s.bigint)),
-  serial2: () => io(s.number),
-  serial4: () => io(s.number),
-  serial8: () => io(s.union(s.number, s.bigint)),
-  float4: () => io(s.number),
-  float8: () => io(s.number),
+  int2: () => io(numeric, s.number),
+  int4: () => io(numeric, s.number),
+  int8: () => io(numeric, s.union(s.number, s.bigint)),
+
+  serial2: () => io(numeric, s.number),
+  serial4: () => io(numeric, s.number),
+  serial8: () => io(numeric, s.union(s.number, s.bigint)),
+
+  float4: () => io(numeric, s.number),
+  float8: () => io(numeric, s.number),
+
   money: () => io(s.string),
-  decimal: (_?) => io(s.union(s.string, s.number), s.string),
+  decimal: (_?) => io(numeric, s.string),
 
   // Character types
   text: () => io(s.string),

@@ -349,22 +349,74 @@ export function union<S1 extends StandardSchemaV1, S2 extends StandardSchemaV1>(
 ): StandardSchemaV1<
   StandardSchemaV1.InferInput<S1> | StandardSchemaV1.InferInput<S2>,
   StandardSchemaV1.InferOutput<S1> | StandardSchemaV1.InferOutput<S2>
-> {
-  return validator<
-    StandardSchemaV1.InferInput<S1> | StandardSchemaV1.InferInput<S2>,
-    StandardSchemaV1.InferOutput<S1> | StandardSchemaV1.InferOutput<S2>
-  >((value) => {
-    const res1 = schema1["~standard"].validate(
-      value as StandardSchemaV1.InferInput<S1>,
-    );
-    if (!(res1 instanceof Promise) && !res1.issues) {
-      return { value: res1.value };
-    }
-    const res2 = schema2["~standard"].validate(
-      value as StandardSchemaV1.InferInput<S2>,
-    );
-    if (!(res2 instanceof Promise) && !res2.issues) {
-      return { value: res2.value };
+>;
+export function union<
+  S1 extends StandardSchemaV1,
+  S2 extends StandardSchemaV1,
+  S3 extends StandardSchemaV1,
+>(
+  schema1: S1,
+  schema2: S2,
+  schema3: S3,
+): StandardSchemaV1<
+  | StandardSchemaV1.InferInput<S1>
+  | StandardSchemaV1.InferInput<S2>
+  | StandardSchemaV1.InferInput<S3>,
+  | StandardSchemaV1.InferOutput<S1>
+  | StandardSchemaV1.InferOutput<S2>
+  | StandardSchemaV1.InferOutput<S3>
+>;
+export function union<
+  S1 extends StandardSchemaV1,
+  S2 extends StandardSchemaV1,
+  S3 extends StandardSchemaV1,
+  S4 extends StandardSchemaV1,
+>(
+  schema1: S1,
+  schema2: S2,
+  schema3: S3,
+  schema4: S4,
+): StandardSchemaV1<
+  | StandardSchemaV1.InferInput<S1>
+  | StandardSchemaV1.InferInput<S2>
+  | StandardSchemaV1.InferInput<S3>
+  | StandardSchemaV1.InferInput<S4>,
+  | StandardSchemaV1.InferOutput<S1>
+  | StandardSchemaV1.InferOutput<S2>
+  | StandardSchemaV1.InferOutput<S3>
+  | StandardSchemaV1.InferOutput<S4>
+>;
+export function union<
+  S1 extends StandardSchemaV1,
+  S2 extends StandardSchemaV1,
+  S3 extends StandardSchemaV1,
+  S4 extends StandardSchemaV1,
+  S5 extends StandardSchemaV1,
+>(
+  schema1: S1,
+  schema2: S2,
+  schema3: S3,
+  schema4: S4,
+  schema5: S5,
+): StandardSchemaV1<
+  | StandardSchemaV1.InferInput<S1>
+  | StandardSchemaV1.InferInput<S2>
+  | StandardSchemaV1.InferInput<S3>
+  | StandardSchemaV1.InferInput<S4>
+  | StandardSchemaV1.InferInput<S5>,
+  | StandardSchemaV1.InferOutput<S1>
+  | StandardSchemaV1.InferOutput<S2>
+  | StandardSchemaV1.InferOutput<S3>
+  | StandardSchemaV1.InferOutput<S4>
+  | StandardSchemaV1.InferOutput<S5>
+>;
+export function union(...schemas: StandardSchemaV1[]): StandardSchemaV1 {
+  return validator((value) => {
+    for (const schema of schemas) {
+      const res = schema["~standard"].validate(value);
+      if (!(res instanceof Promise) && !res.issues) {
+        return { value: res.value };
+      }
     }
     return { issues: [{ message: "Value does not match any schema" }] };
   });
