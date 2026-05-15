@@ -55,6 +55,21 @@ export const BASE_POSTGRES_TYPES = [
   "pg_snapshot",
 ] as const;
 
+// prettier-ignore
+export const BASE_POSTGRES_VARIADIC_TYPES = {
+  decimal: ((p) => !p ? "decimal" : `decimal(${p.precision},${p.scale})`) as DecimalFn,
+  timestamp: ((p) => !p ? "timestamp" : `timestamp(${p.precision})`) as TimestampFn,
+  timestamptz: ((p) => !p ? "timestamptz" : `timestamptz(${p.precision})`) as TimestamptzFn,
+  time: ((p) => (!p ? "time" : `time(${p.precision})`)) as TimeFn,
+  timetz: ((p) => (!p ? "timetz" : `timetz(${p.precision})`)) as TimetzFn,
+  interval: ((p) => !p ? "interval" : `interval(${p.precision})`) as IntervalFn,
+
+  varchar: ((p) => (!p ? "varchar" : `varchar(${p.maxLength})`)) as VarcharFn,
+  char: ((p) => (!p ? "char" : `char(${p.length})`)) as CharFn,
+  bit: ((p) => (!p ? "bit" : `bit(${p.length})`)) as BitFn,
+  varbit: ((p) => (!p ? "varbit" : `varbit(${p.maxLength})`)) as VarbitFn,
+} as const;
+
 type DecimalFn = {
   (): "decimal";
   <const P extends number, const S extends number>(params: {
@@ -104,21 +119,6 @@ type BitFn = {
 type VarbitFn = {
   <const N extends number>(params: { maxLength: N }): `varbit(${N})`;
 };
-
-// prettier-ignore
-export const BASE_POSTGRES_VARIADIC_TYPES = {
-  decimal: ((p) => !p ? "decimal" : `decimal(${p.precision},${p.scale})`) as DecimalFn,
-  timestamp: ((p) => !p ? "timestamp" : `timestamp(${p.precision})`) as TimestampFn,
-  timestamptz: ((p) => !p ? "timestamptz" : `timestamptz(${p.precision})`) as TimestamptzFn,
-  time: ((p) => (!p ? "time" : `time(${p.precision})`)) as TimeFn,
-  timetz: ((p) => (!p ? "timetz" : `timetz(${p.precision})`)) as TimetzFn,
-  interval: ((p) => !p ? "interval" : `interval(${p.precision})`) as IntervalFn,
-
-  varchar: ((p) => (!p ? "varchar" : `varchar(${p.maxLength})`)) as VarcharFn,
-  char: ((p) => (!p ? "char" : `char(${p.length})`)) as CharFn,
-  bit: ((p) => (!p ? "bit" : `bit(${p.length})`)) as BitFn,
-  varbit: ((p) => (!p ? "varbit" : `varbit(${p.maxLength})`)) as VarbitFn,
-} as const;
 
 type ArrayDim<
   T extends string,
