@@ -7,6 +7,7 @@ import { runMappingTest, type TestTable } from "./test-helper.ts";
 let sql: ReturnType<typeof postgres>;
 
 beforeAll(async () => {
+  process.env.TZ = "Europe/Helsinki";
   await startContainer();
 
   // Retry connection until PostgreSQL is truly ready

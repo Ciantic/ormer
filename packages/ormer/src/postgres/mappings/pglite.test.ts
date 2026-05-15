@@ -1,11 +1,12 @@
-import * as s from "../../simplevalidation.ts";
-import { describe, it, expect } from "vitest";
+import { describe, it, beforeAll } from "vitest";
 import { PGlite } from "@electric-sql/pglite";
 import { PGLITE_TYPE_MAPPING } from "./pglite.ts";
-import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { typedValidate } from "../../simplevalidation.ts";
 import { type PostgresType } from "../types.ts";
 import { runMappingTest } from "./test-helper.ts";
+
+beforeAll(() => {
+  process.env.TZ = "Europe/Helsinki";
+});
 
 // prettier-ignore
 const TABLE = {

@@ -8,6 +8,7 @@ import pg from "pg";
 let client: pg.Client;
 
 beforeAll(async () => {
+  process.env.TZ = "Europe/Helsinki";
   await startContainer();
 
   // Retry connection until PostgreSQL is truly ready
