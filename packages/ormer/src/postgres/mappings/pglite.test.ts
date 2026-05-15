@@ -5,6 +5,7 @@ import { PGLITE_TYPE_MAPPING } from "./pglite.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { typedValidate } from "../../simplevalidation.ts";
 import { type PostgresType } from "../types.ts";
+import { runMappingTest } from "./test-helper.ts";
 
 // prettier-ignore
 const TABLE = {
@@ -131,91 +132,19 @@ const TABLE = {
   test_circle_arr: { type: "circle[]", input: ["<(1,2),3>", "<(4,5),6>"] },
 } satisfies Record<string, { type: PostgresType; input: any; output?: any }>;
 
-describe("pglite raw type mapping", () => {
-  it("insert and select all PgliteMapping types round-trip correctly", async () => {
+describe("npm:@electric-sql/pglite default type mapping", () => {
+  it("insert and select all types round-trip correctly", async () => {
     const pglite = new PGlite();
-    const createTableSql = `
-      CREATE TABLE test_pglite (
-        ${Object.entries(TABLE)
-          .map(([columnName, { type }]) => `"${columnName}" ${type} NOT NULL`)
-          .join(",\n        ")}
-      );
-    `;
-    await pglite.exec(createTableSql);
-
-    const insertValue = Object.fromEntries(
-      Object.entries(TABLE).map(([columnName, { input: value }]) => [
-        columnName,
-        value,
-      ]),
-    );
-    const expectValue = Object.fromEntries(
-      Object.entries(TABLE).map(
-        ([columnName, p]: [string, { output?: any; input: any }]) => [
-          columnName,
-          p.output ?? p.input,
-        ],
-      ),
-    );
-
-    const columns = Object.keys(insertValue);
-    const insertValues = Object.values(insertValue);
-    const placeholders = insertValues.map((_, i) => `$${i + 1}`).join(", ");
-    await pglite.query(
-      `INSERT INTO test_pglite (${columns.join(", ")}) VALUES (${placeholders})`,
-      insertValues,
-    );
-
-    const result = await pglite.query(`SELECT * FROM test_pglite`);
-    const row = result.rows[0] as Record<string, any>;
-
-    expect(row).toEqual(expectValue);
-
-    Object.entries(TABLE).forEach(([columnName, { type, input: value }]) => {
-      let mapping: (p?: any) => {
-        input: StandardSchemaV1<any, any>;
-        output: StandardSchemaV1<any, any>;
-      } = PGLITE_TYPE_MAPPING[type as keyof typeof PGLITE_TYPE_MAPPING];
-
-      if (type === "decimal(10, 2)") {
-        mapping = () =>
-          PGLITE_TYPE_MAPPING.decimal({ precision: 10, scale: 2 });
-      } else if (type === "bit(3)") {
-        mapping = () => PGLITE_TYPE_MAPPING.bit({ length: 3 });
-      } else if (type === "varbit(16)") {
-        mapping = () => PGLITE_TYPE_MAPPING.varbit({ maxLength: 16 });
-      } else if (type === "char(5)") {
-        mapping = () => PGLITE_TYPE_MAPPING.char({ length: 5 });
-      } else if (type === "varchar(255)") {
-        mapping = () => PGLITE_TYPE_MAPPING.varchar({ maxLength: 255 });
-      } else if (type === "int4[]") {
-        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.int4());
-      } else if (type === "text[]") {
-        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.text());
-      } else if (type === "float8[]") {
-        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.float8());
-      } else if (type === "boolean[]") {
-        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.boolean());
-      } else if (type === "decimal(10,2)[]") {
-        mapping = () =>
-          s.ioarray(PGLITE_TYPE_MAPPING.decimal({ precision: 10, scale: 2 }));
-      } else if (type === "point[]") {
-        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.point());
-      } else if (type === "circle[]") {
-        mapping = () => s.ioarray(PGLITE_TYPE_MAPPING.circle());
-      }
-
-      const inputResult = typedValidate(mapping().input, value);
-      expect(
-        inputResult.issues,
-        `Input validation failed for column "${columnName}"`,
-      ).toBeUndefined();
-
-      const result = typedValidate(mapping().output, row[columnName]);
-      expect(
-        result.issues,
-        `Output validation failed for column "${columnName}"`,
-      ).toBeUndefined();
+    await runMappingTest({
+      table: TABLE,
+      mapping: PGLITE_TYPE_MAPPING,
+      exec: async (sql) => {
+        await pglite.exec(sql);
+      },
+      query: async (sql, params) => {
+        const res = await pglite.query(sql, params);
+        return { rows: res.rows as Record<string, any>[] };
+      },
     });
   });
 });

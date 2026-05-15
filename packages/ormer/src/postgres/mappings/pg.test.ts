@@ -1,11 +1,9 @@
 import * as s from "../../simplevalidation.ts";
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import pg from "pg";
+import { describe, it, beforeAll, afterAll } from "vitest";
 import { PG_TYPE_MAPPING } from "../mappings/pg.ts";
-import type { StandardSchemaV1 } from "@standard-schema/spec";
-import { typedValidate } from "../../simplevalidation.ts";
-import { type PostgresType } from "../types.ts";
 import { startContainer } from "./test-container.ts";
+import { runMappingTest, type TestTable } from "./test-helper.ts";
+import pg from "pg";
 
 let client: pg.Client;
 
@@ -50,8 +48,6 @@ const TABLE = {
   test_int4_b: { type: "int4", input: 200000n, output: 200000 },
   test_int4_s: { type: "int4", input: "200000", output: 200000 },
   
-  // Note: Output value type differs based on size of the number
-  // Big numbers are returned as bigint, smaller numbers as number
   test_int8_b: { type: "int8", input: 123456789012345678n, output: "123456789012345678" },
   test_int8_n: { type: "int8", input: 1234, output: "1234" }, 
   test_int8_s: { type: "int8", input: "123456789012345678", output: "123456789012345678"},
@@ -64,8 +60,6 @@ const TABLE = {
   test_serial4_b: { type: "serial4", input: 12345n, output: 12345 },
   test_serial4_s: { type: "serial4", input: "12345", output: 12345 },
 
-  // Note: Output value type differs based on size of the number
-  // Big numbers are returned as bigint, smaller numbers as number
   test_serial8_n: { type: "serial8", input: 1234, output: "1234" }, 
   test_serial8_b: { type: "serial8", input: 123456789012345678n, output: "123456789012345678" },
   test_serial8_s: { type: "serial8", input: "123456789012345678", output: "123456789012345678"},
@@ -88,21 +82,15 @@ const TABLE = {
   test_text: { type: "text", input: "hello world" },
 
   // Binary types
-  test_bytea: {
-    type: "bytea",
-    input: Buffer.from([0xde, 0xad, 0xbe, 0xef]),
-  },
+  test_bytea: { type: "bytea", input: Buffer.from([0xde, 0xad, 0xbe, 0xef]), },
 
   // Date/Time types
   test_timestamp: { type: "timestamp", input: new Date() },
-  test_timestamptz: {
-    type: "timestamptz",
-    input: new Date("2024-06-15T12:34:56Z"),
-  },
+  test_timestamptz: { type: "timestamptz", input: new Date("2024-06-15T12:34:56Z"), },
   test_date: { 
     type: "date", 
-    input: new Date("2024-06-15T00:00:00Z"), // UTC!
-    output: new Date("2024-06-15T00:00:00")  // Local time (no Z)
+    input:  new Date("2024-06-15T00:00:00Z"), // UTC!
+    output: new Date("2024-06-15T00:00:00")   // Local time (no Z)
   },
   test_time: { type: "time", input: "12:34:56" },
   test_timetz: { type: "timetz", input: "12:34:56+00" },
@@ -159,101 +147,27 @@ const TABLE = {
   test_text_arr: { type: "text[]", input: ["hello", "world"] },
   test_float8_arr: { type: "float8[]", input: [1.1, 2.2, 3.3] },
   test_bool_arr: { type: "boolean[]", input: [true, false, true] },
-  test_decimal_arr: { type: "decimal(10,2)[]", input: ["10.5", "20.75"], output: [10.5, 20.75] },
   test_point_arr: { type: "point[]", input: ["(1,2)", "(3,4)"], output: [{ x: 1, y: 2 }, { x: 3, y: 4 }] },
-  test_circle_arr: { type: "circle[]", input: ["<(1,2),3>", "<(4,5),6>"], output: '{"<(1,2),3>","<(4,5),6>"}' },
-} satisfies Record<string, { type: PostgresType; input: any; output?: any }>;
 
-describe("pg raw type mapping", () => {
-  it("insert and select all PglMapping types round-trip correctly", async () => {
-    const createTableSql = `
-      CREATE TABLE test_pg (
-        ${Object.entries(TABLE)
-          .map(([columnName, { type }]) => `"${columnName}" ${type} NOT NULL`)
-          .join(",\n        ")}
-      );
-    `;
-    await client.query(createTableSql);
+  // Broken in pg: 
+  // decimal array is returned as array of numbers (should be array of string)
+  // circle array is not returned as array at all, it is instead a string
+  test_decimal_arr: { type: "decimal(10,2)[]", input: ["10.5", "20.75"], output: [10.5, 20.75], buggyOutputSchema: s.array(s.number) },
+  test_circle_arr: { type: "circle[]", input: ["<(1,2),3>", "<(4,5),6>"], output: '{"<(1,2),3>","<(4,5),6>"}', buggyOutputSchema: s.string },
+} satisfies TestTable;
 
-    const insertValue = Object.fromEntries(
-      Object.entries(TABLE).map(([columnName, { input: value }]) => [
-        columnName,
-        value,
-      ]),
-    );
-
-    const expectValue = Object.fromEntries(
-      Object.entries(TABLE).map(
-        ([columnName, p]: [string, { output?: any; input: any }]) => [
-          columnName,
-          p.output ?? p.input,
-        ],
-      ),
-    );
-
-    // Insert
-    const columns = Object.keys(insertValue);
-    const placeholders = columns.map((_, i) => `$${i + 1}`).join(", ");
-    await client.query(
-      `INSERT INTO test_pg (${columns.join(", ")}) VALUES (${placeholders})`,
-      Object.values(insertValue),
-    );
-
-    // Select
-    const result = await client.query(`SELECT * FROM test_pg`);
-    const row = result.rows[0] as Record<string, any>;
-    expect(row).toMatchObject(expectValue);
-
-    // Validate input and output types using the mappings
-    Object.entries(TABLE).forEach(([columnName, { type, input: value }]) => {
-      let mapping: (p?: any) => {
-        input: StandardSchemaV1<any, any>;
-        output: StandardSchemaV1<any, any>;
-      } = PG_TYPE_MAPPING[type as keyof typeof PG_TYPE_MAPPING];
-
-      if (type === "decimal(10, 2)") {
-        mapping = () => PG_TYPE_MAPPING.decimal({ precision: 10, scale: 2 });
-      } else if (type === "bit(3)") {
-        mapping = () => PG_TYPE_MAPPING.bit({ length: 3 });
-      } else if (type === "varbit(16)") {
-        mapping = () => PG_TYPE_MAPPING.varbit({ maxLength: 16 });
-      } else if (type === "char(5)") {
-        mapping = () => PG_TYPE_MAPPING.char({ length: 5 });
-      } else if (type === "varchar(255)") {
-        mapping = () => PG_TYPE_MAPPING.varchar({ maxLength: 255 });
-      } else if (type === "int4[]") {
-        mapping = () => s.ioarray(PG_TYPE_MAPPING.int4());
-      } else if (type === "text[]") {
-        mapping = () => s.ioarray(PG_TYPE_MAPPING.text());
-      } else if (type === "float8[]") {
-        mapping = () => s.ioarray(PG_TYPE_MAPPING.float8());
-      } else if (type === "boolean[]") {
-        mapping = () => s.ioarray(PG_TYPE_MAPPING.boolean());
-      } else if (type === "decimal(10,2)[]") {
-        // NOTE: PG has bugish feature, normally it returns decimals as strings,
-        // but within arrays it returns them as numbers
-        mapping = () => s.io(s.array(s.string), s.array(s.number));
-      } else if (type === "point[]") {
-        mapping = () => s.ioarray(PG_TYPE_MAPPING.point());
-      } else if (type === "circle[]") {
-        // pg returns circle[] as a raw string, not a parsed array
-        mapping = () => ({
-          input: s.array(s.string),
-          output: s.string,
-        });
-      }
-
-      const inputResult = typedValidate(mapping().input, value);
-      expect(
-        inputResult.issues,
-        `Input validation failed for column "${columnName}"`,
-      ).toBeUndefined();
-
-      const result = typedValidate(mapping().output, row[columnName]);
-      expect(
-        result.issues,
-        `Output validation failed for column "${columnName}"`,
-      ).toBeUndefined();
+describe("npm:pg default type mapping", () => {
+  it("insert and select all types round-trip correctly", async () => {
+    await runMappingTest({
+      table: TABLE,
+      mapping: PG_TYPE_MAPPING,
+      exec: async (sql) => {
+        await client.query(sql);
+      },
+      query: async (sql, params) => {
+        const res = await client.query(sql, params);
+        return { rows: res.rows };
+      },
     });
   });
 });
