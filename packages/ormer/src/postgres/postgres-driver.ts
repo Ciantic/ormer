@@ -39,21 +39,21 @@ export const COMMON_TO_POSTGRES = {
     autoIncrement ? "serial4" : "int4") as Int32Fn,
   int64: (({ autoIncrement }) =>
     autoIncrement ? "serial8" : "int8") as Int64Fn,
-  bigint: () => "decimal" as const,
-  float32: () => "float4" as const,
-  float64: () => "float8" as const,
+  bigint: () => "decimal",
+  float32: () => "float4",
+  float64: () => "float8",
   decimal: (({ precision, scale }) =>
     `decimal(${precision},${scale})`) satisfies DecimalFn,
-  uuid: () => "uuid" as const,
-  string: () => "text" as const,
+  uuid: () => "uuid",
+  string: () => "text",
   varchar: (({ maxLength }) => `varchar(${maxLength})`) satisfies VarcharFn,
-  boolean: () => "boolean" as const,
+  boolean: () => "boolean",
   datetime: (({ postgres }) => postgres?.type ?? "timestamptz") as DatetimeFn,
-  datepart: () => "date" as const,
-  timepart: () => "time" as const,
-  jsonb: () => "jsonb" as const,
-  json: () => "json" as const,
-} satisfies MapColumnsTo<PostgresType>;
+  datepart: () => "date",
+  timepart: () => "time",
+  jsonb: () => "jsonb",
+  json: () => "json",
+} as const satisfies MapColumnsTo<PostgresType>;
 
 export const POSTGRES_OPTS: Opts = {
   colNameFn: (colName) => `"${colName}"`,
