@@ -92,7 +92,7 @@ const TABLE = {
   test_timestamp_str: {
     type: "timestamp",
     input: "2024-06-15T00:00:00",
-    output: new Date("2024-06-14T18:00:00.000Z"),
+    output: new Date("2024-06-14T18:00:00.000Z"), // What is this?
   },
   test_timestamptz: {
     type: "timestamptz",

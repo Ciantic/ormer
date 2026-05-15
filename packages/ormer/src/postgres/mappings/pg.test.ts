@@ -85,17 +85,26 @@ const TABLE = {
   test_bytea: { type: "bytea", input: Buffer.from([0xde, 0xad, 0xbe, 0xef]), },
 
   // Date/Time types
-  test_timestamp: { type: "timestamp", input: new Date() },
-  test_timestamptz: { type: "timestamptz", input: new Date("2024-06-15T12:34:56Z"), },
-  test_timestamp_iso_no_tz: {
+
+  // Date/Time types
+  test_timestamp: {
     type: "timestamp",
-    input: "2024-06-15 12:34:56",
-    output: new Date("2024-06-15T12:34:56"),
+    input: new Date("2024-06-15T00:00:00Z"), // UTC Value!
+    output: new Date("2024-06-15T00:00:00Z"), // Local time (no Z)
   },
-  test_timestamptz_iso_no_tz: {
+  test_timestamp_str: {
+    type: "timestamp",
+    input: "2024-06-15T00:00:00", // Local time
+    output: new Date("2024-06-15T00:00:00"), // Local time (no Z)
+  },
+  test_timestamptz: {
     type: "timestamptz",
-    input: "2024-06-15 12:34:56",
-    output: new Date("2024-06-15T12:34:56.000Z"),
+    input: new Date("2024-06-15T12:34:56Z"),
+  },
+  test_timestamptz_str: {
+    type: "timestamptz",
+    input: "2024-06-15T12:34:56Z",
+    output: new Date("2024-06-15T12:34:56Z"), // UTC value preserved correctly
   },
   test_date: { 
     type: "date", 
