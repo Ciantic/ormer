@@ -85,12 +85,12 @@ const TABLE = {
   test_timestamp_iso_no_tz: {
     type: "timestamp",
     input: "2024-06-15 12:34:56",
-    output: new Date("2024-06-15T09:34:56.000Z"),
+    output: new Date("2024-06-15T12:34:56"), // Local time value!
   },
   test_timestamptz_iso_no_tz: {
     type: "timestamptz",
     input: "2024-06-15 12:34:56",
-    output: new Date("2024-06-15T10:34:56.000Z"),
+    output: new Date("2024-06-15T10:34:56Z"), // What the?
   },
   test_date: { type: "date", input: new Date("2024-06-15T00:00:00Z") },
   test_date_str: {

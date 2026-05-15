@@ -90,7 +90,7 @@ const TABLE = {
   test_timestamp_iso_no_tz: {
     type: "timestamp",
     input: "2024-06-15 12:34:56",
-    output: new Date("2024-06-15T09:34:56.000Z"),
+    output: new Date("2024-06-15T12:34:56"),
   },
   test_timestamptz_iso_no_tz: {
     type: "timestamptz",
