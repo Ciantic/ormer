@@ -11,9 +11,11 @@ const TABLE = {
   test_int2: { type: "int2", value: 100 },
   test_int4: { type: "int4", value: 200000 },
   test_int8: { type: "int8", value: 123456789012345678n },
-  test_serial2: { type: "serial2", value: 1 },
-  test_serial4: { type: "serial4", value: 1 },
-  test_serial8: { type: "serial8", value: 1 },
+  test_int8_2: { type: "int8", value: 1234 }, // Number because value is small
+  test_serial2: { type: "serial2", value: 1234 },
+  test_serial4: { type: "serial4", value: 12345 },
+  test_serial8: { type: "serial8", value: 123456789012345678n },
+  test_serial8_2: { type: "serial8", value: 1234 }, // Number because value is small
   test_float4: { type: "float4", value: 1.5 },
   test_float8: { type: "float8", value: 3.141592653589793 },
   test_money: { type: "money", value: "$12.34" },

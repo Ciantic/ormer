@@ -7,10 +7,10 @@ export const PGLITE_TYPE_MAPPING = {
   // Numeric types
   int2: () => io(s.number),
   int4: () => io(s.number),
-  int8: () => io(s.bigint),
+  int8: () => io(s.union(s.number, s.bigint)),
   serial2: () => io(s.number),
   serial4: () => io(s.number),
-  serial8: () => io(s.number),
+  serial8: () => io(s.union(s.number, s.bigint)),
   float4: () => io(s.number),
   float8: () => io(s.number),
   money: () => io(s.string),
