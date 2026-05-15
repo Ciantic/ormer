@@ -20,7 +20,6 @@ beforeAll(async () => {
         password: "test",
         database: "test",
       }).connect();
-      await client.query("DROP TABLE IF EXISTS test_pg");
       return;
     } catch (er) {
       await new Promise((r) => setTimeout(r, 1000));

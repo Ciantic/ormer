@@ -20,8 +20,6 @@ beforeAll(async () => {
         database: "test",
       });
       await sql`SELECT 1`;
-      await sql`DROP TABLE IF EXISTS test_pg`;
-      await sql`DROP TABLE IF EXISTS test_bool_arr`;
       return;
     } catch (er) {
       await new Promise((r) => setTimeout(r, 1000));
@@ -160,7 +158,7 @@ describe("porsager/postgres default type mapping", () => {
   it("porsager/postgres has bug https://github.com/porsager/postgres/issues/471", async () => {
     // If it ever gets fixed, update the TABLE above
     await sql
-      .unsafe(`CREATE TABLE test_bool_arr (values boolean[]);`)
+      .unsafe(`CREATE TEMP TABLE test_bool_arr (values boolean[]);`)
       .execute();
 
     // PostgresError: column "values" is of type boolean[] but expression is of type boolean

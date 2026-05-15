@@ -1,12 +1,8 @@
 import * as s from "../../simplevalidation.ts";
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import pg from "pg";
-import { PG_TYPE_MAPPING } from "../mappings/pg.ts";
+import { expect } from "vitest";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import { typedValidate } from "../../simplevalidation.ts";
 import { type PostgresType, type PostgresTypeBuilder } from "../types.ts";
-import { startContainer } from "./test-container.ts";
-import { table } from "../../table.ts";
 
 export type TestTable = Record<
   string,
@@ -30,7 +26,7 @@ interface Opts {
 
 export async function runMappingTest(opts: Opts) {
   const createTableSql = `
-      CREATE TABLE test_pg (
+      CREATE TEMP TABLE test_pg (
         ${Object.entries(opts.table)
           .map(([columnName, { type }]) => `"${columnName}" ${type} NOT NULL`)
           .join(",\n        ")}
