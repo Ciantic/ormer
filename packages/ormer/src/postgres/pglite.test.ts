@@ -30,7 +30,10 @@ const TABLE = {
   },
 
   // Date/Time types
-  test_timestamp: { type: "timestamp", value: new Date() },
+  test_timestamp: {
+    type: "timestamp",
+    value: new Date("2024-06-15T00:00:00Z"), // NOTE: UTC Value!
+  },
   test_timestamptz: {
     type: "timestamptz",
     value: new Date("2024-06-15T12:34:56Z"),
@@ -137,6 +140,14 @@ describe("pglite raw type mapping", () => {
       // it's a Date object here
       test_timestamp: expect.any(Date),
     });
+
+    // NOTE! We inserted in UTC but get back in local time, this is so bad that
+    // you should never use `timestamp` with pglite wrapper. Supposedly this
+    // is because timestamp is naive local time.
+    expect(row.test_timestamp.getTime(), "test_timestamp").toBe(
+      // NOTE: Local time value
+      new Date("2024-06-15T00:00:00").getTime(),
+    );
 
     Object.entries(TABLE).forEach(([columnName, { type, value }]) => {
       let mapping: (p?: any) => {

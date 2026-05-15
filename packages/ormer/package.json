@@ -22,6 +22,8 @@
     "kysely": "^0.29.0",
     "libsql": "^0.6.0-pre.32",
     "pg": "^8.20.0",
+    "postgrejs": "^2.23.0",
+    "postgres": "^3.4.9",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3",
     "valibot": "^1.3.1",
