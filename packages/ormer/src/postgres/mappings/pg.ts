@@ -43,8 +43,8 @@ export const PG_TYPE_MAPPING = {
   bytea: () => io(s.buffer),
 
   // Date/Time types
-  timestamp: (_?) => io(s.dateObject),
-  timestamptz: (_?) => io(s.dateObject),
+  timestamp: (_?) => io(s.union(s.dateObject, s.string), s.dateObject),
+  timestamptz: (_?) => io(s.union(s.dateObject, s.string), s.dateObject),
   date: () => io(s.union(s.dateObject, s.string), s.dateObject),
   time: (_?) => io(s.string),
   timetz: (_?) => io(s.string),
