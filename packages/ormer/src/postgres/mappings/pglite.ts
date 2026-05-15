@@ -6,7 +6,7 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 // PG Lite accepts numeric value *inputs* as string, number or bigint
 const numeric = s.union(s.string, s.number, s.bigint);
 
-// For serial8 and int8 utput value type differs based on size of the number.
+// For serial8 and int8 output value type differs based on size of the number.
 // Big numbers are returned as bigint, smaller numbers as number.
 
 export const PGLITE_TYPE_MAPPING = {
