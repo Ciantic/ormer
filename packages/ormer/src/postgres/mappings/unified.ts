@@ -7,16 +7,16 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 const numeric = s.union(s.string, s.number, s.bigint);
 
 export const PGUNIFIED_TYPE_MAPPING = {
-  // Numeric types
-  int2: () => io(numeric, s.number),
-  int4: () => io(numeric, s.number),
-  int8: () => io(numeric, s.string),
-  serial2: () => io(numeric, s.number),
-  serial4: () => io(numeric, s.number),
-  serial8: () => io(numeric, s.string),
-  float4: () => io(numeric, s.number),
-  float8: () => io(numeric, s.number),
-  decimal: (_?) => io(numeric, s.string),
+  // Numeric types, alias follows in comments
+  int2: () => io(numeric, s.number), // smallint
+  int4: () => io(numeric, s.number), // integer
+  int8: () => io(numeric, s.bigint), // bigint
+  serial2: () => io(numeric, s.number), // smallserial
+  serial4: () => io(numeric, s.number), // serial
+  serial8: () => io(numeric, s.bigint), // bigserial
+  float4: () => io(numeric, s.number), // real
+  float8: () => io(numeric, s.number), // double precision
+  decimal: (_?) => io(numeric, s.string), // numeric
   money: () => io(s.string),
 
   // Character types

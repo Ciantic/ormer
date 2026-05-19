@@ -30,10 +30,10 @@ const TABLE = {
   test_int4_b: { type: "int4", input: 200000n, output: 200000 },
   test_int4_s: { type: "int4", input: "200000", output: 200000 },
   
-  // Note: Output is always string for unified mapping
-  test_int8_b: { type: "int8", input: 123456789012345678n, output: "123456789012345678" },
-  test_int8_n: { type: "int8", input: 1234, output: "1234" }, 
-  test_int8_s: { type: "int8", input: "123456789012345678", output: "123456789012345678" },
+  // Note: Output is always bigint for unified mapping
+  test_int8_b: { type: "int8", input: 123456789012345678n, output: 123456789012345678n },
+  test_int8_n: { type: "int8", input: 1234, output: 1234n }, 
+  test_int8_s: { type: "int8", input: "123456789012345678", output: 123456789012345678n },
 
   test_serial2_n: { type: "serial2", input: 1234 },
   test_serial2_b: { type: "serial2", input: 1234n, output: 1234 },
@@ -43,10 +43,10 @@ const TABLE = {
   test_serial4_b: { type: "serial4", input: 12345n, output: 12345 },
   test_serial4_s: { type: "serial4", input: "12345", output: 12345 },
 
-  // Note: Output is always string for unified mapping
-  test_serial8_n: { type: "serial8", input: 1234, output: "1234" }, 
-  test_serial8_b: { type: "serial8", input: 123456789012345678n, output: "123456789012345678" },
-  test_serial8_s: { type: "serial8", input: "123456789012345678", output: "123456789012345678" },
+  // Note: Output is always bigint for unified mapping
+  test_serial8_n: { type: "serial8", input: 1234, output: 1234n }, 
+  test_serial8_b: { type: "serial8", input: 123456789012345678n, output: 123456789012345678n },
+  test_serial8_s: { type: "serial8", input: "123456789012345678", output: 123456789012345678n },
 
   test_float4_n: { type: "float4", input: 1.5 },
   test_float4_b: { type: "float4", input: 1234n, output: 1234 },
@@ -171,8 +171,8 @@ describe("npm:@electric-sql/pglite unified type mapping", () => {
   it("npm:@electric-sql/pglite insert and select all types round-trip correctly", async () => {
     const pglite = new PGlite({
       parsers: {
-        // int8/serial8: return string instead of number | bigint
-        20: (val: string) => val,
+        // int8/serial8: return bigint instead of string
+        20: (val: string) => BigInt(val),
         // timestamp: return string instead of Date
         1114: (val: string) => val,
         // date: return string instead of Date
@@ -208,8 +208,8 @@ describe("npm:pg unified type mapping", () => {
           database: "test",
           types: {
             getTypeParser: (oid: number, format) => {
-              // int8/serial8: return string instead of number | bigint
-              if (oid === 20) return (val: string) => val;
+              // int8/serial8: return bigint instead of number | bigint
+              if (oid === 20) return (val: string) => BigInt(val);
               // point: return string instead of {x, y}
               if (oid === 600) return (val: string) => val;
               // circle: return string instead of {x, y, radius}
@@ -340,6 +340,12 @@ describe("npm:postgres unified type mapping", () => {
           database: "test",
 
           types: {
+            bigint: {
+              to: 20,
+              from: [20],
+              serialize: (x: bigint) => x.toString(),
+              parse: (x: string) => BigInt(x),
+            },
             date: {
               to: 1184,
               from: [1114, 1082],
