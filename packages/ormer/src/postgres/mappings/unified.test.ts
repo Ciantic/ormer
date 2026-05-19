@@ -70,8 +70,10 @@ const TABLE = {
 
   // Date/Time types
   test_timestamp: { type: "timestamp", input: "2024-06-15 00:00:00" },
-  test_timestamp_str: { type: "timestamp", input: "2024-06-15T00:00:00", output: "2024-06-15 00:00:00" },
+  test_timestamp_nano: { type: "timestamp", input: "2024-06-15 01:02:03.123457" }, // 6 digits
+  test_timestamp_t: { type: "timestamp", input: "2024-06-15T00:00:00", output: "2024-06-15 00:00:00" },
   test_timestamptz: { type: "timestamptz", input: new Date("2024-06-15T12:34:56Z") },
+  test_timestamptz_millis: { type: "timestamptz", input: new Date("2024-06-15T12:34:56.146Z") },
   test_date: { type: "date", input: "2024-06-15" },
   test_date_str: { type: "date", input: "2024-06-15" },
   
