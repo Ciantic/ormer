@@ -29,7 +29,7 @@ export const PGUNIFIED_TYPE_MAPPING = {
 
   // Date/Time types
   timestamp: (_?) => io(s.string), // Naive datetime as YYYY-MM-DD HH:MM:SS
-  timestamptz: (_?) => io(s.union(s.dateObject, s.string), s.dateObject),
+  timestamptz: () => io(s.dateObject),
   date: () => io(s.string), // Date as YYYY-MM-DD string
   time: (_?) => io(s.string), // Time as HH:MM:SS string
   timetz: (_?) => io(s.string), // Time with timezone as HH:MM:SS±HH:MM string

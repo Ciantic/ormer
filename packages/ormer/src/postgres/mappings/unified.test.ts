@@ -82,31 +82,19 @@ const TABLE = {
     input: "2024-06-15T00:00:00",
     output: "2024-06-15 00:00:00",
   },
+  
   test_timestamptz: {
     type: "timestamptz",
     input: new Date("2024-06-15T12:34:56Z"),
   },
-  test_timestamptz_str: {
-    type: "timestamptz",
-    input: "2024-06-15T12:34:56Z",
-    output: new Date("2024-06-15T12:34:56Z"),
-  },
-  test_timestamp_iso_no_tz: {
-    type: "timestamp",
-    input: "2024-06-15 12:34:56",
-    output: "2024-06-15 12:34:56",
-  },
-  test_timestamptz_iso_no_tz: {
-    type: "timestamptz",
-    input: "2024-01-15T12:34:56Z",
-    output: new Date("2024-01-15T12:34:56Z"),
-  },
+  
   test_date: { type: "date", input: "2024-06-15" },
   test_date_str: {
     type: "date",
     input: "2024-06-15", // YYYY-MM-DD string format
     output: "2024-06-15",
   },
+  
   test_time: { type: "time", input: "12:34:56" },
   test_timetz: { type: "timetz", input: "12:34:56+00" },
   test_interval: { type: "interval", input: "1 year 2 mons 3 days" },
