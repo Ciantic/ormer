@@ -31,8 +31,8 @@ const TABLE = {
   test_int4_s: { type: "int4", input: "200000", output: 200000 },
   
   // Note: Output is always bigint for unified mapping
-  test_int8_b: { type: "int8", input: 123456789012345678n, output: 123456789012345678n },
   test_int8_n: { type: "int8", input: 1234, output: 1234n }, 
+  test_int8_b: { type: "int8", input: 123456789012345678n, output: 123456789012345678n },
   test_int8_s: { type: "int8", input: "123456789012345678", output: 123456789012345678n },
 
   test_serial2_n: { type: "serial2", input: 1234 },
@@ -66,10 +66,7 @@ const TABLE = {
   test_text: { type: "text", input: "hello world" },
 
   // Binary types
-  test_bytea: {
-    type: "bytea",
-    input: Uint8Array.from([0xde, 0xad, 0xbe, 0xef]),
-  },
+  test_bytea: { type: "bytea", input: Uint8Array.from([0xde, 0xad, 0xbe, 0xef]), },
 
   // Date/Time types
   test_timestamp: { type: "timestamp", input: "2024-06-15 00:00:00" },
@@ -99,10 +96,7 @@ const TABLE = {
   test_macaddr8: { type: "macaddr8", input: "08:00:2b:01:02:03:04:05" },
 
   // Text search types
-  test_tsvector: {
-    type: "tsvector",
-    input: "'a' 'cat' 'fat' 'mat' 'on' 'sat'",
-  },
+  test_tsvector: { type: "tsvector", input: "'a' 'cat' 'fat' 'mat' 'on' 'sat'", },
   test_tsquery: { type: "tsquery", input: "'fat' & 'cat'" },
 
   // XML type
