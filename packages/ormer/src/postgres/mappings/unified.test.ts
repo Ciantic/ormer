@@ -124,9 +124,12 @@ const TABLE = {
 
   // Array examples
   test_int4_arr: { type: "int4[]", input: [1, 2, 3] },
+  test_int8_arr: { type: "int8[]", input: [1n, 2n, 3n] },
   test_text_arr: { type: "text[]", input: ["hello", "world"] },
   test_float8_arr: { type: "float8[]", input: [1.1, 2.2, 3.3] },
   test_bool_arr: { type: "boolean[]", input: [true, false, true] },
+  test_timestamp_arr: { type: "timestamp[]", input: ["2024-06-15 00:00:00", "2024-06-16 00:00:00"] },
+  test_timestamptz_arr: { type: "timestamptz[]", input: [new Date("2024-06-15T12:34:56Z"), new Date("2024-06-16T12:34:56Z")] },
   test_decimal_arr: { type: "decimal(10,2)[]", input: ["10.50", "20.75"] },
   test_point_arr: { type: "point[]", input: ["(1,2)", "(3,4)"] },
   test_circle_arr: { type: "circle[]", input: ["<(1,2),3>", "<(4,5),6>"] },
@@ -175,6 +178,13 @@ describe("npm:pg unified type mapping", () => {
             getTypeParser: (oid: number, format) => {
               // int8/serial8: return bigint instead of number | bigint
               if (oid === 20) return (val: string) => BigInt(val);
+              // int8[]: parse as bigint array
+              if (oid === 1016)
+                return (val: string) =>
+                  (pg.types.arrayParser as any)
+                    .create(val)
+                    .parse()
+                    .map((v: string) => BigInt(v));
               // point: return string instead of {x, y}
               if (oid === 600) return (val: string) => val;
               // circle: return string instead of {x, y, radius}
@@ -183,6 +193,13 @@ describe("npm:pg unified type mapping", () => {
               if (oid === 1082) return (val: string) => val;
               // timestamp: return string instead of Date
               if (oid === 1114) return (val: string) => val;
+              // timestamp[]: parse as string array
+              if (oid === 1115)
+                return (val: string) =>
+                  (pg.types.arrayParser as any)
+                    .create(val)
+                    .parse()
+                    .map((v: string) => v);
               // interval: return string instead of {years, months, days}
               if (oid === 1186) return (val: string) => val;
               // bytea: wrap default parser to return Uint8Array
