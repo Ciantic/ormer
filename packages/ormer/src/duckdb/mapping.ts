@@ -68,7 +68,11 @@ type DuckDB = {
   JSDuckDBValueConverter: any;
 };
 
-function createDuckDbMapper(duckdb: DuckDB) {
+/**
+ * Creates a DuckDB value mapper that converts between JavaScript types and
+ * DuckDB types.
+ */
+export function createDuckDbMapper(duckdb: DuckDB) {
   const {
     DuckDBBlobValue,
     DuckDBTimestampTZValue,
@@ -252,6 +256,13 @@ type KyselyDriver = {
   releaseConnection(connection: any): Promise<void>;
 };
 
+type KyselyDialect = {
+  createDriver: () => any;
+  createAdapter: () => any;
+  createQueryCompiler: () => any;
+  createIntrospector: (db: any) => any;
+};
+
 /**
  * Creates a Kysely dialect for DuckDB using @duckdb/node-api.
  *
@@ -278,12 +289,7 @@ export function createDuckDbKyselyDialect(
   instance: {
     connect: () => Promise<any>;
   },
-): {
-  createDriver: () => any;
-  createAdapter: () => any;
-  createQueryCompiler: () => any;
-  createIntrospector: (db: any) => any;
-} {
+): KyselyDialect {
   // Track DuckDB connections for cleanup
   const duckConnections = new WeakMap<
     KyselyDatabaseConnection,
