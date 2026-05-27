@@ -5,10 +5,13 @@ import { table } from "../table.ts";
 import { database } from "../database.ts";
 import { createTableSql } from "../sql.ts";
 import { DUCKDBCOLUMN_TO_SQLTYPE, DUCKDB_OPTS } from "./driver.ts";
-import type { DuckdbUnifiedTypeMapping } from "./mapping.ts";
+import {
+  createDuckDbKyselyDialect,
+  type DuckdbUnifiedTypeMapping,
+} from "./mapping.ts";
 import type { InferKyselyTypes } from "../index.ts";
-import { createDuckDbKyselyDialect } from "./duckdbkysely.ts";
 import { DuckDBInstance } from "@duckdb/node-api";
+import * as duckdbModule from "@duckdb/node-api";
 
 const allTypesTable = table("all_types", {
   // integer types
@@ -164,7 +167,7 @@ describe("duckdb createTableSql", () => {
     type KyselyTypes = InferKyselyTypes<typeof db, DuckdbUnifiedTypeMapping>;
 
     const kyselyDb = new k.Kysely<KyselyTypes>({
-      dialect: createDuckDbKyselyDialect(instance),
+      dialect: createDuckDbKyselyDialect(k, duckdbModule, instance),
     });
 
     const blobValue = new Uint8Array([1, 2, 3]);

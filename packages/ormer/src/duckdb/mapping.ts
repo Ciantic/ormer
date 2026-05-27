@@ -4,7 +4,7 @@
  * Input = Type used for INSERT and UPDATE operations
  * Output = Type used for SELECT operations results
  */
-export type InputOutput<I, O = I> = {
+type InputOutput<I, O = I> = {
   readonly __insert__: I;
   readonly __update__: I;
   readonly __select__: O;
@@ -54,3 +54,304 @@ export type DuckdbUnifiedTypeMapping = {
   // Bit string type
   bit: InputOutput<string>;
 };
+
+// Inlined numeric DuckDBTypeId constants to avoid importing them (from @duckdb/node-api)
+const TYPE_BOOLEAN = 1;
+const TYPE_TINYINT = 2;
+const TYPE_SMALLINT = 3;
+const TYPE_INTEGER = 4;
+const TYPE_BIGINT = 5;
+const TYPE_UTINYINT = 6;
+const TYPE_USMALLINT = 7;
+const TYPE_UINTEGER = 8;
+const TYPE_UBIGINT = 9;
+const TYPE_FLOAT = 10;
+const TYPE_DOUBLE = 11;
+const TYPE_TIMESTAMP = 12;
+const TYPE_DATE = 13;
+const TYPE_TIME = 14;
+const TYPE_INTERVAL = 15;
+const TYPE_HUGEINT = 16;
+const TYPE_VARCHAR = 17;
+const TYPE_BLOB = 18;
+const TYPE_DECIMAL = 19;
+const TYPE_TIMESTAMP_S = 20;
+const TYPE_TIMESTAMP_MS = 21;
+const TYPE_TIMESTAMP_NS = 22;
+const TYPE_ENUM = 23;
+const TYPE_LIST = 24;
+const TYPE_STRUCT = 25;
+const TYPE_MAP = 26;
+const TYPE_UUID = 27;
+const TYPE_UNION = 28;
+const TYPE_BIT = 29;
+const TYPE_TIME_TZ = 30;
+const TYPE_TIMESTAMP_TZ = 31;
+const TYPE_UHUGEINT = 32;
+const TYPE_TIME_NS = 39;
+const TYPE_BIGNUM = 35;
+
+type Kysely = {
+  PostgresDriver: any;
+  PostgresAdapter: any;
+  PostgresQueryCompiler: any;
+  PostgresIntrospector: any;
+};
+
+type KyselyQueryResult = {
+  rows: any[];
+  numAffectedRows: bigint;
+  numChangedRows: bigint;
+};
+
+type KyselyDatabaseConnection = {
+  executeQuery(compiledQuery: any): Promise<KyselyQueryResult>;
+  streamQuery(compiledQuery: any, chunkSize?: number): AsyncIterable<any>;
+};
+
+type KyselyCompiledQuery = { sql: string; parameters: unknown[] };
+
+type KyselyDriver = {
+  acquireConnection(): Promise<KyselyDatabaseConnection>;
+  beginTransaction(connection: any, settings: any): Promise<void>;
+  commitTransaction(connection: any): Promise<void>;
+  rollbackTransaction(connection: any): Promise<void>;
+  destroy(): Promise<void>;
+  init(): Promise<void>;
+  releaseConnection(connection: any): Promise<void>;
+};
+
+/**
+ * Creates a Kysely dialect for DuckDB using @duckdb/node-api.
+ *
+ * Takes the DuckDB module at runtime to avoid making @duckdb/node-api a hard
+ * dependency of ormer (it's a devDependency that users install themselves).
+ *
+ * Properly converts DuckDB value types (DuckDBBlobValue, DuckDBTimestampValue,
+ * etc.) to plain JS types matching DuckdbUnifiedTypeMapping.
+ *
+ * @example
+ * ```
+ * import * as k from "kysely";
+ * import { DuckDBInstance } from "@duckdb/node-api";
+ * import * as duckdb from "@duckdb/node-api";
+ * import { createDuckDbKyselyDialect } from "ormer";
+ *
+ * const instance = await DuckDBInstance.create(":memory:");
+ * const db = new k.Kysely({ dialect: createDuckDbKyselyDialect(k, duckdb, instance) });
+ * ```
+ */
+export function createDuckDbKyselyDialect(
+  k: Kysely,
+  duckdb: {
+    DuckDBBlobValue: any;
+    DuckDBTimestampTZValue: any;
+    DuckDBTimestampValue: any;
+    DuckDBDateValue: any;
+    DuckDBTimeValue: any;
+    DuckDBTimeTZValue: any;
+    DuckDBIntervalValue: any;
+    DuckDBDecimalValue: any;
+    DuckDBListValue: any;
+    JSDuckDBValueConverter: any;
+  },
+  instance: {
+    connect: () => Promise<any>;
+  },
+): {
+  createDriver: () => any;
+  createAdapter: () => any;
+  createQueryCompiler: () => any;
+  createIntrospector: (db: any) => any;
+} {
+  const {
+    DuckDBBlobValue,
+    DuckDBTimestampTZValue,
+    DuckDBTimestampValue,
+    DuckDBDateValue,
+    DuckDBTimeValue,
+    DuckDBTimeTZValue,
+    DuckDBIntervalValue,
+    DuckDBDecimalValue,
+    DuckDBListValue,
+    JSDuckDBValueConverter,
+  } = duckdb;
+
+  /**
+   * Convert JavaScript values to DuckDB bind parameter values.
+   */
+  function getBindParam(value: unknown): unknown {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    if (value instanceof Date) {
+      return new DuckDBTimestampTZValue(BigInt(value.getTime()) * 1_000_000n);
+    }
+    if (value instanceof Uint8Array) {
+      return new DuckDBBlobValue(value);
+    }
+    if (typeof value === "bigint") {
+      return "" + value;
+    }
+    if (Array.isArray(value)) {
+      return new DuckDBListValue(value.map(getBindParam));
+    }
+    if (typeof value === "object") {
+      return JSON.stringify(value);
+    }
+    return value;
+  }
+
+  /**
+   * Custom DuckDB value converter that returns JS-native types
+   * matching our DuckdbUnifiedTypeMapping expectations.
+   */
+  function duckdbConverter(
+    value: unknown,
+    type: { typeId: number; alias?: string; valueType?: any },
+    converter: unknown,
+  ): unknown {
+    if (value === null || value === undefined) return null;
+
+    switch (type.typeId) {
+      case TYPE_TIMESTAMP:
+      case TYPE_TIMESTAMP_S:
+      case TYPE_TIMESTAMP_MS:
+      case TYPE_TIMESTAMP_NS: {
+        return (value as any).toString();
+      }
+      case TYPE_TIMESTAMP_TZ: {
+        const tstz = value as { micros: bigint };
+        return new Date(Number(tstz.micros) / 1_000_000);
+      }
+      case TYPE_DATE: {
+        return (value as any).toString();
+      }
+      case TYPE_TIME:
+      case TYPE_TIME_TZ: {
+        return (value as any).toString();
+      }
+      case TYPE_TIME_NS: {
+        return (value as any).toString();
+      }
+      case TYPE_INTERVAL: {
+        return (value as any).toString().replace("months", "mons");
+      }
+      case TYPE_DECIMAL: {
+        return (value as any)
+          .toString()
+          .replace(/(\.\d*?)0+$/, "$1")
+          .replace(/\.$/, "");
+      }
+      case TYPE_BLOB: {
+        return new Uint8Array((value as { bytes: Uint8Array }).bytes);
+      }
+      case TYPE_BIT: {
+        return String(value);
+      }
+      case TYPE_HUGEINT:
+      case TYPE_UHUGEINT:
+      case TYPE_BIGNUM:
+      case TYPE_BIGINT:
+      case TYPE_UBIGINT: {
+        // DuckDB JSON conversion returns these as strings; convert to bigint
+        return BigInt(value as string);
+      }
+      case TYPE_LIST: {
+        const listVal = value as { items: unknown[] };
+        return listVal.items.map((item) =>
+          duckdbConverter(item, type.valueType!, converter),
+        );
+      }
+      default:
+        return JSDuckDBValueConverter(value, type, converter);
+    }
+  }
+
+  /**
+   * Convert DuckDB result rows to plain objects using the custom converter.
+   * Also parses JSON columns from strings back into objects.
+   */
+  function getRowObjects(result: {
+    columnTypes(): { alias?: string }[];
+    columnNames(): string[];
+    convertRowObjects(converter: unknown): Record<string, unknown>[];
+  }): Record<string, unknown>[] {
+    const colTypes = result.columnTypes();
+    const colNames = result.columnNames();
+    return result
+      .convertRowObjects(duckdbConverter)
+      .map((row: Record<string, unknown>) =>
+        Object.fromEntries(
+          Object.entries(row).map(([k, v]) => {
+            const colType = colTypes[colNames.indexOf(k)];
+            if (colType?.alias === "JSON") {
+              try {
+                return [k, JSON.parse(v as string)];
+              } catch {
+                // ignore parse errors
+              }
+            }
+            return [k, v];
+          }),
+        ),
+      );
+  }
+
+  // Track DuckDB connections for cleanup
+  const duckConnections = new WeakMap<
+    KyselyDatabaseConnection,
+    { closeSync(): void }
+  >();
+
+  return {
+    createDriver: () =>
+      ({
+        acquireConnection: async () => {
+          const conn = await instance.connect();
+          const dbConn: KyselyDatabaseConnection = {
+            async executeQuery(compiledQuery: KyselyCompiledQuery) {
+              const sql = compiledQuery.sql;
+              const params = compiledQuery.parameters.slice();
+              const binds = params.map(getBindParam);
+
+              const results = await conn.runAndReadAll(sql, binds);
+              const rows = getRowObjects(results);
+
+              return {
+                rows: rows as any,
+                numAffectedRows: BigInt(rows.length ?? 0),
+                numChangedRows: BigInt(rows.length ?? 0),
+              } satisfies KyselyQueryResult;
+            },
+            streamQuery(_compiledQuery: any, _chunkSize?: number) {
+              throw new Error("streamQuery not implemented");
+            },
+          };
+          duckConnections.set(dbConn, conn);
+          return dbConn;
+        },
+        beginTransaction: async (connection: any, settings: any) => {
+          await k.PostgresDriver.prototype.beginTransaction(
+            connection,
+            settings,
+          );
+        },
+        commitTransaction: async (connection: any) => {
+          await k.PostgresDriver.prototype.commitTransaction(connection);
+        },
+        rollbackTransaction: async (connection: any) => {
+          await k.PostgresDriver.prototype.rollbackTransaction(connection);
+        },
+        destroy: async () => {},
+        init: async () => {},
+        releaseConnection: async (_connection: any) => {
+          const duckConn = duckConnections.get(_connection);
+          duckConn?.closeSync();
+        },
+      }) satisfies KyselyDriver,
+    createAdapter: () => new k.PostgresAdapter(),
+    createQueryCompiler: () => new k.PostgresQueryCompiler(),
+    createIntrospector: (db: any) => new k.PostgresIntrospector(db),
+  };
+}
