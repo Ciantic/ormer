@@ -144,14 +144,14 @@ type EnsureOneDim<Dims extends (number | undefined)[]> = Dims extends {
  * Examples:
  *
  * ```
- * makeArrayType("text"): "text[]"
- * makeArrayType("text", 4): "text[4]"
- * makeArrayType("text", undefined, undefined): "text[][]"
- * makeArrayType("text", 4, 5): "text[4][5]"
- * makeArrayType("text", undefined, 3): "text[][3]"
+ * makePgArrayType("text"): "text[]"
+ * makePgArrayType("text", 4): "text[4]"
+ * makePgArrayType("text", undefined, undefined): "text[][]"
+ * makePgArrayType("text", 4, 5): "text[4][5]"
+ * makePgArrayType("text", undefined, 3): "text[][3]"
  * ```
  */
-export function makeArrayType<
+export function makePgArrayType<
   T extends BasePostgresType | BasePostgresVariadicTypes,
   const N extends (number | undefined)[] = [],
 >(baseType: T, ...dimensions: N): ArrayDim<T, EnsureOneDim<N>> {

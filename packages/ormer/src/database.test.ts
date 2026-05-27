@@ -1,6 +1,4 @@
-import * as z from "zod";
-import * as h from "./columnhelpers.ts";
-import * as c from "./columns.ts";
+import * as c from "./postgres/columns.ts";
 import { table } from "./table.ts";
 import { database } from "./database.ts";
 import { describe, it, expect, expectTypeOf } from "vitest";
@@ -8,13 +6,13 @@ import { describe, it, expect, expectTypeOf } from "vitest";
 describe("database", () => {
   it("it combines tables to an object", () => {
     const table1 = table("table1", {
-      id: h.pkAutoInc(),
-      foo: c.string(),
+      id: c.serial8(),
+      foo: c.text(),
     });
 
     const table2 = table("table2", {
-      id: h.pkAutoInc(),
-      bar: c.string(),
+      id: c.serial8(),
+      bar: c.text(),
     });
 
     const db = database({}, table1, table2);

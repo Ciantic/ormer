@@ -6,6 +6,5 @@ export * from "./kysely.ts";
 export * from "./sql.ts";
 
 export * from "./postgres/index.ts";
-
-export * from "./drivers/duckdb.ts";
-export * from "./drivers/sqlite.ts";
+export * from "./sqlite/index.ts";
+export * from "./duckdb/index.ts";
