@@ -5,6 +5,12 @@ export const BASE_DUCKDB_TYPES = [
   "int4", // integer
   "int8", // bigint
   "hugeint",
+  "bignum",
+  "utinyint",
+  "usmallint",
+  "uinteger",
+  "ubigint",
+  "uhugeint",
   "float4", // real
   "float8", // double
   "decimal",

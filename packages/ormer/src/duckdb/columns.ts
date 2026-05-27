@@ -61,6 +61,54 @@ export function hugeint(params?: any) {
   return { type: "hugeint", ...params };
 }
 
+export function bignum(): ColumnTypeSingualr<"bignum">;
+export function bignum<T extends Params>(
+  params: R<T, Params>,
+): ColumnType<"bignum", T>;
+export function bignum(params?: any) {
+  return { type: "bignum", ...params };
+}
+
+export function utinyint(): ColumnTypeSingualr<"utinyint">;
+export function utinyint<T extends Params>(
+  params: R<T, Params>,
+): ColumnType<"utinyint", T>;
+export function utinyint(params?: any) {
+  return { type: "utinyint", ...params };
+}
+
+export function usmallint(): ColumnTypeSingualr<"usmallint">;
+export function usmallint<T extends Params>(
+  params: R<T, Params>,
+): ColumnType<"usmallint", T>;
+export function usmallint(params?: any) {
+  return { type: "usmallint", ...params };
+}
+
+export function uinteger(): ColumnTypeSingualr<"uinteger">;
+export function uinteger<T extends Params>(
+  params: R<T, Params>,
+): ColumnType<"uinteger", T>;
+export function uinteger(params?: any) {
+  return { type: "uinteger", ...params };
+}
+
+export function ubigint(): ColumnTypeSingualr<"ubigint">;
+export function ubigint<T extends Params>(
+  params: R<T, Params>,
+): ColumnType<"ubigint", T>;
+export function ubigint(params?: any) {
+  return { type: "ubigint", ...params };
+}
+
+export function uhugeint(): ColumnTypeSingualr<"uhugeint">;
+export function uhugeint<T extends Params>(
+  params: R<T, Params>,
+): ColumnType<"uhugeint", T>;
+export function uhugeint(params?: any) {
+  return { type: "uhugeint", ...params };
+}
+
 export function float4(): ColumnTypeSingualr<"float4">;
 export function float4<T extends Params>(
   params: R<T, Params>,

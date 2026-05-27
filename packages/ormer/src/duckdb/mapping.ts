@@ -17,6 +17,12 @@ export type DuckdbUnifiedTypeMapping = {
   int4: InputOutput<string | number | bigint, number>;
   int8: InputOutput<string | number | bigint, bigint>;
   hugeint: InputOutput<string | number | bigint, bigint>;
+  bignum: InputOutput<string | number | bigint, bigint>;
+  utinyint: InputOutput<string | number | bigint, number>;
+  usmallint: InputOutput<string | number | bigint, number>;
+  uinteger: InputOutput<string | number | bigint, number>;
+  ubigint: InputOutput<string | number | bigint, bigint>;
+  uhugeint: InputOutput<string | number | bigint, bigint>;
   float4: InputOutput<string | number | bigint, number>;
   float8: InputOutput<string | number | bigint, number>;
   decimal: InputOutput<string | number | bigint, string>;

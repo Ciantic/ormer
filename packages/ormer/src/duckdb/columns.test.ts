@@ -11,6 +11,12 @@ describe("duckdb columns", () => {
       col_int4: o.int4(),
       col_int8: o.int8(),
       col_hugeint: o.hugeint(),
+      col_bignum: o.bignum(),
+      col_utinyint: o.utinyint(),
+      col_usmallint: o.usmallint(),
+      col_uinteger: o.uinteger(),
+      col_ubigint: o.ubigint(),
+      col_uhugeint: o.uhugeint(),
       col_float4: o.float4(),
       col_float8: o.float8(),
       col_decimal: o.decimal({ precision: 10, scale: 2 }),
@@ -50,6 +56,12 @@ describe("duckdb columns", () => {
     expect(allColumns.columns.col_int4.type).toBe("int4");
     expect(allColumns.columns.col_int8.type).toBe("int8");
     expect(allColumns.columns.col_hugeint.type).toBe("hugeint");
+    expect(allColumns.columns.col_bignum.type).toBe("bignum");
+    expect(allColumns.columns.col_utinyint.type).toBe("utinyint");
+    expect(allColumns.columns.col_usmallint.type).toBe("usmallint");
+    expect(allColumns.columns.col_uinteger.type).toBe("uinteger");
+    expect(allColumns.columns.col_ubigint.type).toBe("ubigint");
+    expect(allColumns.columns.col_uhugeint.type).toBe("uhugeint");
     expect(allColumns.columns.col_float4.type).toBe("float4");
     expect(allColumns.columns.col_float8.type).toBe("float8");
     expect(allColumns.columns.col_decimal.type).toBe("decimal");
