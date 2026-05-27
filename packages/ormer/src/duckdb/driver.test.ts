@@ -1,17 +1,19 @@
 import { describe, it, expect } from "vitest";
+import * as k from "kysely";
 import * as duckdb from "./columns.ts";
 import { table } from "../table.ts";
 import { database } from "../database.ts";
 import { createTableSql } from "../sql.ts";
 import { DUCKDBCOLUMN_TO_SQLTYPE, DUCKDB_OPTS } from "./driver.ts";
+import type { DuckdbUnifiedTypeMapping } from "./mapping.ts";
+import type { InferKyselyTypes } from "../index.ts";
+import { createDuckDbKyselyDialect } from "./duckdbkysely.ts";
 import { DuckDBInstance } from "@duckdb/node-api";
 
 const allTypesTable = table("all_types", {
   // integer types
   id: duckdb.int8({
     primaryKey: true,
-    notInsertable: true,
-    notUpdatable: true,
   }),
   int1_col: duckdb.int1(),
   int1_nullable: duckdb.int1({ nullable: true }),
@@ -59,8 +61,6 @@ const allTypesTable = table("all_types", {
 const referencedTable = table("referenced", {
   id: duckdb.int8({
     primaryKey: true,
-    notInsertable: true,
-    notUpdatable: true,
   }),
   name: duckdb.text(),
 });
@@ -68,8 +68,6 @@ const referencedTable = table("referenced", {
 const withFkTable = table("with_fk", {
   id: duckdb.int8({
     primaryKey: true,
-    notInsertable: true,
-    notUpdatable: true,
   }),
   ref_id: duckdb.foreignKey(referencedTable, "id"),
 });
@@ -149,5 +147,103 @@ describe("duckdb createTableSql", () => {
     expect(tableNames).toEqual(["all_types", "referenced", "with_fk"]);
 
     connection.closeSync();
+  });
+
+  it("DuckDB: inserts a row with all columns via Kysely and reads it back", async () => {
+    const instance = await DuckDBInstance.create(":memory:");
+    const conn = await instance.connect();
+
+    const db = database({}, allTypesTable);
+    const sql = createTableSql(DUCKDBCOLUMN_TO_SQLTYPE, db, DUCKDB_OPTS);
+    const statements = sql.split(";").filter((s) => s.trim().length > 0);
+    for (const stmt of statements) {
+      await conn.run(stmt.trim() + ";");
+    }
+    conn.closeSync();
+
+    type KyselyTypes = InferKyselyTypes<typeof db, DuckdbUnifiedTypeMapping>;
+
+    const kyselyDb = new k.Kysely<KyselyTypes>({
+      dialect: createDuckDbKyselyDialect(instance),
+    });
+
+    const blobValue = new Uint8Array([1, 2, 3]);
+
+    const insertRow = {
+      id: 100n,
+      int1_col: 1,
+      int1_nullable: null,
+      int2_col: 2,
+      int4_col: 3,
+      int8_col: 4n,
+      hugeint_col: 5n,
+      bignum_col: 6n,
+      utinyint_col: 7,
+      usmallint_col: 8,
+      uinteger_col: 9,
+      ubigint_col: 10n,
+      uhugeint_col: 11n,
+      float4_col: 1.5,
+      float8_col: 2.5,
+      decimal_col: "10.99",
+      text_col: "hello",
+      varchar_col: "world",
+      char_col: "abcdefg",
+      blob_col: blobValue,
+      bool_col: true,
+      uuid_col: "550e8400-e29b-41d4-a716-446655440000",
+      timestamp_col: "2024-01-15 10:30:00",
+      timestamptz_col: new Date("2024-01-15T10:30:00Z"),
+      date_col: "2024-01-15",
+      time_col: "10:30:00",
+      interval_col: "1 year",
+      json_col: { key: "value" },
+      bit_col: "10101010",
+      unique_col: "unique_value",
+    } satisfies k.InsertObject<KyselyTypes, "all_types">;
+
+    await kyselyDb.insertInto("all_types").values(insertRow).execute();
+
+    const results = await kyselyDb
+      .selectFrom("all_types")
+      .selectAll()
+      .execute();
+
+    const row = results[0]!;
+    expect(row.int1_col).toBe(1);
+    expect(row.int1_nullable).toBe(null);
+    expect(row.int2_col).toBe(2);
+    expect(row.int4_col).toBe(3);
+    expect(row.int8_col).toBe(4n);
+    expect(row.hugeint_col).toBe(5n);
+    expect(row.bignum_col).toBe(6n);
+    expect(row.utinyint_col).toBe(7);
+    expect(row.usmallint_col).toBe(8);
+    expect(row.uinteger_col).toBe(9);
+    expect(row.ubigint_col).toBe(10n);
+    expect(row.uhugeint_col).toBe(11n);
+    expect(row.float4_col).toBe(1.5);
+    expect(row.float8_col).toBe(2.5);
+    expect(row.decimal_col).toBe("10.99");
+    expect(row.text_col).toBe("hello");
+    expect(row.varchar_col).toBe("world");
+    expect(row.char_col).toBe("abcdefg");
+    expect(row.blob_col).toEqual(blobValue);
+    expect(row.bool_col).toBe(true);
+    expect(row.uuid_col).toBe("550e8400-e29b-41d4-a716-446655440000");
+    expect(row.timestamp_col).toBe("2024-01-15 10:30:00");
+    expect(row.timestamptz_col).toEqual(new Date("2024-01-15T10:30:00Z"));
+    expect(row.date_col).toBe("2024-01-15");
+    expect(row.time_col).toBe("10:30:00");
+    expect(row.interval_col).toBe("1 year");
+    expect(row.json_col).toEqual({ key: "value" });
+    expect(row.bit_col).toBe("10101010");
+    expect(row.unique_col).toBe("unique_value");
+    expect(row.id).toBe(100n);
+    expect(row.timestamp_now).toEqual(expect.any(String));
+    expect(row.timestamptz_now).toEqual(expect.any(Date));
+    expect(row.uuid_with_default).toEqual(expect.any(String));
+
+    await instance.closeSync();
   });
 });
