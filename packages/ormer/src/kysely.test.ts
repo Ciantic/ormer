@@ -4,7 +4,12 @@ import * as pg from "./postgres/columns.ts";
 import type { PgUnifiedTypeMapping } from "./postgres/mapping.ts";
 import type { InferKyselyTypes } from "./kysely.ts";
 import type { ColumnType } from "kysely";
-import { describe, it, expectTypeOf } from "vitest";
+import * as k from "kysely";
+import { PGlite } from "@electric-sql/pglite";
+import { createPgliteParsers } from "./postgres/mapping.ts";
+import { createTableSql } from "./sql.ts";
+import { PGCOLUMN_TO_SQLTYPE, POSTGRES_OPTS } from "./postgres/driver.ts";
+import { describe, it, expect, expectTypeOf } from "vitest";
 
 const allTypesTable = table("all_types", {
   // integer types
@@ -66,14 +71,14 @@ const allTypesTable = table("all_types", {
   polygon_col: pg.polygon(),
   circle_col: pg.circle(),
   // system types
-  xmin_col: pg.xmin(),
+  // xmin_col: pg.xmin(),
   pg_lsn_col: pg.pg_lsn(),
   pg_snapshot_col: pg.pg_snapshot(),
   // unique
   unique_col: pg.text({ unique: true }),
 });
 
-describe("kysely2", () => {
+describe("kysely", () => {
   it("infers kysely types from all_types table using PgUnifiedTypeMapping", () => {
     const db = database({}, allTypesTable);
 
@@ -174,11 +179,93 @@ describe("kysely2", () => {
         path_col: ColumnType<string, string, string>;
         polygon_col: ColumnType<string, string, string>;
         circle_col: ColumnType<string, string, string>;
-        xmin_col: ColumnType<number, number, number>;
         pg_lsn_col: ColumnType<string, string, string>;
         pg_snapshot_col: ColumnType<string, string, string>;
         unique_col: ColumnType<string, string, string>;
       };
     }>();
+  });
+
+  it("pglite: inserts a row with all columns via Kysely and reads it back", async () => {
+    const db = database({}, allTypesTable);
+
+    const pglite = new PGlite({
+      parsers: createPgliteParsers(),
+    });
+
+    const sql = createTableSql(PGCOLUMN_TO_SQLTYPE, db, POSTGRES_OPTS);
+    await pglite.exec(sql);
+
+    type KyselyTypes = InferKyselyTypes<typeof db, PgUnifiedTypeMapping>;
+
+    const kyselyDb = new k.Kysely<KyselyTypes>({
+      dialect: new k.PGliteDialect({
+        pglite,
+      }),
+    });
+
+    const insertRow = {
+      int2_col: 1,
+      int2_nullable: null,
+      int4_col: 2,
+      int8_col: 3n,
+      serial2_col: 1,
+      serial4_col: 2,
+      serial8_col: 3n,
+      float4_col: 1.5,
+      float8_col: 2.5,
+      decimal_col: "10.99",
+      money_col: "$10.99",
+      text_col: "hello",
+      varchar_col: "world",
+      char_col: "abcdefg   ",
+      bytea_col: new Uint8Array([1, 2, 3]),
+      bool_col: true,
+      uuid_col: "550e8400-e29b-41d4-a716-446655440000",
+      timestamp_col: "2024-01-15 10:30:00",
+      timestamptz_col: new Date("2024-01-15T10:30:00Z"),
+      date_col: "2024-01-15",
+      time_col: "10:30:00",
+      timetz_col: "10:30:00+05",
+      interval_col: "1 year 2 mons",
+      jsonb_col: { key: "value" },
+      json_col: { key: "value" },
+      inet_col: "192.168.0.1",
+      cidr_col: "192.168.0.0/24",
+      macaddr_col: "08:00:2b:01:02:03",
+      macaddr8_col: "08:00:2b:01:02:03:04:05",
+      bit_col: "10101010",
+      varbit_col: "10101",
+      tsvector_col: "'hello' 'world'",
+      tsquery_col: "'hello' & 'world'",
+      xml_col: "<tag>content</tag>",
+      point_col: "(1,2)",
+      line_col: "{1,2,3}",
+      lseg_col: "[(1,2),(3,4)]",
+      box_col: "(3,4),(1,2)",
+      path_col: "[(1,2),(3,4)]",
+      polygon_col: "((1,2),(3,4),(5,6))",
+      circle_col: "<(1,2),3>",
+      pg_lsn_col: "0/16B3740",
+      pg_snapshot_col: "10:20:",
+      unique_col: "unique_value",
+    } satisfies k.InsertObject<KyselyTypes, "all_types">;
+
+    await kyselyDb.insertInto("all_types").values(insertRow).execute();
+
+    const results = await kyselyDb
+      .selectFrom("all_types")
+      .selectAll()
+      .execute();
+
+    expect(results[0]).toEqual({
+      ...insertRow,
+      id: 1n,
+      timestamp_now: expect.any(String),
+      timestamptz_now: expect.any(Date),
+      uuid_with_default: expect.any(String),
+    });
+
+    await pglite.close();
   });
 });

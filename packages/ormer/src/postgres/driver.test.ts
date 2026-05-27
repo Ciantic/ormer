@@ -5,6 +5,7 @@ import { database } from "../database.ts";
 import { createTableSql } from "../sql.ts";
 import { PGCOLUMN_TO_SQLTYPE, POSTGRES_OPTS } from "./driver.ts";
 import { PGlite } from "@electric-sql/pglite";
+import { createPgliteParsers } from "./mapping.ts";
 
 const allTypesTable = table("all_types", {
   // integer types
@@ -155,7 +156,9 @@ describe("postgres createTableSql", () => {
 
   it("executes CREATE TABLE in a PGlite in-memory instance", async () => {
     const pgLiteDb = database({}, allTypesTable, referencedTable, withFkTable);
-    const pgLite = new PGlite();
+    const pgLite = new PGlite({
+      parsers: createPgliteParsers(),
+    });
 
     const sql = createTableSql(PGCOLUMN_TO_SQLTYPE, pgLiteDb, POSTGRES_OPTS);
     await pgLite.exec(sql);
