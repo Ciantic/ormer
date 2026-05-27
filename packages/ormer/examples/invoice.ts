@@ -1,90 +1,105 @@
-import * as o from "ormer";
+import {
+  pg,
+  table,
+  database,
+  navigationOne,
+  navigationMany,
+  createTableSql,
+  type InferKyselyTypes,
+  PGCOLUMN_TO_SQLTYPE,
+  POSTGRES_OPTS,
+} from "ormer";
 import * as k from "kysely";
 import { PGlite } from "@electric-sql/pglite";
-import { assert } from "vitest";
 import process from "node:process";
 
-const invoiceTable = o.table("invoice", {
-  id: o.pkAutoInc(),
-  title: o.string(),
-  description: o.string({
+const invoiceTable = table("invoice", {
+  id: pg.serial8({
+    primaryKey: true,
+    notInsertable: true,
+    notUpdatable: true,
+  }),
+  title: pg.text(),
+  description: pg.text({
     nullable: true,
   }),
-  due_date: o.datetime({
+  due_date: pg.timestamptz({
     default: "now",
   }),
-  rowversion: o.rowversion(),
-  concurrencyStamp: o.concurrencyStamp(),
-  created_at: o.createdAt(),
-  updated_at: o.updatedAt(),
   get rows() {
-    return o.navigationMany(invoiceRowTable, "invoice_id");
+    return navigationMany(invoiceRowTable, "invoice_id");
   },
 });
 
-const invoiceRowTable = o.table("invoice_row", {
-  id: o.pkAutoInc(),
-  title: o.string(),
-  price: o.float64(),
-  tax_percentage: o.float64(),
-  quantity: o.float64(),
-  invoice_id: o.foreignKey(invoiceTable, "id", {
-    onDeleteSetNull: true,
+const invoiceRowTable = table("invoice_row", {
+  id: pg.serial8({
+    primaryKey: true,
+    notInsertable: true,
+    notUpdatable: true,
   }),
-  get invoice() {
-    return o.navigationOne(invoiceRowTable, "invoice_id");
-  },
-  concurrencyStamp: o.concurrencyStamp(),
-});
-
-const personTable = o.table("person", {
-  id: o.pkAutoInc(),
-  first_name: o.string(),
-  last_name: o.string({
+  title: pg.text(),
+  price: pg.float8(),
+  tax_percentage: pg.float8(),
+  quantity: pg.float8(),
+  invoice_id: pg.foreignKey(invoiceTable, "id", {
     nullable: true,
   }),
-  email: o.email(),
-  // Self referencing foreign key, requires untyped
-  get supervisor_id() {
-    return o.foreignKey(personTable, "id");
-  },
-  created_at: o.createdAt(),
-  updated_at: o.updatedAt(),
+  invoice: navigationOne(invoiceTable, "id"),
 });
 
-const exampleDb = o.database({}, invoiceTable, invoiceRowTable, personTable);
+const personTable = table("person", {
+  id: pg.serial8({
+    primaryKey: true,
+    notInsertable: true,
+    notUpdatable: true,
+  }),
+  first_name: pg.text(),
+  last_name: pg.text({
+    nullable: true,
+  }),
+  email: pg.text(),
+  // Self referencing foreign key, requires getter
+  get supervisor_id() {
+    return pg.foreignKey(personTable, "id");
+  },
+  get supervisor() {
+    return navigationOne(personTable, "supervisor_id");
+  },
+  get subordinates() {
+    return navigationMany(personTable, "supervisor_id");
+  },
+});
+
+const exampleDb = database({}, invoiceTable, invoiceRowTable, personTable);
 
 const pglite = new PGlite();
-const db = new k.Kysely<KyselyType>({
-  dialect: new k.PGliteDialect({
-    pglite,
-  }),
-});
-const schema = o.createTableSql(
-  o.PGCOLUMN_TO_SQLTYPE,
-  exampleDb,
-  o.POSTGRES_OPTS,
-);
+const schema = createTableSql(PGCOLUMN_TO_SQLTYPE, exampleDb, POSTGRES_OPTS);
 await pglite.exec(schema);
 console.log("Schema created", schema);
 
-type KyselyType = o.InferKyselyTypes<typeof exampleDb>;
+// type KyselyType = InferKyselyTypes<typeof exampleDb>;
 
-// Insert example data
-await db
-  .insertInto("invoice")
-  .values({
-    title: "Test Invoice",
-    description: "This is a test invoice",
-  })
-  .execute();
+// const db = new k.Kysely<KyselyType>({
+//   dialect: new k.PGliteDialect({
+//     pglite,
+//   }),
+// });
 
-const results = await db
-  .selectFrom("invoice")
-  .where("id", "=", 1n)
-  .selectAll()
-  .execute();
+// // Insert example data
+// await db
+//   .insertInto("invoice")
+//   .values({
+//     title: "Test Invoice",
+//     description: "This is a test invoice",
+//   })
+//   .execute();
 
-console.log(results);
+// const results = await db
+//   .selectFrom("invoice")
+//   .where("id", "=", 1n)
+//   .selectAll()
+//   .execute();
 
-process.exit(0);
+// console.log(results);
+
+// process.exit(0);
