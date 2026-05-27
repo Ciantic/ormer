@@ -4,6 +4,7 @@ import { table } from "../table.ts";
 import { database } from "../database.ts";
 import { createTableSql } from "../sql.ts";
 import { DUCKDBCOLUMN_TO_SQLTYPE, DUCKDB_OPTS } from "./driver.ts";
+import { DuckDBInstance } from "@duckdb/node-api";
 
 const allTypesTable = table("all_types", {
   // integer types
@@ -126,5 +127,27 @@ describe("duckdb createTableSql", () => {
         FOREIGN KEY ("ref_id") REFERENCES "referenced"("id")
       );"
     `);
+  });
+
+  it("executes CREATE TABLE in a real DuckDB in-memory instance", async () => {
+    const instance = await DuckDBInstance.create(":memory:");
+    const connection = await instance.connect();
+
+    const sql = createTableSql(DUCKDBCOLUMN_TO_SQLTYPE, db, DUCKDB_OPTS);
+    const statements = sql.split(";").filter((s) => s.trim().length > 0);
+
+    for (const stmt of statements) {
+      await connection.run(stmt.trim() + ";");
+    }
+
+    // Verify tables were created by querying the schema
+    const result = await connection.runAndReadAll(
+      `SELECT table_name FROM information_schema.tables WHERE table_schema = 'main' ORDER BY table_name`,
+    );
+    const rows = result.getRows();
+    const tableNames = rows.map((r) => String(r[0]));
+    expect(tableNames).toEqual(["all_types", "referenced", "with_fk"]);
+
+    connection.closeSync();
   });
 });

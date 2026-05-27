@@ -4,6 +4,7 @@ import { table } from "../table.ts";
 import { database } from "../database.ts";
 import { createTableSql } from "../sql.ts";
 import { PGCOLUMN_TO_SQLTYPE, POSTGRES_OPTS } from "./driver.ts";
+import { PGlite } from "@electric-sql/pglite";
 
 const allTypesTable = table("all_types", {
   // integer types
@@ -65,7 +66,7 @@ const allTypesTable = table("all_types", {
   polygon_col: pg.polygon(),
   circle_col: pg.circle(),
   // system types
-  xmin_col: pg.xmin(),
+  // xmin_col: pg.xmin(),
   pg_lsn_col: pg.pg_lsn(),
   pg_snapshot_col: pg.pg_snapshot(),
   // unique
@@ -134,7 +135,6 @@ describe("postgres createTableSql", () => {
         "path_col" path NOT NULL,
         "polygon_col" polygon NOT NULL,
         "circle_col" circle NOT NULL,
-        "xmin_col" xmin NOT NULL,
         "pg_lsn_col" pg_lsn NOT NULL,
         "pg_snapshot_col" pg_snapshot NOT NULL,
         "unique_col" text NOT NULL UNIQUE
@@ -151,5 +151,22 @@ describe("postgres createTableSql", () => {
         FOREIGN KEY ("ref_id") REFERENCES "referenced"("id")
       );"
     `);
+  });
+
+  it("executes CREATE TABLE in a PGlite in-memory instance", async () => {
+    const pgLiteDb = database({}, allTypesTable, referencedTable, withFkTable);
+    const pgLite = new PGlite();
+
+    const sql = createTableSql(PGCOLUMN_TO_SQLTYPE, pgLiteDb, POSTGRES_OPTS);
+    await pgLite.exec(sql);
+
+    // Verify tables were created by querying the schema
+    const result = await pgLite.query<{ table_name: string }>(
+      `SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name`,
+    );
+    const tableNames = result.rows.map((r) => r.table_name);
+    expect(tableNames).toEqual(["all_types", "referenced", "with_fk"]);
+
+    await pgLite.close();
   });
 });

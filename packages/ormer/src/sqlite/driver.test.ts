@@ -4,6 +4,7 @@ import { table } from "../table.ts";
 import { database } from "../database.ts";
 import { createTableSql } from "../sql.ts";
 import { SQLITECOLUMN_TO_SQLTYPE, SQLITE_OPTS } from "./driver.ts";
+import Database from "libsql";
 
 const allTypesTable = table("all_types", {
   id: sqlite.integer({
@@ -73,5 +74,27 @@ describe("sqlite createTableSql", () => {
         FOREIGN KEY ("ref_id") REFERENCES "referenced"("id")
       );"
     `);
+  });
+
+  it("executes CREATE TABLE in a real SQLite in-memory instance", async () => {
+    const sqliteDb = new Database(":memory:", {});
+
+    const sql = createTableSql(SQLITECOLUMN_TO_SQLTYPE, db, SQLITE_OPTS);
+    const statements = sql.split(";").filter((s) => s.trim().length > 0);
+
+    for (const stmt of statements) {
+      sqliteDb.exec(stmt.trim() + ";", {});
+    }
+
+    // Verify tables were created by querying the schema
+    const rows = sqliteDb
+      .prepare(
+        `SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`,
+      )
+      .all();
+    const tableNames = rows.map((r: any) => r.name);
+    expect(tableNames).toEqual(["all_types", "referenced", "with_fk"]);
+
+    sqliteDb.close();
   });
 });
