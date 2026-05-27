@@ -19,7 +19,7 @@ export type MapDuckdbColumnsTo<T> = {
 
 export const DUCKDBCOLUMN_TO_SQLTYPE = {
   // Numeric types
-  tinyint: () => "tinyint",
+  int1: () => "int1",
   int2: () => "int2",
   int4: () => "int4",
   int8: () => "int8",

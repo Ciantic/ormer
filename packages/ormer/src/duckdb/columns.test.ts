@@ -6,7 +6,7 @@ describe("duckdb columns", () => {
   it("creates a table with all column types", () => {
     const allColumns = table("all_columns", {
       // Numeric types
-      col_tinyint: o.tinyint(),
+      col_int1: o.int1(),
       col_int2: o.int2(),
       col_int4: o.int4(),
       col_int8: o.int8(),
@@ -45,7 +45,7 @@ describe("duckdb columns", () => {
 
     expect(allColumns.table).toBe("all_columns");
 
-    expect(allColumns.columns.col_tinyint.type).toBe("tinyint");
+    expect(allColumns.columns.col_int1.type).toBe("int1");
     expect(allColumns.columns.col_int2.type).toBe("int2");
     expect(allColumns.columns.col_int4.type).toBe("int4");
     expect(allColumns.columns.col_int8.type).toBe("int8");

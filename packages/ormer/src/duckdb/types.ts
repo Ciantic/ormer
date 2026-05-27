@@ -1,6 +1,6 @@
 export const BASE_DUCKDB_TYPES = [
   // Numeric types
-  "tinyint", // int1
+  "int1", // tinyint
   "int2", // smallint
   "int4", // integer
   "int8", // bigint

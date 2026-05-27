@@ -21,12 +21,12 @@ type R<T, B> = {
 // Numeric types
 // ----------------------------------------------------------------------------
 
-export function tinyint(): ColumnTypeSingualr<"tinyint">;
-export function tinyint<T extends Params>(
+export function int1(): ColumnTypeSingualr<"int1">;
+export function int1<T extends Params>(
   params: R<T, Params>,
-): ColumnType<"tinyint", T>;
-export function tinyint(params?: any) {
-  return { type: "tinyint", ...params };
+): ColumnType<"int1", T>;
+export function int1(params?: any) {
+  return { type: "int1", ...params };
 }
 
 export function int2(): ColumnTypeSingualr<"int2">;

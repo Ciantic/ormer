@@ -12,8 +12,8 @@ const allTypesTable = table("all_types", {
     notInsertable: true,
     notUpdatable: true,
   }),
-  tinyint_col: duckdb.tinyint(),
-  tinyint_nullable: duckdb.tinyint({ nullable: true }),
+  int1_col: duckdb.int1(),
+  int1_nullable: duckdb.int1({ nullable: true }),
   int2_col: duckdb.int2(),
   int4_col: duckdb.int4(),
   int8_col: duckdb.int8(),
@@ -75,8 +75,8 @@ describe("duckdb createTableSql", () => {
     expect(sql).toMatchInlineSnapshot(`
       "CREATE TABLE "all_types" (
         "id" int8 NOT NULL PRIMARY KEY,
-        "tinyint_col" tinyint NOT NULL,
-        "tinyint_nullable" tinyint,
+        "int1_col" int1 NOT NULL,
+        "int1_nullable" int1,
         "int2_col" int2 NOT NULL,
         "int4_col" int4 NOT NULL,
         "int8_col" int8 NOT NULL,

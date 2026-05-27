@@ -12,7 +12,7 @@ export type InputOutput<I, O = I> = {
 
 export type DuckdbUnifiedTypeMapping = {
   // Numeric types
-  tinyint: InputOutput<string | number | bigint, number>;
+  int1: InputOutput<string | number | bigint, number>;
   int2: InputOutput<string | number | bigint, number>;
   int4: InputOutput<string | number | bigint, number>;
   int8: InputOutput<string | number | bigint, bigint>;
