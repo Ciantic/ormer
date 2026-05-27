@@ -212,40 +212,12 @@ describe("duckdb createTableSql", () => {
       .selectAll()
       .execute();
 
-    const row = results[0]!;
-    expect(row.int1_col).toBe(1);
-    expect(row.int1_nullable).toBe(null);
-    expect(row.int2_col).toBe(2);
-    expect(row.int4_col).toBe(3);
-    expect(row.int8_col).toBe(4n);
-    expect(row.hugeint_col).toBe(5n);
-    expect(row.bignum_col).toBe(6n);
-    expect(row.utinyint_col).toBe(7);
-    expect(row.usmallint_col).toBe(8);
-    expect(row.uinteger_col).toBe(9);
-    expect(row.ubigint_col).toBe(10n);
-    expect(row.uhugeint_col).toBe(11n);
-    expect(row.float4_col).toBe(1.5);
-    expect(row.float8_col).toBe(2.5);
-    expect(row.decimal_col).toBe("10.99");
-    expect(row.text_col).toBe("hello");
-    expect(row.varchar_col).toBe("world");
-    expect(row.char_col).toBe("abcdefg");
-    expect(row.blob_col).toEqual(blobValue);
-    expect(row.bool_col).toBe(true);
-    expect(row.uuid_col).toBe("550e8400-e29b-41d4-a716-446655440000");
-    expect(row.timestamp_col).toBe("2024-01-15 10:30:00");
-    expect(row.timestamptz_col).toEqual(new Date("2024-01-15T10:30:00Z"));
-    expect(row.date_col).toBe("2024-01-15");
-    expect(row.time_col).toBe("10:30:00");
-    expect(row.interval_col).toBe("1 year");
-    expect(row.json_col).toEqual({ key: "value" });
-    expect(row.bit_col).toBe("10101010");
-    expect(row.unique_col).toBe("unique_value");
-    expect(row.id).toBe(100n);
-    expect(row.timestamp_now).toEqual(expect.any(String));
-    expect(row.timestamptz_now).toEqual(expect.any(Date));
-    expect(row.uuid_with_default).toEqual(expect.any(String));
+    expect(results[0]).toEqual({
+      ...insertRow,
+      timestamp_now: expect.any(String),
+      timestamptz_now: expect.any(Date),
+      uuid_with_default: expect.any(String),
+    });
 
     await instance.closeSync();
   });
