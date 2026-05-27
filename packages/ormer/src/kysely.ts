@@ -1,36 +1,7 @@
-import type { AllColumnTypes, MapColumnsToValue } from "./columnhelpers.ts";
+import type { MapColumnsToValue } from "./columnhelpers.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import type { Database } from "./database.ts";
-import type { ColumnType, Table } from "./index.ts";
 
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
-
-type CommonTypes = {
-  int32: number;
-  int64: bigint;
-  bigint: bigint;
-  float32: number;
-  float64: number;
-  decimal: number;
-  uuid: string;
-  string: string;
-  varchar: string;
-  boolean: boolean;
-  datetime: Date;
-  datepart: string;
-  timepart: string;
-  jsonb: object;
-  json: object;
-};
-
-// Compile-time check: CommonTypes must cover every column type defined in
-// columns.ts, with no extraneous keys
-type _CommonTypesExhaustive = [AllColumnTypes] extends [keyof CommonTypes]
-  ? [keyof CommonTypes] extends [AllColumnTypes]
-    ? true
-    : never
-  : never;
-const _assertCommonTypesExhaustive: _CommonTypesExhaustive = true;
 
 type ColumnTypeKysely<
   SelectType,
@@ -68,9 +39,9 @@ type KeysWithColumnType<T> = {
 // Infer kysely types from database
 export type InferKyselyTypes<
   D extends Record<string, { columns: Record<string, any> }>,
-  SelectTypeMap extends Record<string, unknown> = CommonTypes,
-  InsertTypeMap extends Record<string, unknown> = CommonTypes,
-  UpdateTypeMap extends Record<string, unknown> = CommonTypes,
+  SelectTypeMap extends Record<string, unknown>,
+  InsertTypeMap extends Record<string, unknown>,
+  UpdateTypeMap extends Record<string, unknown>,
 > = {
   // prettier-ignore
   [K in keyof D]: {

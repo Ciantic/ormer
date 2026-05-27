@@ -61,7 +61,7 @@ const db = new k.Kysely<KyselyType>({
   }),
 });
 const schema = o.createTableSql(
-  o.COMMON_TO_POSTGRES,
+  o.PGCOLUMN_TO_SQLTYPE,
   exampleDb,
   o.POSTGRES_OPTS,
 );

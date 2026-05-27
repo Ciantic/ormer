@@ -80,3 +80,20 @@ export type PgUnifiedTypeMapping = {
   pg_lsn: InputOutput<string>;
   pg_snapshot: InputOutput<string>;
 };
+
+// function pgtable<
+//   const T extends string,
+//   const C extends Record<string, keyof PgUnifiedTypeMapping>,
+// >(table: T, columns: C) {
+//   return {
+//     table,
+//     columns,
+//   };
+// }
+
+// pgtable("users", {
+//   id: "uuid",
+//   name: "text",
+//   age: "int4",
+//   created_at: "timestamptz",
+// });

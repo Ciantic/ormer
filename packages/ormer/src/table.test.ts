@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { table, type Table } from "./table.ts";
-import * as c from "./columns.ts";
-import * as h from "./columnhelpers.ts";
+import * as pg from "./postgres/columns.ts";
 
 type Expect<T extends true> = T;
 type Equal<X, Y> =
@@ -12,25 +11,27 @@ type Equal<X, Y> =
 describe("table", () => {
   it("Test inference", () => {
     const invoiceTable = table("invoice", {
-      id: h.pkAutoInc(),
-      title: c.string(),
-      description: c.string({
+      id: pg.serial8({
+        primaryKey: true,
+        notInsertable: true,
+        notUpdatable: true,
+      }),
+      title: pg.text(),
+      description: pg.text({
         nullable: true,
       }),
-      due_date: c.datetime({
+      due_date: pg.timestamptz({
         default: "now",
       }),
-      foo: c.datetime(),
-      rowversion: h.rowversion(),
+      foo: pg.timestamptz(),
     });
 
     true satisfies Expect<
       Equal<
         (typeof invoiceTable.columns)["id"],
-        c.ColumnType<
-          "int64",
+        pg.ColumnType<
+          "serial8",
           {
-            autoIncrement: true;
             primaryKey: true;
             notInsertable: true;
             notUpdatable: true;
@@ -42,42 +43,27 @@ describe("table", () => {
     true satisfies Expect<
       Equal<
         (typeof invoiceTable.columns)["title"],
-        c.ColumnTypeSingualr<"string">
+        pg.ColumnTypeSingualr<"text">
       >
     >;
 
     true satisfies Expect<
       Equal<
         (typeof invoiceTable.columns)["description"],
-        c.ColumnType<"string", { nullable: true }>
+        pg.ColumnType<"text", { nullable: true }>
       >
     >;
     true satisfies Expect<
       Equal<
         (typeof invoiceTable.columns)["due_date"],
-        c.ColumnType<"datetime", { default: "now" }>
+        pg.ColumnType<"timestamptz", { default: "now" }>
       >
     >;
 
     true satisfies Expect<
       Equal<
         (typeof invoiceTable.columns)["foo"],
-        c.ColumnTypeSingualr<"datetime">
-      >
-    >;
-    true satisfies Expect<
-      Equal<
-        (typeof invoiceTable.columns)["rowversion"],
-        c.ColumnType<
-          "int64",
-          {
-            rowversion: true;
-            notInsertable: true;
-            notUpdatable: true;
-            updateKey: true;
-            default: 1;
-          }
-        >
+        pg.ColumnTypeSingualr<"timestamptz">
       >
     >;
 
@@ -86,20 +72,27 @@ describe("table", () => {
 
   it("Test invoice and invoice row", () => {
     const invoiceTable = table("invoice", {
-      id: h.pkAutoInc(),
-      title: c.string(),
-      description: c.string(),
-      due_date: c.datetime(),
-      rowversion: h.rowversion(),
+      id: pg.serial8({
+        primaryKey: true,
+        notInsertable: true,
+        notUpdatable: true,
+      }),
+      title: pg.text(),
+      description: pg.text(),
+      due_date: pg.timestamptz(),
     });
 
     const invoiceRowTable = table("invoice_row", {
-      id: h.pkAutoInc(),
-      title: c.string(),
-      price: c.float64(),
-      taxPercentage: c.float64(),
-      quantity: c.int32(),
-      invoiceId: c.foreignKey(invoiceTable, "id"),
+      id: pg.serial8({
+        primaryKey: true,
+        notInsertable: true,
+        notUpdatable: true,
+      }),
+      title: pg.text(),
+      price: pg.float8(),
+      taxPercentage: pg.float8(),
+      quantity: pg.int4(),
+      invoiceId: pg.foreignKey(invoiceTable, "id"),
     });
 
     true satisfies Expect<
@@ -108,28 +101,17 @@ describe("table", () => {
         Table<
           "invoice",
           {
-            id: c.ColumnType<
-              "int64",
+            id: pg.ColumnType<
+              "serial8",
               {
-                autoIncrement: true;
                 primaryKey: true;
                 notInsertable: true;
                 notUpdatable: true;
               }
             >;
-            title: c.ColumnTypeSingualr<"string">;
-            description: c.ColumnTypeSingualr<"string">;
-            due_date: c.ColumnTypeSingualr<"datetime">;
-            rowversion: c.ColumnType<
-              "int64",
-              {
-                rowversion: true;
-                notInsertable: true;
-                notUpdatable: true;
-                updateKey: true;
-                default: 1;
-              }
-            >;
+            title: pg.ColumnTypeSingualr<"text">;
+            description: pg.ColumnTypeSingualr<"text">;
+            due_date: pg.ColumnTypeSingualr<"timestamptz">;
           }
         >
       >
@@ -141,21 +123,20 @@ describe("table", () => {
         Table<
           "invoice_row",
           {
-            id: c.ColumnType<
-              "int64",
+            id: pg.ColumnType<
+              "serial8",
               {
-                autoIncrement: true;
                 primaryKey: true;
                 notInsertable: true;
                 notUpdatable: true;
               }
             >;
-            title: c.ColumnTypeSingualr<"string">;
-            price: c.ColumnTypeSingualr<"float64">;
-            taxPercentage: c.ColumnTypeSingualr<"float64">;
-            quantity: c.ColumnTypeSingualr<"int32">;
-            invoiceId: c.ColumnType<
-              "int64",
+            title: pg.ColumnTypeSingualr<"text">;
+            price: pg.ColumnTypeSingualr<"float8">;
+            taxPercentage: pg.ColumnTypeSingualr<"float8">;
+            quantity: pg.ColumnTypeSingualr<"int4">;
+            invoiceId: pg.ColumnType<
+              "serial8",
               {
                 foreignKeyTable: "invoice";
                 foreignKeyColumn: "id";
@@ -169,12 +150,16 @@ describe("table", () => {
 
   it("Test self referencing table", () => {
     const personTable = table("person", {
-      id: h.pkAutoInc(),
-      firstName: c.string(),
-      lastName: c.string(),
-      email: c.string(),
+      id: pg.serial8({
+        primaryKey: true,
+        notInsertable: true,
+        notUpdatable: true,
+      }),
+      firstName: pg.text(),
+      lastName: pg.text(),
+      email: pg.text(),
       get supervisorId() {
-        return c.foreignKey(personTable, "id");
+        return pg.foreignKey(personTable, "id");
       },
     });
 
@@ -184,20 +169,19 @@ describe("table", () => {
         Table<
           "person",
           {
-            id: c.ColumnType<
-              "int64",
+            id: pg.ColumnType<
+              "serial8",
               {
-                autoIncrement: true;
                 primaryKey: true;
                 notInsertable: true;
                 notUpdatable: true;
               }
             >;
-            firstName: c.ColumnTypeSingualr<"string">;
-            lastName: c.ColumnTypeSingualr<"string">;
-            email: c.ColumnTypeSingualr<"string">;
-            readonly supervisorId: c.ColumnType<
-              "int64",
+            firstName: pg.ColumnTypeSingualr<"text">;
+            lastName: pg.ColumnTypeSingualr<"text">;
+            email: pg.ColumnTypeSingualr<"text">;
+            readonly supervisorId: pg.ColumnType<
+              "serial8",
               {
                 foreignKeyTable: "person";
                 foreignKeyColumn: "id";

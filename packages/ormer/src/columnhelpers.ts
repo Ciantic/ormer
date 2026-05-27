@@ -1,5 +1,5 @@
 import type * as c from "./columns.ts";
-import type { ColumnType, Params, DateTimeCol } from "./columns.ts";
+import type { ColumnType, Params } from "./columns.ts";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 type UnknownSchema = StandardSchemaV1<unknown, unknown>;
@@ -126,43 +126,43 @@ export function email(params?: unknown): unknown {
   };
 }
 
-export function updatedAt(): ColumnType<
-  "datetime",
-  {
-    notInsertable: true;
-    notUpdatable: true;
-    onUpdateSet: true;
-    default: "now";
-  }
-> {
-  return {
-    type: "datetime",
-    ...({
-      notInsertable: true,
-      notUpdatable: true,
-      onUpdateSet: true,
-      default: "now",
-    } satisfies DateTimeCol),
-  };
-}
+// export function updatedAt(): ColumnType<
+//   "datetime",
+//   {
+//     notInsertable: true;
+//     notUpdatable: true;
+//     onUpdateSet: true;
+//     default: "now";
+//   }
+// > {
+//   return {
+//     type: "datetime",
+//     ...({
+//       notInsertable: true,
+//       notUpdatable: true,
+//       onUpdateSet: true,
+//       default: "now",
+//     } satisfies DateTimeCol),
+//   };
+// }
 
-export function createdAt(): ColumnType<
-  "datetime",
-  {
-    notInsertable: true;
-    notUpdatable: true;
-    default: "now";
-  }
-> {
-  return {
-    type: "datetime",
-    ...({
-      notInsertable: true,
-      notUpdatable: true,
-      default: "now",
-    } satisfies DateTimeCol),
-  };
-}
+// export function createdAt(): ColumnType<
+//   "datetime",
+//   {
+//     notInsertable: true;
+//     notUpdatable: true;
+//     default: "now";
+//   }
+// > {
+//   return {
+//     type: "datetime",
+//     ...({
+//       notInsertable: true,
+//       notUpdatable: true,
+//       default: "now",
+//     } satisfies DateTimeCol),
+//   };
+// }
 
 type StringLiteral<T> = T extends string
   ? string extends T

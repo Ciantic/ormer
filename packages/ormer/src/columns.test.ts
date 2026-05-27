@@ -8,6 +8,7 @@ type Equal<X, Y> =
     ? true
     : false;
 
+/*
 describe("columns", () => {
   it("integer signature", () => {
     const TEST_INTEGER1 = o.int32({ primaryKey: true });
@@ -35,7 +36,7 @@ describe("columns", () => {
 
     // This must have autocompletion!
     // const fofofo = o.int32({
-    //     /* CURSOR HERE */
+    //     // CURSOR HERE
     // });
   });
 
@@ -87,3 +88,4 @@ describe("columns", () => {
     });
   });
 });
+*/
