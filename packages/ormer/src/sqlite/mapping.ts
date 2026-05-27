@@ -15,6 +15,6 @@ export type SqliteUnifiedTypeMapping = {
   integer: InputOutput<string | number | bigint, number>;
   real: InputOutput<string | number | bigint, number>;
   text: InputOutput<string>;
-  blob: InputOutput<Uint8Array>;
+  blob: InputOutput<Buffer>;
   any: InputOutput<any>;
 };
