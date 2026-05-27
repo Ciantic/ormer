@@ -7,8 +7,9 @@
  * Output = Type used for SELECT operations results
  */
 export type InputOutput<I, O = I> = {
-  input: I;
-  output: O;
+  readonly __insert__: I;
+  readonly __update__: I;
+  readonly __select__: O;
 };
 export type PgUnifiedTypeMapping = {
   // Numeric types
