@@ -1,6 +1,4 @@
 import type * as c from "./columns.ts";
-import type { MapColumnsTo } from "../columnhelpers.ts";
-import type { Params } from "../columns.ts";
 import type { Opts } from "../sql.ts";
 import type { DuckdbType } from "./types.ts";
 
