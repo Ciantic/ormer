@@ -55,127 +55,46 @@ export type DuckdbUnifiedTypeMapping = {
   bit: InputOutput<string>;
 };
 
-// Inlined numeric DuckDBTypeId constants to avoid importing them (from @duckdb/node-api)
-const TYPE_BOOLEAN = 1;
-const TYPE_TINYINT = 2;
-const TYPE_SMALLINT = 3;
-const TYPE_INTEGER = 4;
-const TYPE_BIGINT = 5;
-const TYPE_UTINYINT = 6;
-const TYPE_USMALLINT = 7;
-const TYPE_UINTEGER = 8;
-const TYPE_UBIGINT = 9;
-const TYPE_FLOAT = 10;
-const TYPE_DOUBLE = 11;
-const TYPE_TIMESTAMP = 12;
-const TYPE_DATE = 13;
-const TYPE_TIME = 14;
-const TYPE_INTERVAL = 15;
-const TYPE_HUGEINT = 16;
-const TYPE_VARCHAR = 17;
-const TYPE_BLOB = 18;
-const TYPE_DECIMAL = 19;
-const TYPE_TIMESTAMP_S = 20;
-const TYPE_TIMESTAMP_MS = 21;
-const TYPE_TIMESTAMP_NS = 22;
-const TYPE_ENUM = 23;
-const TYPE_LIST = 24;
-const TYPE_STRUCT = 25;
-const TYPE_MAP = 26;
-const TYPE_UUID = 27;
-const TYPE_UNION = 28;
-const TYPE_BIT = 29;
-const TYPE_TIME_TZ = 30;
-const TYPE_TIMESTAMP_TZ = 31;
-const TYPE_UHUGEINT = 32;
-const TYPE_TIME_NS = 39;
-const TYPE_BIGNUM = 35;
-
-type Kysely = {
-  PostgresDriver: any;
-  PostgresAdapter: any;
-  PostgresQueryCompiler: any;
-  PostgresIntrospector: any;
+type DuckDB = {
+  DuckDBBlobValue: any;
+  DuckDBTimestampTZValue: any;
+  DuckDBTimestampValue: any;
+  DuckDBDateValue: any;
+  DuckDBTimeValue: any;
+  DuckDBTimeTZValue: any;
+  DuckDBIntervalValue: any;
+  DuckDBDecimalValue: any;
+  DuckDBListValue: any;
+  JSDuckDBValueConverter: any;
 };
 
-type KyselyQueryResult = {
-  rows: any[];
-  numAffectedRows: bigint;
-  numChangedRows: bigint;
-};
-
-type KyselyDatabaseConnection = {
-  executeQuery(compiledQuery: any): Promise<KyselyQueryResult>;
-  streamQuery(compiledQuery: any, chunkSize?: number): AsyncIterable<any>;
-};
-
-type KyselyCompiledQuery = { sql: string; parameters: unknown[] };
-
-type KyselyDriver = {
-  acquireConnection(): Promise<KyselyDatabaseConnection>;
-  beginTransaction(connection: any, settings: any): Promise<void>;
-  commitTransaction(connection: any): Promise<void>;
-  rollbackTransaction(connection: any): Promise<void>;
-  destroy(): Promise<void>;
-  init(): Promise<void>;
-  releaseConnection(connection: any): Promise<void>;
-};
-
-/**
- * Creates a Kysely dialect for DuckDB using @duckdb/node-api.
- *
- * Takes the DuckDB module at runtime to avoid making @duckdb/node-api a hard
- * dependency of ormer (it's a devDependency that users install themselves).
- *
- * Properly converts DuckDB value types (DuckDBBlobValue, DuckDBTimestampValue,
- * etc.) to plain JS types matching DuckdbUnifiedTypeMapping.
- *
- * @example
- * ```
- * import * as k from "kysely";
- * import { DuckDBInstance } from "@duckdb/node-api";
- * import * as duckdb from "@duckdb/node-api";
- * import { createDuckDbKyselyDialect } from "ormer";
- *
- * const instance = await DuckDBInstance.create(":memory:");
- * const db = new k.Kysely({ dialect: createDuckDbKyselyDialect(k, duckdb, instance) });
- * ```
- */
-export function createDuckDbKyselyDialect(
-  k: Kysely,
-  duckdb: {
-    DuckDBBlobValue: any;
-    DuckDBTimestampTZValue: any;
-    DuckDBTimestampValue: any;
-    DuckDBDateValue: any;
-    DuckDBTimeValue: any;
-    DuckDBTimeTZValue: any;
-    DuckDBIntervalValue: any;
-    DuckDBDecimalValue: any;
-    DuckDBListValue: any;
-    JSDuckDBValueConverter: any;
-  },
-  instance: {
-    connect: () => Promise<any>;
-  },
-): {
-  createDriver: () => any;
-  createAdapter: () => any;
-  createQueryCompiler: () => any;
-  createIntrospector: (db: any) => any;
-} {
+function createDuckDbMapper(duckdb: DuckDB) {
   const {
     DuckDBBlobValue,
     DuckDBTimestampTZValue,
-    DuckDBTimestampValue,
-    DuckDBDateValue,
-    DuckDBTimeValue,
-    DuckDBTimeTZValue,
-    DuckDBIntervalValue,
-    DuckDBDecimalValue,
     DuckDBListValue,
     JSDuckDBValueConverter,
   } = duckdb;
+  // Inlined numeric DuckDBTypeId constants to avoid importing them (from @duckdb/node-api)
+  const TYPE_BIGINT = 5;
+  const TYPE_UBIGINT = 9;
+  const TYPE_TIMESTAMP = 12;
+  const TYPE_DATE = 13;
+  const TYPE_TIME = 14;
+  const TYPE_INTERVAL = 15;
+  const TYPE_HUGEINT = 16;
+  const TYPE_BLOB = 18;
+  const TYPE_DECIMAL = 19;
+  const TYPE_TIMESTAMP_S = 20;
+  const TYPE_TIMESTAMP_MS = 21;
+  const TYPE_TIMESTAMP_NS = 22;
+  const TYPE_LIST = 24;
+  const TYPE_BIT = 29;
+  const TYPE_TIME_TZ = 30;
+  const TYPE_TIMESTAMP_TZ = 31;
+  const TYPE_UHUGEINT = 32;
+  const TYPE_TIME_NS = 39;
+  const TYPE_BIGNUM = 35;
 
   /**
    * Convert JavaScript values to DuckDB bind parameter values.
@@ -297,12 +216,81 @@ export function createDuckDbKyselyDialect(
         ),
       );
   }
+  return {
+    getBindParam,
+    getRowObjects,
+  };
+}
 
+type Kysely = {
+  PostgresDriver: any;
+  PostgresAdapter: any;
+  PostgresQueryCompiler: any;
+  PostgresIntrospector: any;
+};
+
+type KyselyQueryResult = {
+  rows: any[];
+  numAffectedRows: bigint;
+  numChangedRows: bigint;
+};
+
+type KyselyDatabaseConnection = {
+  executeQuery(compiledQuery: any): Promise<KyselyQueryResult>;
+  streamQuery(compiledQuery: any, chunkSize?: number): AsyncIterable<any>;
+};
+
+type KyselyCompiledQuery = { sql: string; parameters: unknown[] };
+
+type KyselyDriver = {
+  acquireConnection(): Promise<KyselyDatabaseConnection>;
+  beginTransaction(connection: any, settings: any): Promise<void>;
+  commitTransaction(connection: any): Promise<void>;
+  rollbackTransaction(connection: any): Promise<void>;
+  destroy(): Promise<void>;
+  init(): Promise<void>;
+  releaseConnection(connection: any): Promise<void>;
+};
+
+/**
+ * Creates a Kysely dialect for DuckDB using @duckdb/node-api.
+ *
+ * Takes the DuckDB module at runtime to avoid making @duckdb/node-api a hard
+ * dependency of ormer (it's a devDependency that users install themselves).
+ *
+ * Properly converts DuckDB value types (DuckDBBlobValue, DuckDBTimestampValue,
+ * etc.) to plain JS types matching DuckdbUnifiedTypeMapping.
+ *
+ * @example
+ * ```
+ * import * as k from "kysely";
+ * import { DuckDBInstance } from "@duckdb/node-api";
+ * import * as duckdb from "@duckdb/node-api";
+ * import { createDuckDbKyselyDialect } from "ormer";
+ *
+ * const instance = await DuckDBInstance.create(":memory:");
+ * const db = new k.Kysely({ dialect: createDuckDbKyselyDialect(k, duckdb, instance) });
+ * ```
+ */
+export function createDuckDbKyselyDialect(
+  k: Kysely,
+  duckdb: DuckDB,
+  instance: {
+    connect: () => Promise<any>;
+  },
+): {
+  createDriver: () => any;
+  createAdapter: () => any;
+  createQueryCompiler: () => any;
+  createIntrospector: (db: any) => any;
+} {
   // Track DuckDB connections for cleanup
   const duckConnections = new WeakMap<
     KyselyDatabaseConnection,
     { closeSync(): void }
   >();
+
+  const { getBindParam, getRowObjects } = createDuckDbMapper(duckdb);
 
   return {
     createDriver: () =>
