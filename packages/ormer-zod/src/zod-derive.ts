@@ -2,8 +2,6 @@ import { pg, table } from "ormer";
 import type { ColumnType, ColumnTypeSingualr, Table } from "ormer";
 import type { z } from "zod";
 
-type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
-
 type ZodType = z.ZodType;
 
 // ---------------------------------------------------------------------------
@@ -227,29 +225,27 @@ type WithFkParams<
  * plain ZodObjects (without the metadata) resolve to `never`.
  */
 export type DerivePgTable<T extends z.ZodObject & { dbTableName: string }> =
-  FinalType<
-    Table<
-      T["dbTableName"],
-      {
-        [K in keyof T["shape"] as T["shape"][K] extends {
-          dbNavRel: { schema: z.ZodObject; key: string };
-        }
-          ? never
-          : K]: T["shape"][K] extends {
-          dbFkRel: { schema: z.ZodObject; key: string };
-        }
-          ? WithFkParams<
-              DerivePgColumn<T["shape"][K]>,
-              T["shape"][K]["dbFkRel"]
-            >
-          : DerivePgColumn<T["shape"][K]>;
+  Table<
+    T["dbTableName"],
+    {
+      [K in keyof T["shape"] as T["shape"][K] extends {
+        dbNavRel: { schema: z.ZodObject; key: string };
       }
-    >
+        ? never
+        : K]: T["shape"][K] extends {
+        dbFkRel: { schema: z.ZodObject; key: string };
+      }
+        ? WithFkParams<DerivePgColumn<T["shape"][K]>, T["shape"][K]["dbFkRel"]>
+        : DerivePgColumn<T["shape"][K]>;
+    }
   >;
 
 // ---------------------------------------------------------------------------
 // DerivePgTable — Runtime
 // ---------------------------------------------------------------------------
+
+type UnwrapDeriveTable<T> =
+  T extends Table<infer Name, infer Columns> ? Table<Name, Columns> : never;
 
 /**
  * Derive an ormer PgTable from a ZodObject schema.
@@ -269,7 +265,7 @@ export type DerivePgTable<T extends z.ZodObject & { dbTableName: string }> =
  */
 export function derivePgTable<T extends z.ZodObject & { dbTableName: string }>(
   schema: T,
-): DerivePgTable<T> {
+): UnwrapDeriveTable<DerivePgTable<T>> {
   const tableName = (schema as any).dbTableName;
   if (typeof tableName !== "string") {
     throw new Error(

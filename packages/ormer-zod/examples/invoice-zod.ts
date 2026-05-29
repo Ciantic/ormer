@@ -1,3 +1,5 @@
+import { database } from "ormer";
+import { derivePgTable } from "../src/index.ts";
 import { z } from "zod";
 
 const InvoiceSchema = z
@@ -51,3 +53,9 @@ const PersonSchema = z
     updated_at: z.date(),
   })
   .dbTable("person");
+
+const rowTable = derivePgTable(InvoiceRowSchema);
+const invoiceTable = derivePgTable(InvoiceSchema);
+const personTable = derivePgTable(PersonSchema);
+
+const db = database({}, rowTable, invoiceTable, personTable);
