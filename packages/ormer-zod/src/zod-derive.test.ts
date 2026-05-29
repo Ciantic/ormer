@@ -173,7 +173,7 @@ describe("derivePgTable", () => {
   it("derives a simple table from a ZodObject", () => {
     const schema = z
       .object({
-        id: z.number().dbPk(),
+        id: z.int().dbPk(),
         title: z.string(),
         description: z.string().nullable(),
       })
@@ -182,7 +182,7 @@ describe("derivePgTable", () => {
     const tbl = derivePgTable(schema);
 
     expect(tbl.table).toBe("items");
-    expect(tbl.columns.id.type).toBe("float8");
+    expect(tbl.columns.id.type).toBe("int4");
     expect(tbl.columns.id.primaryKey).toBe(true);
     expect(tbl.columns.title.type).toBe("text");
     expect(tbl.columns.description.type).toBe("text");
@@ -220,7 +220,7 @@ describe("derivePgTable", () => {
   it("skips navigation fields (dbRef)", () => {
     const rowSchema = z
       .object({
-        id: z.number().dbPk(),
+        id: z.int().dbPk(),
         title: z.string(),
         get rows() {
           return z.array(rowSchema).dbNavigate(rowSchema, "id");
@@ -278,7 +278,7 @@ describe("derivePgTable types", () => {
   it("returns correct Table type for simple schema", () => {
     const schema = z
       .object({
-        id: z.number().dbPk(),
+        id: z.int().dbPk(),
         title: z.string(),
       })
       .dbTable("items");
@@ -288,8 +288,7 @@ describe("derivePgTable types", () => {
     const tbl = derivePgTable(schema);
     expectTypeOf<typeof tbl.table>().toEqualTypeOf<"items">();
     expectTypeOf<(typeof tbl.columns)["id"]>().toEqualTypeOf<
-      | ColumnType<"float8", { primaryKey: true }>
-      | ColumnType<"int4", { primaryKey: true }>
+      ColumnType<"int4", { primaryKey: true }>
     >();
     expectTypeOf<(typeof tbl.columns)["title"]>().toEqualTypeOf<
       ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
@@ -299,7 +298,7 @@ describe("derivePgTable types", () => {
   it("type-only: navigation keys are excluded from columns", () => {
     const schema = z
       .object({
-        id: z.number().dbPk(),
+        id: z.int().dbPk(),
         title: z.string(),
         get rows() {
           return z.array(schema as any).dbNavigate(schema as any, "id");
@@ -321,9 +320,9 @@ describe("derivePgTable types", () => {
 
     const rowSchema = z
       .object({
-        id: z.number().dbPk(),
-        invoice_id: z.number().nullable().dbFk(invSchema, "id"),
-        amount: z.number(),
+        id: z.int().dbPk(),
+        invoice_id: z.int().nullable().dbFk(invSchema, "id"),
+        amount: z.int(),
       })
       .dbTable("invoice_row");
 
@@ -338,20 +337,13 @@ describe("derivePgTable types", () => {
     >().toEqualTypeOf<"id">();
 
     expectTypeOf<(typeof tbl.columns)["invoice_id"]>().toEqualTypeOf<
-      | ColumnType<
-          "float8",
-          { nullable: true } & {
-            foreignKeyTable: "invoice";
-            foreignKeyColumn: "id";
-          }
-        >
-      | ColumnType<
-          "int4",
-          { nullable: true } & {
-            foreignKeyTable: "invoice";
-            foreignKeyColumn: "id";
-          }
-        >
+      ColumnType<
+        "int4",
+        { nullable: true } & {
+          foreignKeyTable: "invoice";
+          foreignKeyColumn: "id";
+        }
+      >
     >();
   });
 });
