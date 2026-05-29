@@ -11,6 +11,13 @@ type InputOutput<I, O = I> = {
   readonly __update__: I;
   readonly __select__: O;
 };
+
+/**
+ * Requires mapper, use `createPgMapperTypes()` for PG, or `createPgliteParsers()` for PGLite.
+ *
+ * @see createPgMapperTypes for PG
+ * @see createPgliteParsers for PGLite
+ */
 export type PgUnifiedTypeMapping = {
   // Numeric types
   int2: InputOutput<string | number | bigint, number>;
