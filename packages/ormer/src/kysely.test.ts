@@ -42,8 +42,8 @@ const allTypesTable = table("all_types", {
   timetz_col: pg.timetz(),
   interval_col: pg.interval(),
   // json types
-  jsonb_col: pg.jsonb({ schema: null as any }),
-  json_col: pg.json({ schema: null as any }),
+  jsonb_col: pg.jsonb({ schema: null }),
+  json_col: pg.json({ schema: null }),
   // network types
   inet_col: pg.inet(),
   cidr_col: pg.cidr(),
@@ -104,18 +104,18 @@ describe("kysely", () => {
         >;
         serial2_col: ColumnType<
           number,
-          string | number | bigint,
-          string | number | bigint
+          string | number | bigint | undefined,
+          string | number | bigint | undefined
         >;
         serial4_col: ColumnType<
           number,
-          string | number | bigint,
-          string | number | bigint
+          string | number | bigint | undefined,
+          string | number | bigint | undefined
         >;
         serial8_col: ColumnType<
           bigint,
-          string | number | bigint,
-          string | number | bigint
+          string | number | bigint | undefined,
+          string | number | bigint | undefined
         >;
         float4_col: ColumnType<
           number,

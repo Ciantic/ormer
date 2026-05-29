@@ -1,5 +1,4 @@
 import type { Table } from "../table.ts";
-import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type {
   Params,
   ColumnTypeSingualr,
@@ -8,7 +7,7 @@ import type {
 } from "../columns.ts";
 export type { Params, ColumnTypeSingualr, ColumnType } from "../columns.ts";
 
-type UnknownSchema = StandardSchemaV1<unknown, unknown>;
+type UnknownSchema = unknown;
 
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 

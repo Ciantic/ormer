@@ -1,8 +1,7 @@
 import type * as c from "./columns.ts";
 import type { ColumnType, Params } from "./columns.ts";
-import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-type UnknownSchema = StandardSchemaV1<unknown, unknown>;
+type UnknownSchema = unknown;
 // Restrict record T to only keys from record B
 type R<T, B> = {
   [K in keyof T]: K extends keyof B ? T[K] : never;
@@ -110,10 +109,7 @@ export function userstring<S extends UnknownSchema, T extends UserStringCol<S>>(
   };
 }
 
-export function email(): ColumnType<
-  "varchar",
-  { schema: StandardSchemaV1<string, string> }
->;
+export function email(): ColumnType<"varchar", { schema: UnknownSchema }>;
 export function email<T extends Params>(
   params: R<T, Params>,
 ): ColumnType<"varchar", T & { maxLength: 320 }>;
