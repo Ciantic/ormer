@@ -47,26 +47,23 @@ type HasDbPk<T extends ZodType> = T extends { isDbPk: true }
       : false;
 
 /** Map a non-nullable Zod type to a union of possible pg column types */
-type DeriveBaseColumn<T extends ZodType> =
-  UnwrapModifiers<T> extends z.ZodUUID
-    ? ColumnTypeSingualr<"uuid">
-    : UnwrapModifiers<T> extends z.ZodBigInt
+type DeriveBaseColumn<T extends ZodType> = T extends z.ZodUUID
+  ? ColumnTypeSingualr<"uuid">
+  : T extends z.ZodInt
+    ? ColumnTypeSingualr<"int4">
+    : T extends z.ZodType<bigint, bigint>
       ? ColumnTypeSingualr<"int8">
-      : UnwrapModifiers<T> extends z.ZodString
+      : T extends z.ZodType<string, string>
         ?
             | ColumnTypeSingualr<"text">
             | ColumnType<"varchar", { maxLength: number }>
-        : UnwrapModifiers<T> extends z.ZodEmail
-          ? ColumnTypeSingualr<"text">
-          : UnwrapModifiers<T> extends z.ZodNumberFormat
-            ? ColumnTypeSingualr<"int4">
-            : UnwrapModifiers<T> extends z.ZodNumber
-              ? ColumnTypeSingualr<"float8">
-              : UnwrapModifiers<T> extends z.ZodBoolean
-                ? ColumnTypeSingualr<"boolean">
-                : UnwrapModifiers<T> extends z.ZodDate
-                  ? ColumnTypeSingualr<"timestamptz">
-                  : never;
+        : T extends z.ZodType<number, number>
+          ? ColumnTypeSingualr<"float8">
+          : T extends z.ZodType<boolean, boolean>
+            ? ColumnTypeSingualr<"boolean">
+            : T extends z.ZodType<Date, Date>
+              ? ColumnTypeSingualr<"timestamptz">
+              : never;
 
 /** Add extra params to a pg column type */
 type WithParams<C, P> =
@@ -84,7 +81,7 @@ type DerivePgColumnInner<T extends ZodType> =
       : UnwrapModifiers<T> extends z.ZodNumberFormat
         ? ColumnType<"serial4", { primaryKey: true }>
         : WithParams<DeriveBaseColumn<T>, { primaryKey: true }>
-    : DeriveBaseColumn<T>;
+    : DeriveBaseColumn<UnwrapModifiers<T>>;
 
 /** The fully derived pg column type from a Zod schema */
 export type DerivePgColumn<T extends ZodType> =
@@ -98,6 +95,32 @@ export type DerivePgColumn<T extends ZodType> =
           { nullable: true; default: HasDefaultValue<T> }
         >
       : WithParams<DerivePgColumnInner<T>, { default: HasDefaultValue<T> }>;
+
+// type OmitNever<T> = Omit<
+//   T,
+//   { [K in keyof T]: T[K] extends never ? K : never }[keyof T]
+// >;
+
+// type NonEmptyObject<T> = keyof T extends never ? never : T;
+
+// type RewrapToColumnType<T> = T extends {
+//   type: infer Type extends string;
+// } & infer Params
+//   ? Omit<Params, "type"> extends NonEmptyObject<Omit<Params, "type">>
+//     ? ColumnType<Type, FinalType<Omit<Params, "type">>>
+//     : ColumnTypeSingualr<Type>
+//   : T extends ColumnTypeSingualr<infer Type>
+//     ? ColumnTypeSingualr<Type>
+//     : never;
+
+// export type DerivePgColumnImproved<T extends ZodType> = RewrapToColumnType<
+//   DeriveBaseColumn<UnwrapModifiers<T>> &
+//     OmitNever<{
+//       primaryKey: HasDbPk<T> extends true ? true : never;
+//       nullable: IsNullable<T> extends true ? true : never;
+//       default: HasDefaultValue<T> extends never ? never : HasDefaultValue<T>;
+//     }>
+// >;
 
 // ---------------------------------------------------------------------------
 // Runtime implementation

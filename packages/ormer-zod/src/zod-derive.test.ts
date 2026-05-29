@@ -91,7 +91,9 @@ describe("derivePgColumn types", () => {
 
   it("z.string().email() -> text", () => {
     const col = derivePgColumn(z.email());
-    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
+    >();
     expect(col.type).toBe("text");
   });
 
