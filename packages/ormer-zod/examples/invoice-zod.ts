@@ -1,3 +1,6 @@
+// Execute directly with node:
+// node ./invoice-zod.ts
+
 import {
   database,
   createTableSql,
@@ -83,7 +86,7 @@ const kyselyDb = new k.Kysely<KyselyTypes>({
 });
 
 // Insert an invoice (serial id is auto-generated)
-await kyselyDb
+const insertedId = await kyselyDb
   .insertInto("invoice")
   .values({
     title: "Test Invoice",
@@ -94,7 +97,10 @@ await kyselyDb
     created_at: new Date(),
     updated_at: new Date(),
   })
+  .returning("id")
   .execute();
+
+if (!insertedId[0]?.id) throw new Error("Failed to insert invoice");
 
 // Insert an invoice row referencing the invoice
 await kyselyDb
@@ -104,7 +110,7 @@ await kyselyDb
     price: 100.0,
     tax_percentage: 24.0,
     quantity: 2,
-    invoice_id: 1,
+    invoice_id: insertedId[0].id,
     concurrencyStamp: crypto.randomUUID(),
   })
   .execute();
