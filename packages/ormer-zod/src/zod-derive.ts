@@ -2,7 +2,12 @@ import { pg, table } from "ormer";
 import type { ColumnType, ColumnTypeSingualr, Table } from "ormer";
 import type { z } from "zod";
 
+type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
+
 type ZodType = z.ZodType;
+
+// Note: Structurally the Omit<..., "type"> is not needed, but it makes hover
+// types better looking.
 
 // ---------------------------------------------------------------------------
 // Type-level derivation
@@ -64,7 +69,7 @@ type DeriveBaseColumn<T extends ZodType> =
 /** Add extra params to a pg column type */
 type WithParams<C, P> =
   C extends ColumnType<infer Type, infer Existing>
-    ? ColumnType<Type, Existing & P>
+    ? ColumnType<Type, FinalType<Omit<Existing, "type"> & P>>
     : C extends ColumnTypeSingualr<infer Type>
       ? ColumnType<Type, P>
       : never;
@@ -197,10 +202,12 @@ type WithFkParams<
   C extends ColumnType<infer Type, infer Params>
     ? ColumnType<
         Type,
-        Params & {
-          foreignKeyTable: FKRel["schema"]["dbTableName"];
-          foreignKeyColumn: FKRel["key"];
-        }
+        FinalType<
+          Omit<Params, "type"> & {
+            foreignKeyTable: FKRel["schema"]["dbTableName"];
+            foreignKeyColumn: FKRel["key"];
+          }
+        >
       >
     : C extends ColumnTypeSingualr<infer Type>
       ? ColumnType<

@@ -109,7 +109,7 @@ describe("derivePgColumn nullable types", () => {
     const col = derivePgColumn(z.string().nullable());
     expectTypeOf<typeof col>().toEqualTypeOf<
       | ColumnType<"text", { nullable: true }>
-      | ColumnType<"varchar", { maxLength: number } & { nullable: true }>
+      | ColumnType<"varchar", { maxLength: number; nullable: true }>
     >();
     expect(col.type).toBe("text");
     expect(col.nullable).toBe(true);
@@ -175,7 +175,7 @@ describe("derivePgColumn default types", () => {
     const col = derivePgColumn(z.string().default("hello"));
     expectTypeOf<typeof col>().toEqualTypeOf<
       | ColumnType<"text", { default: string }>
-      | ColumnType<"varchar", { maxLength: number } & { default: string }>
+      | ColumnType<"varchar", { maxLength: number; default: string }>
     >();
     expect(col.type).toBe("text");
     expect(col.default).toBe("hello");
@@ -244,10 +244,7 @@ describe("derivePgColumn default types", () => {
       | ColumnType<"text", { default: string | null; nullable: true }>
       | ColumnType<
           "varchar",
-          { maxLength: number } & {
-            default: string | null;
-            nullable: true;
-          }
+          { maxLength: number; default: string | null; nullable: true }
         >
     >();
     expect(col.type).toBe("text");
@@ -268,7 +265,7 @@ describe("derivePgColumn default types", () => {
   it("z.int().default(1).dbPk() -> serial4 + primaryKey + default", () => {
     const col = derivePgColumn(z.int().default(1).dbPk());
     expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnType<"serial4", { default: number } & { primaryKey: true }>
+      ColumnType<"serial4", { default: number; primaryKey: true }>
     >();
     expect(col.type).toBe("serial4");
     expect(col.primaryKey).toBe(true);
@@ -490,10 +487,7 @@ describe("derivePgTable types", () => {
     expectTypeOf<(typeof tbl.columns)["invoice_id"]>().toEqualTypeOf<
       ColumnType<
         "int4",
-        { nullable: true } & {
-          foreignKeyTable: "invoice";
-          foreignKeyColumn: "id";
-        }
+        { nullable: true; foreignKeyTable: "invoice"; foreignKeyColumn: "id" }
       >
     >();
   });
@@ -524,10 +518,7 @@ describe("derivePgTable types", () => {
     expectTypeOf<(typeof tbl.columns)["invoice_id"]>().toEqualTypeOf<
       ColumnType<
         "int8",
-        { nullable: true } & {
-          foreignKeyTable: "invoice";
-          foreignKeyColumn: "id";
-        }
+        { nullable: true; foreignKeyTable: "invoice"; foreignKeyColumn: "id" }
       >
     >();
   });
