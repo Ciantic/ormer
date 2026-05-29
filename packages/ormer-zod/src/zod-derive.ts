@@ -31,7 +31,7 @@ type DeriveBaseColumn<T extends ZodType> =
         : UnwrapNullable<T> extends z.ZodNumberFormat
           ? ColumnTypeSingualr<"int4">
           : UnwrapNullable<T> extends z.ZodNumber
-            ? ColumnTypeSingualr<"float8"> | ColumnTypeSingualr<"int4">
+            ? ColumnTypeSingualr<"float8">
             : UnwrapNullable<T> extends z.ZodBoolean
               ? ColumnTypeSingualr<"boolean">
               : UnwrapNullable<T> extends z.ZodDate
@@ -74,8 +74,13 @@ export type DerivePgColumn<T extends ZodType> =
  * - z.string().max(255)  → pg.varchar(255)
  * - z.string().uuid()    → pg.uuid()
  * - z.string().email()   → pg.text()
+ * - z.uuid()             → pg.uuid()
  * - z.number()           → pg.float8()
- * - z.number().int()     → pg.int8()
+ * - z.number().int()     → pg.float8()
+ * - z.int()              → pg.int4()
+ * - z.int().dbPk()       → pg.serial4()
+ * - z.bigint()           → pg.int8()
+ * - z.bigint().dbPk()    → pg.serial8()
  * - z.boolean()          → pg.boolean()
  * - z.date()             → pg.timestamptz()
  * - z.X().nullable()     → adds nullable: true to the result
@@ -115,11 +120,8 @@ export function derivePgColumn<T extends ZodType>(
       if (inner.idDbPk === true) return pg.serial4(paramsBase) as any;
       return (hasParams ? pg.int4(paramsBase) : pg.int4()) as any;
 
-    case "ZodNumber": {
-      if (inner.isInt)
-        return (hasParams ? pg.int4(paramsBase) : pg.int4()) as any;
+    case "ZodNumber":
       return (hasParams ? pg.float8(paramsBase) : pg.float8()) as any;
-    }
 
     case "ZodBoolean":
       return (hasParams ? pg.boolean(paramsBase) : pg.boolean()) as any;

@@ -47,11 +47,9 @@ describe("derivePgColumn types", () => {
     expect(col.type).toBe("text");
   });
 
-  it("z.number() -> float8 | int4", () => {
+  it("z.number() -> float8", () => {
     const col = derivePgColumn(z.number());
-    expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnTypeSingualr<"float8"> | ColumnTypeSingualr<"int4">
-    >();
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"float8">>();
     expect(col.type).toBe("float8");
   });
 
@@ -85,12 +83,10 @@ describe("derivePgColumn types", () => {
     expect(col.primaryKey).toBe(true);
   });
 
-  it("z.number().int() -> float8 | int4", () => {
+  it("z.number().int() -> float8", () => {
     const col = derivePgColumn(z.number().int());
-    expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnTypeSingualr<"float8"> | ColumnTypeSingualr<"int4">
-    >();
-    expect(col.type).toBe("int4");
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"float8">>();
+    expect(col.type).toBe("float8");
   });
 
   it("z.boolean() -> { type: 'boolean' }", () => {
@@ -119,11 +115,10 @@ describe("derivePgColumn nullable types", () => {
     expect(col.nullable).toBe(true);
   });
 
-  it("z.number().nullable() -> float8|int4 + nullable", () => {
+  it("z.number().nullable() -> float8 + nullable", () => {
     const col = derivePgColumn(z.number().nullable());
     expectTypeOf<typeof col>().toEqualTypeOf<
-      | ColumnType<"float8", { nullable: true }>
-      | ColumnType<"int4", { nullable: true }>
+      ColumnType<"float8", { nullable: true }>
     >();
     expect(col.type).toBe("float8");
     expect(col.nullable).toBe(true);
