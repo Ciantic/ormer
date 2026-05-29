@@ -6,14 +6,18 @@ type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 
 type ZodType = z.ZodType;
 
-// Note: Structurally the Omit<..., "type"> is not needed, but it makes hover
-// types better looking.
-
 // ---------------------------------------------------------------------------
 // Type-level derivation
 // ---------------------------------------------------------------------------
 
-/** Unwrap ZodNullable and ZodDefault wrappers recursively to get the inner type */
+type UnwrapUntilReturnTrue<T, Check> = T extends Check
+  ? true
+  : T extends z.ZodNullable<infer Inner extends ZodType>
+    ? UnwrapUntilReturnTrue<Inner, Check>
+    : T extends z.ZodDefault<infer Inner extends ZodType>
+      ? UnwrapUntilReturnTrue<Inner, Check>
+      : false;
+
 type UnwrapModifiers<T extends ZodType> =
   T extends z.ZodNullable<infer Inner extends ZodType>
     ? UnwrapModifiers<Inner>
@@ -21,30 +25,13 @@ type UnwrapModifiers<T extends ZodType> =
       ? UnwrapModifiers<Inner>
       : T;
 
-/** Whether the Zod type is nullable (after unwrapping any ZodDefault) */
 type IsNullable<T extends ZodType> =
-  T extends z.ZodNullable<any>
-    ? true
-    : T extends z.ZodDefault<infer Inner extends ZodType>
-      ? IsNullable<Inner>
-      : false;
+  UnwrapUntilReturnTrue<T, z.ZodNullable<any>> extends true ? true : false;
 
-/** Extract the default value type from a Zod schema, or never */
 type HasDefaultValue<T extends ZodType> =
-  T extends z.ZodNullable<infer Inner extends ZodType>
-    ? HasDefaultValue<Inner>
-    : T extends z.ZodDefault<infer Inner>
-      ? z.infer<Inner>
-      : never;
+  UnwrapUntilReturnTrue<T, z.ZodDefault<any>> extends true ? true : false;
 
-/** Whether any wrapper in the chain has isDbPk (checked from outside in) */
-type HasDbPk<T extends ZodType> = T extends { isDbPk: true }
-  ? true
-  : T extends z.ZodNullable<infer Inner extends ZodType>
-    ? HasDbPk<Inner>
-    : T extends z.ZodDefault<infer Inner extends ZodType>
-      ? HasDbPk<Inner>
-      : false;
+type HasDbPk<T extends ZodType> = T extends { isDbPk: true } ? true : false;
 
 /** Map a non-nullable Zod type to a union of possible pg column types */
 type DeriveBaseColumn<T extends ZodType> = T extends z.ZodUUID
@@ -65,62 +52,38 @@ type DeriveBaseColumn<T extends ZodType> = T extends z.ZodUUID
               ? ColumnTypeSingualr<"timestamptz">
               : never;
 
-/** Add extra params to a pg column type */
-type WithParams<C, P> =
-  C extends ColumnType<infer Type, infer Existing>
-    ? ColumnType<Type, FinalType<Omit<Existing, "type"> & P>>
-    : C extends ColumnTypeSingualr<infer Type>
-      ? ColumnType<Type, P>
-      : never;
+type OmitNever<T> = Omit<
+  T,
+  { [K in keyof T]: T[K] extends never ? K : never }[keyof T]
+>;
 
-/** DeriveBaseColumn with primaryKey and serial type adjustment for dbPk */
-type DerivePgColumnInner<T extends ZodType> =
-  HasDbPk<T> extends true
-    ? UnwrapModifiers<T> extends z.ZodBigInt
-      ? ColumnType<"int8", { primaryKey: true; autoIncrement: true }>
-      : UnwrapModifiers<T> extends z.ZodNumberFormat
-        ? ColumnType<"int4", { primaryKey: true; autoIncrement: true }>
-        : WithParams<DeriveBaseColumn<T>, { primaryKey: true }>
-    : DeriveBaseColumn<UnwrapModifiers<T>>;
+type NonEmptyObject<T> = keyof T extends never ? never : T;
 
-/** The fully derived pg column type from a Zod schema */
-export type DerivePgColumn<T extends ZodType> =
-  HasDefaultValue<T> extends never
-    ? IsNullable<T> extends true
-      ? WithParams<DerivePgColumnInner<T>, { nullable: true }>
-      : DerivePgColumnInner<T>
-    : IsNullable<T> extends true
-      ? WithParams<
-          DerivePgColumnInner<T>,
-          { nullable: true; default: HasDefaultValue<T> }
-        >
-      : WithParams<DerivePgColumnInner<T>, { default: HasDefaultValue<T> }>;
+type RewrapToColumnType<T> = T extends {
+  type: infer Type extends string;
+} & infer Params
+  ? Omit<Params, "type"> extends NonEmptyObject<Omit<Params, "type">>
+    ? ColumnType<Type, FinalType<Omit<Params, "type">>>
+    : ColumnTypeSingualr<Type>
+  : T extends ColumnTypeSingualr<infer Type>
+    ? ColumnTypeSingualr<Type>
+    : never;
 
-// type OmitNever<T> = Omit<
-//   T,
-//   { [K in keyof T]: T[K] extends never ? K : never }[keyof T]
-// >;
-
-// type NonEmptyObject<T> = keyof T extends never ? never : T;
-
-// type RewrapToColumnType<T> = T extends {
-//   type: infer Type extends string;
-// } & infer Params
-//   ? Omit<Params, "type"> extends NonEmptyObject<Omit<Params, "type">>
-//     ? ColumnType<Type, FinalType<Omit<Params, "type">>>
-//     : ColumnTypeSingualr<Type>
-//   : T extends ColumnTypeSingualr<infer Type>
-//     ? ColumnTypeSingualr<Type>
-//     : never;
-
-// export type DerivePgColumnImproved<T extends ZodType> = RewrapToColumnType<
-//   DeriveBaseColumn<UnwrapModifiers<T>> &
-//     OmitNever<{
-//       primaryKey: HasDbPk<T> extends true ? true : never;
-//       nullable: IsNullable<T> extends true ? true : never;
-//       default: HasDefaultValue<T> extends never ? never : HasDefaultValue<T>;
-//     }>
-// >;
+export type DerivePgColumnImproved<T extends ZodType> = RewrapToColumnType<
+  DeriveBaseColumn<UnwrapModifiers<T>> &
+    OmitNever<{
+      primaryKey: HasDbPk<T> extends true ? true : never;
+      nullable: IsNullable<T> extends true ? true : never;
+      default: HasDefaultValue<T> extends true ? z.infer<T> : never;
+      autoIncrement: HasDbPk<T> extends true
+        ? UnwrapModifiers<T> extends z.ZodBigInt
+          ? true
+          : UnwrapModifiers<T> extends z.ZodNumberFormat
+            ? true
+            : never
+        : never;
+    }>
+>;
 
 // ---------------------------------------------------------------------------
 // Runtime implementation
@@ -149,7 +112,7 @@ export type DerivePgColumn<T extends ZodType> =
  */
 export function derivePgColumn<T extends ZodType>(
   schema: T,
-): DerivePgColumn<T> {
+): DerivePgColumnImproved<T> {
   // deno-lint-ignore no-explicit-any
   let node: any = schema;
   let nullable = false;
@@ -272,8 +235,11 @@ export type DerivePgTable<T extends z.ZodObject & { dbTableName: string }> =
         : K]: T["shape"][K] extends {
         dbFkRel: { schema: z.ZodObject; key: string };
       }
-        ? WithFkParams<DerivePgColumn<T["shape"][K]>, T["shape"][K]["dbFkRel"]>
-        : DerivePgColumn<T["shape"][K]>;
+        ? WithFkParams<
+            DerivePgColumnImproved<T["shape"][K]>,
+            T["shape"][K]["dbFkRel"]
+          >
+        : DerivePgColumnImproved<T["shape"][K]>;
     }
   >;
 

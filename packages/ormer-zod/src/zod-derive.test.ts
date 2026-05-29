@@ -265,7 +265,7 @@ describe("derivePgColumn default types", () => {
   it("z.number().default(0).nullable() -> float8 + default + nullable ", () => {
     const col = derivePgColumn(z.number().default(0).nullable());
     expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnType<"float8", { default: number; nullable: true }>
+      ColumnType<"float8", { default: number | null; nullable: true }>
     >();
     expect(col.type).toBe("float8");
     expect(col.nullable).toBe(true);
