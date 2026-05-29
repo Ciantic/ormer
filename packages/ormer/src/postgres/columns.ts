@@ -44,29 +44,29 @@ export function int8(params?: any) {
   return { type: "int8", ...params };
 }
 
-export function serial2(): ColumnTypeSingualr<"serial2">;
-export function serial2<T extends Params>(
-  params: R<T, Params>,
-): ColumnType<"serial2", T>;
-export function serial2(params?: any) {
-  return { type: "serial2", ...params };
-}
+// export function serial2(): ColumnTypeSingualr<"serial2">;
+// export function serial2<T extends Params>(
+//   params: R<T, Params>,
+// ): ColumnType<"serial2", T>;
+// export function serial2(params?: any) {
+//   return { type: "serial2", ...params };
+// }
 
-export function serial4(): ColumnTypeSingualr<"serial4">;
-export function serial4<T extends Params>(
-  params: R<T, Params>,
-): ColumnType<"serial4", T>;
-export function serial4(params?: any) {
-  return { type: "serial4", ...params };
-}
+// export function serial4(): ColumnTypeSingualr<"serial4">;
+// export function serial4<T extends Params>(
+//   params: R<T, Params>,
+// ): ColumnType<"serial4", T>;
+// export function serial4(params?: any) {
+//   return { type: "serial4", ...params };
+// }
 
-export function serial8(): ColumnTypeSingualr<"serial8">;
-export function serial8<T extends Params>(
-  params: R<T, Params>,
-): ColumnType<"serial8", T>;
-export function serial8(params?: any) {
-  return { type: "serial8", ...params };
-}
+// export function serial8(): ColumnTypeSingualr<"serial8">;
+// export function serial8<T extends Params>(
+//   params: R<T, Params>,
+// ): ColumnType<"serial8", T>;
+// export function serial8(params?: any) {
+//   return { type: "serial8", ...params };
+// }
 
 export function float4(): ColumnTypeSingualr<"float4">;
 export function float4<T extends Params>(

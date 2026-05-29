@@ -11,14 +11,19 @@ import type { InferKyselyTypes } from "../index.ts";
 
 const allTypesTable = table("all_types", {
   // integer types
-  id: pg.serial8({ primaryKey: true, notInsertable: true, notUpdatable: true }),
+  id: pg.int8({
+    primaryKey: true,
+    autoIncrement: true,
+    notInsertable: true,
+    notUpdatable: true,
+  }),
   int2_col: pg.int2(),
   int2_nullable: pg.int2({ nullable: true }),
   int4_col: pg.int4(),
   int8_col: pg.int8(),
-  serial2_col: pg.serial2(),
-  serial4_col: pg.serial4(),
-  serial8_col: pg.serial8(),
+  serial2_col: pg.int2({ autoIncrement: true }),
+  serial4_col: pg.int4({ autoIncrement: true }),
+  serial8_col: pg.int8({ autoIncrement: true }),
   // float types
   float4_col: pg.float4(),
   float8_col: pg.float8(),
@@ -77,12 +82,22 @@ const allTypesTable = table("all_types", {
 });
 
 const referencedTable = table("referenced", {
-  id: pg.serial8({ primaryKey: true, notInsertable: true, notUpdatable: true }),
+  id: pg.int8({
+    primaryKey: true,
+    autoIncrement: true,
+    notInsertable: true,
+    notUpdatable: true,
+  }),
   name: pg.text(),
 });
 
 const withFkTable = table("with_fk", {
-  id: pg.serial8({ primaryKey: true, notInsertable: true, notUpdatable: true }),
+  id: pg.int8({
+    primaryKey: true,
+    autoIncrement: true,
+    notInsertable: true,
+    notUpdatable: true,
+  }),
   ref_id: pg.foreignKey(referencedTable, "id"),
 });
 

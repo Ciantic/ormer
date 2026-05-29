@@ -23,9 +23,9 @@ export type PgUnifiedTypeMapping = {
   int2: InputOutput<string | number | bigint, number>;
   int4: InputOutput<string | number | bigint, number>;
   int8: InputOutput<string | number | bigint, bigint>;
-  serial2: InputOutput<string | number | bigint | undefined, number>;
-  serial4: InputOutput<string | number | bigint | undefined, number>;
-  serial8: InputOutput<string | number | bigint | undefined, bigint>;
+  // serial2: InputOutput<string | number | bigint | undefined, number>;
+  // serial4: InputOutput<string | number | bigint | undefined, number>;
+  // serial8: InputOutput<string | number | bigint | undefined, bigint>;
   float4: InputOutput<string | number | bigint, number>;
   float8: InputOutput<string | number | bigint, number>;
   decimal: InputOutput<string | number | bigint, string>;

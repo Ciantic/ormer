@@ -9,9 +9,9 @@ describe("postgres columns", () => {
       col_int2: o.int2(),
       col_int4: o.int4(),
       col_int8: o.int8(),
-      col_serial2: o.serial2(),
-      col_serial4: o.serial4(),
-      col_serial8: o.serial8(),
+      col_serial2: o.int2({ autoIncrement: true }),
+      col_serial4: o.int4({ autoIncrement: true }),
+      col_serial8: o.int8({ autoIncrement: true }),
       col_float4: o.float4(),
       col_float8: o.float8(),
       col_decimal: o.decimal({ precision: 10, scale: 2 }),
@@ -80,9 +80,9 @@ describe("postgres columns", () => {
     expect(allColumns.columns.col_int2.type).toBe("int2");
     expect(allColumns.columns.col_int4.type).toBe("int4");
     expect(allColumns.columns.col_int8.type).toBe("int8");
-    expect(allColumns.columns.col_serial2.type).toBe("serial2");
-    expect(allColumns.columns.col_serial4.type).toBe("serial4");
-    expect(allColumns.columns.col_serial8.type).toBe("serial8");
+    expect(allColumns.columns.col_serial2.type).toBe("int2");
+    expect(allColumns.columns.col_serial4.type).toBe("int4");
+    expect(allColumns.columns.col_serial8.type).toBe("int8");
     expect(allColumns.columns.col_float4.type).toBe("float4");
     expect(allColumns.columns.col_float8.type).toBe("float8");
     expect(allColumns.columns.col_decimal.type).toBe("decimal");

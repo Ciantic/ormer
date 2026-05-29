@@ -42,6 +42,7 @@ type InsertCol<Col, UnifiedMap extends UnifiedMapping> = Col extends {
         | I
         | (Col extends { nullable: true } ? null | undefined : never)
         | (Col extends { default: infer _ } ? undefined : never)
+        | (Col extends { autoIncrement: true } ? undefined : never)
     : never;
 
 // Infer the UPDATE type for a column

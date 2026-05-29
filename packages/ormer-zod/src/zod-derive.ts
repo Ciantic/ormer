@@ -77,9 +77,9 @@ type WithParams<C, P> =
 type DerivePgColumnInner<T extends ZodType> =
   HasDbPk<T> extends true
     ? UnwrapModifiers<T> extends z.ZodBigInt
-      ? ColumnType<"serial8", { primaryKey: true }>
+      ? ColumnType<"int8", { primaryKey: true; autoIncrement: true }>
       : UnwrapModifiers<T> extends z.ZodNumberFormat
-        ? ColumnType<"serial4", { primaryKey: true }>
+        ? ColumnType<"int4", { primaryKey: true; autoIncrement: true }>
         : WithParams<DeriveBaseColumn<T>, { primaryKey: true }>
     : DeriveBaseColumn<UnwrapModifiers<T>>;
 
@@ -138,9 +138,9 @@ export type DerivePgColumn<T extends ZodType> =
  * - z.number()           → pg.float8()
  * - z.number().int()     → pg.float8()
  * - z.int()              → pg.int4()
- * - z.int().dbPk()       → pg.serial4()
+ * - z.int().dbPk()       → pg.int4({ primaryKey: true, autoIncrement: true })
  * - z.bigint()           → pg.int8()
- * - z.bigint().dbPk()    → pg.serial8()
+ * - z.bigint().dbPk()    → pg.int8({ primaryKey: true, autoIncrement: true })
  * - z.boolean()          → pg.boolean()
  * - z.date()             → pg.timestamptz()
  * - z.X().nullable()     → adds nullable: true to the result
@@ -197,11 +197,13 @@ export function derivePgColumn<T extends ZodType>(
       return (hasParams ? pg.text(paramsBase) : pg.text()) as any;
 
     case "ZodBigInt":
-      if (paramsBase.primaryKey === true) return pg.serial8(paramsBase) as any;
+      if (paramsBase.primaryKey === true)
+        return pg.int8({ ...paramsBase, autoIncrement: true }) as any;
       return (hasParams ? pg.int8(paramsBase) : pg.int8()) as any;
 
     case "ZodNumberFormat":
-      if (paramsBase.primaryKey === true) return pg.serial4(paramsBase) as any;
+      if (paramsBase.primaryKey === true)
+        return pg.int4({ ...paramsBase, autoIncrement: true }) as any;
       return (hasParams ? pg.int4(paramsBase) : pg.int4()) as any;
 
     case "ZodNumber":

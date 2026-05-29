@@ -6,12 +6,12 @@ import { describe, it, expect, expectTypeOf } from "vitest";
 describe("database", () => {
   it("it combines tables to an object", () => {
     const table1 = table("table1", {
-      id: c.serial8(),
+      id: c.int8({ autoIncrement: true }),
       foo: c.text(),
     });
 
     const table2 = table("table2", {
-      id: c.serial8(),
+      id: c.int8({ autoIncrement: true }),
       bar: c.text(),
     });
 

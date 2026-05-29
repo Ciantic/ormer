@@ -65,22 +65,24 @@ describe("derivePgColumn types", () => {
     expect(col.type).toBe("int8");
   });
 
-  it("z.int().dbPk() -> serial4", () => {
+  it("z.int().dbPk() -> int4 with primaryKey and autoIncrement", () => {
     const col = derivePgColumn(z.int().dbPk());
     expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnType<"serial4", { primaryKey: true }>
+      ColumnType<"int4", { primaryKey: true; autoIncrement: true }>
     >();
-    expect(col.type).toBe("serial4");
+    expect(col.type).toBe("int4");
     expect(col.primaryKey).toBe(true);
+    expect(col.autoIncrement).toBe(true);
   });
 
-  it("z.bigint().dbPk() -> serial8", () => {
+  it("z.bigint().dbPk() -> int8 with primaryKey and autoIncrement", () => {
     const col = derivePgColumn(z.bigint().dbPk());
     expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnType<"serial8", { primaryKey: true }>
+      ColumnType<"int8", { primaryKey: true; autoIncrement: true }>
     >();
-    expect(col.type).toBe("serial8");
+    expect(col.type).toBe("int8");
     expect(col.primaryKey).toBe(true);
+    expect(col.autoIncrement).toBe(true);
   });
 
   it("z.number().int() -> float8", () => {
@@ -270,19 +272,21 @@ describe("derivePgColumn default types", () => {
     expect(col.default).toBe(0);
   });
 
-  it("z.int().default(1).dbPk() -> serial4 + primaryKey + default", () => {
+  it("z.int().default(1).dbPk() -> int4 + primaryKey + default", () => {
     const col = derivePgColumn(z.int().default(1).dbPk());
     expectTypeOf<typeof col>().toEqualTypeOf<
       ColumnType<
-        "serial4",
+        "int4",
         {
           default: number;
           primaryKey: true;
+          autoIncrement: true;
         }
       >
     >();
-    expect(col.type).toBe("serial4");
+    expect(col.type).toBe("int4");
     expect(col.primaryKey).toBe(true);
+    expect(col.autoIncrement).toBe(true);
     expect(col.default).toBe(1);
   });
 });
@@ -312,8 +316,9 @@ describe("derivePgTable", () => {
     const tbl = derivePgTable(schema);
 
     expect(tbl.table).toBe("items");
-    expect(tbl.columns.id.type).toBe("serial4");
+    expect(tbl.columns.id.type).toBe("int4");
     expect(tbl.columns.id.primaryKey).toBe(true);
+    expect(tbl.columns.id.autoIncrement).toBe(true);
     expect(tbl.columns.title.type).toBe("text");
     expect(tbl.columns.description.type).toBe("text");
     expect(tbl.columns.description.nullable).toBe(true);
@@ -347,7 +352,7 @@ describe("derivePgTable", () => {
     expect(tbl.columns.amount.type).toBe("float8");
   });
 
-  it("derives a table with foreign keys to bigint serial8 PK", () => {
+  it("derives a table with foreign keys to PK", () => {
     const invoiceSchema = z
       .object({
         id: z.bigint().dbPk(),
@@ -366,10 +371,11 @@ describe("derivePgTable", () => {
     const tbl = derivePgTable(rowSchema);
 
     expect(tbl.table).toBe("invoice_row");
-    // PK from z.int().dbPk() -> serial4
-    expectTypeOf<typeof tbl.columns.id.type>().toEqualTypeOf<"serial4">();
-    expect(tbl.columns.id.type).toBe("serial4");
+    // PK from z.int().dbPk() -> int4
+    expectTypeOf<typeof tbl.columns.id.type>().toEqualTypeOf<"int4">();
+    expect(tbl.columns.id.type).toBe("int4");
     expect(tbl.columns.id.primaryKey).toBe(true);
+    expect(tbl.columns.id.autoIncrement).toBe(true);
     // FK from z.bigint() -> int8 (NOT serial8)
     expectTypeOf<typeof tbl.columns.invoice_id.type>().toEqualTypeOf<"int8">();
     expect(tbl.columns.invoice_id.type).toBe("int8");
@@ -416,8 +422,9 @@ describe("derivePgTable", () => {
     const tbl = derivePgTable(personSchema);
 
     expect(tbl.table).toBe("person");
-    expect(tbl.columns.id.type).toBe("serial4");
+    expect(tbl.columns.id.type).toBe("int4");
     expect(tbl.columns.id.primaryKey).toBe(true);
+    expect(tbl.columns.id.autoIncrement).toBe(true);
     expect(tbl.columns.first_name.type).toBe("text");
     expect(tbl.columns.supervisor_id.type).toBe("int4");
     expect(tbl.columns.supervisor_id.nullable).toBe(true);
@@ -450,7 +457,7 @@ describe("derivePgTable types", () => {
     const tbl = derivePgTable(schema);
     expectTypeOf<typeof tbl.table>().toEqualTypeOf<"items">();
     expectTypeOf<(typeof tbl.columns)["id"]>().toEqualTypeOf<
-      ColumnType<"serial4", { primaryKey: true }>
+      ColumnType<"int4", { primaryKey: true; autoIncrement: true }>
     >();
     expectTypeOf<(typeof tbl.columns)["title"]>().toEqualTypeOf<
       ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
@@ -506,7 +513,7 @@ describe("derivePgTable types", () => {
     >();
   });
 
-  it("type-only: FK to bigint serial8 PK has int8 type", () => {
+  it("type-only: FK -> PK has int8 type", () => {
     const invSchema = z
       .object({ id: z.bigint().dbPk(), title: z.string() })
       .dbTable("invoice");

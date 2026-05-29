@@ -17,12 +17,10 @@ export type MapPgColumnsTo<T> = {
 
 export const PGCOLUMN_TO_SQLTYPE = {
   // Numeric types
-  int2: () => "int2",
-  int4: () => "int4",
-  int8: () => "int8",
-  serial2: () => "serial2",
-  serial4: () => "serial4",
-  serial8: () => "serial8",
+  int2: ({ autoIncrement }) => (autoIncrement ? "serial2" : "int2"),
+  int4: ({ autoIncrement }) => (autoIncrement ? "serial4" : "int4"),
+  int8: ({ autoIncrement }) => (autoIncrement ? "serial8" : "int8"),
+
   float4: () => "float4",
   float8: () => "float8",
   money: () => "money",

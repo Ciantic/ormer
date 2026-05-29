@@ -18,8 +18,9 @@ import { PGlite } from "@electric-sql/pglite";
 import process from "node:process";
 
 const invoiceTable = table("invoice", {
-  id: pg.serial8({
+  id: pg.int8({
     primaryKey: true,
+    autoIncrement: true,
     notInsertable: true,
     notUpdatable: true,
   }),
@@ -36,8 +37,9 @@ const invoiceTable = table("invoice", {
 });
 
 const invoiceRowTable = table("invoice_row", {
-  id: pg.serial8({
+  id: pg.int8({
     primaryKey: true,
+    autoIncrement: true,
     notInsertable: true,
     notUpdatable: true,
   }),
@@ -52,8 +54,9 @@ const invoiceRowTable = table("invoice_row", {
 });
 
 const personTable = table("person", {
-  id: pg.serial8({
+  id: pg.int8({
     primaryKey: true,
+    autoIncrement: true,
     notInsertable: true,
     notUpdatable: true,
   }),

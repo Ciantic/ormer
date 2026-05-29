@@ -11,8 +11,9 @@ type Equal<X, Y> =
 describe("table", () => {
   it("Test inference", () => {
     const invoiceTable = table("invoice", {
-      id: pg.serial8({
+      id: pg.int8({
         primaryKey: true,
+        autoIncrement: true,
         notInsertable: true,
         notUpdatable: true,
       }),
@@ -30,9 +31,10 @@ describe("table", () => {
       Equal<
         (typeof invoiceTable.columns)["id"],
         pg.ColumnType<
-          "serial8",
+          "int8",
           {
             primaryKey: true;
+            autoIncrement: true;
             notInsertable: true;
             notUpdatable: true;
           }
@@ -72,8 +74,9 @@ describe("table", () => {
 
   it("Test invoice and invoice row", () => {
     const invoiceTable = table("invoice", {
-      id: pg.serial8({
+      id: pg.int8({
         primaryKey: true,
+        autoIncrement: true,
         notInsertable: true,
         notUpdatable: true,
       }),
@@ -83,8 +86,9 @@ describe("table", () => {
     });
 
     const invoiceRowTable = table("invoice_row", {
-      id: pg.serial8({
+      id: pg.int8({
         primaryKey: true,
+        autoIncrement: true,
         notInsertable: true,
         notUpdatable: true,
       }),
@@ -102,9 +106,10 @@ describe("table", () => {
           "invoice",
           {
             id: pg.ColumnType<
-              "serial8",
+              "int8",
               {
                 primaryKey: true;
+                autoIncrement: true;
                 notInsertable: true;
                 notUpdatable: true;
               }
@@ -124,9 +129,10 @@ describe("table", () => {
           "invoice_row",
           {
             id: pg.ColumnType<
-              "serial8",
+              "int8",
               {
                 primaryKey: true;
+                autoIncrement: true;
                 notInsertable: true;
                 notUpdatable: true;
               }
@@ -136,7 +142,7 @@ describe("table", () => {
             taxPercentage: pg.ColumnTypeSingualr<"float8">;
             quantity: pg.ColumnTypeSingualr<"int4">;
             invoiceId: pg.ColumnType<
-              "serial8",
+              "int8",
               {
                 foreignKeyTable: "invoice";
                 foreignKeyColumn: "id";
@@ -150,8 +156,9 @@ describe("table", () => {
 
   it("Test self referencing table", () => {
     const personTable = table("person", {
-      id: pg.serial8({
+      id: pg.int8({
         primaryKey: true,
+        autoIncrement: true,
         notInsertable: true,
         notUpdatable: true,
       }),
@@ -170,9 +177,10 @@ describe("table", () => {
           "person",
           {
             id: pg.ColumnType<
-              "serial8",
+              "int8",
               {
                 primaryKey: true;
+                autoIncrement: true;
                 notInsertable: true;
                 notUpdatable: true;
               }
@@ -181,7 +189,7 @@ describe("table", () => {
             lastName: pg.ColumnTypeSingualr<"text">;
             email: pg.ColumnTypeSingualr<"text">;
             readonly supervisorId: pg.ColumnType<
-              "serial8",
+              "int8",
               {
                 foreignKeyTable: "person";
                 foreignKeyColumn: "id";
