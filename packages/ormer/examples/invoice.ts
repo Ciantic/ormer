@@ -1,3 +1,6 @@
+// Run with node directly:
+// node ./invoice.ts
+
 import {
   pg,
   table,
@@ -8,6 +11,7 @@ import {
   type InferKyselyTypes,
   PGCOLUMN_TO_SQLTYPE,
   POSTGRES_OPTS,
+  type PgUnifiedTypeMapping,
 } from "ormer";
 import * as k from "kysely";
 import { PGlite } from "@electric-sql/pglite";
@@ -77,29 +81,62 @@ const schema = createTableSql(PGCOLUMN_TO_SQLTYPE, exampleDb, POSTGRES_OPTS);
 await pglite.exec(schema);
 console.log("Schema created", schema);
 
-// type KyselyType = InferKyselyTypes<typeof exampleDb>;
+type KyselyType = InferKyselyTypes<typeof exampleDb, PgUnifiedTypeMapping>;
 
-// const db = new k.Kysely<KyselyType>({
-//   dialect: new k.PGliteDialect({
-//     pglite,
-//   }),
-// });
+const db = new k.Kysely<KyselyType>({
+  dialect: new k.PGliteDialect({
+    pglite,
+  }),
+});
 
-// // Insert example data
-// await db
-//   .insertInto("invoice")
-//   .values({
-//     title: "Test Invoice",
-//     description: "This is a test invoice",
-//   })
-//   .execute();
+// Insert example data
+await db
+  .insertInto("invoice")
+  .values({
+    title: "Test Invoice",
+    description: "This is a test invoice",
+    due_date: new Date(),
+  })
+  .execute();
 
-// const results = await db
-//   .selectFrom("invoice")
-//   .where("id", "=", 1n)
-//   .selectAll()
-//   .execute();
+// Insert rows
+await db
+  .insertInto("invoice_row")
+  .values([
+    {
+      title: "Test Row 1",
+      price: 10.5,
+      tax_percentage: 24,
+      quantity: 2,
+      invoice_id: 1,
+    },
+    {
+      title: "Test Row 2",
+      price: 5.25,
+      tax_percentage: 24,
+      quantity: 1,
+      invoice_id: 1,
+    },
+  ])
+  .execute();
 
-// console.log(results);
+// Query the invoice with rows
 
-// process.exit(0);
+const invoices = await db
+  .selectFrom("invoice")
+  .where("id", "=", 1n)
+  .selectAll()
+  .execute();
+
+const rows = await db
+  .selectFrom("invoice_row")
+  .where("invoice_id", "=", 1n)
+  .selectAll()
+  .execute();
+
+console.log("Invoice:", invoices[0]);
+console.log("Rows:", rows);
+
+console.log(invoices);
+
+process.exit(0);
