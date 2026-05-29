@@ -10,31 +10,47 @@ type ZodType = z.ZodType;
 // Type-level derivation
 // ---------------------------------------------------------------------------
 
-/** Extract the inner Zod type, unwrapping ZodNullable */
-type UnwrapNullable<T extends ZodType> =
-  T extends z.ZodNullable<infer Inner> ? Inner : T;
+/** Unwrap ZodNullable and ZodDefault wrappers recursively to get the inner type */
+type UnwrapModifiers<T extends ZodType> =
+  T extends z.ZodNullable<infer Inner extends ZodType>
+    ? UnwrapModifiers<Inner>
+    : T extends z.ZodDefault<infer Inner extends ZodType>
+      ? UnwrapModifiers<Inner>
+      : T;
 
-/** Whether the Zod type is nullable */
+/** Whether the Zod type is nullable (after unwrapping any ZodDefault) */
 type IsNullable<T extends ZodType> =
-  T extends z.ZodNullable<any> ? true : false;
+  T extends z.ZodNullable<any>
+    ? true
+    : T extends z.ZodDefault<infer Inner extends ZodType>
+      ? IsNullable<Inner>
+      : false;
+
+/** Extract the default value type from a Zod schema, or never */
+type HasDefaultValue<T extends ZodType> =
+  T extends z.ZodNullable<infer Inner extends ZodType>
+    ? HasDefaultValue<Inner>
+    : T extends z.ZodDefault<infer Inner>
+      ? z.infer<Inner>
+      : never;
 
 /** Map a non-nullable Zod type to a union of possible pg column types */
 type DeriveBaseColumn<T extends ZodType> =
-  UnwrapNullable<T> extends z.ZodUUID
+  UnwrapModifiers<T> extends z.ZodUUID
     ? ColumnTypeSingualr<"uuid">
-    : UnwrapNullable<T> extends z.ZodBigInt
+    : UnwrapModifiers<T> extends z.ZodBigInt
       ? ColumnTypeSingualr<"int8">
-      : UnwrapNullable<T> extends z.ZodString
+      : UnwrapModifiers<T> extends z.ZodString
         ?
             | ColumnTypeSingualr<"text">
             | ColumnType<"varchar", { maxLength: number }>
-        : UnwrapNullable<T> extends z.ZodNumberFormat
+        : UnwrapModifiers<T> extends z.ZodNumberFormat
           ? ColumnTypeSingualr<"int4">
-          : UnwrapNullable<T> extends z.ZodNumber
+          : UnwrapModifiers<T> extends z.ZodNumber
             ? ColumnTypeSingualr<"float8">
-            : UnwrapNullable<T> extends z.ZodBoolean
+            : UnwrapModifiers<T> extends z.ZodBoolean
               ? ColumnTypeSingualr<"boolean">
-              : UnwrapNullable<T> extends z.ZodDate
+              : UnwrapModifiers<T> extends z.ZodDate
                 ? ColumnTypeSingualr<"timestamptz">
                 : never;
 
@@ -48,19 +64,26 @@ type WithParams<C, P> =
 
 /** DeriveBaseColumn with primaryKey and serial type adjustment for dbPk */
 type DerivePgColumnInner<T extends ZodType> =
-  UnwrapNullable<T> extends { idDbPk: true }
-    ? UnwrapNullable<T> extends z.ZodBigInt
+  UnwrapModifiers<T> extends { idDbPk: true }
+    ? UnwrapModifiers<T> extends z.ZodBigInt
       ? ColumnType<"serial8", { primaryKey: true }>
-      : UnwrapNullable<T> extends z.ZodNumberFormat
+      : UnwrapModifiers<T> extends z.ZodNumberFormat
         ? ColumnType<"serial4", { primaryKey: true }>
         : WithParams<DeriveBaseColumn<T>, { primaryKey: true }>
     : DeriveBaseColumn<T>;
 
 /** The fully derived pg column type from a Zod schema */
 export type DerivePgColumn<T extends ZodType> =
-  IsNullable<T> extends true
-    ? WithParams<DerivePgColumnInner<T>, { nullable: true }>
-    : DerivePgColumnInner<T>;
+  HasDefaultValue<T> extends never
+    ? IsNullable<T> extends true
+      ? WithParams<DerivePgColumnInner<T>, { nullable: true }>
+      : DerivePgColumnInner<T>
+    : IsNullable<T> extends true
+      ? WithParams<
+          DerivePgColumnInner<T>,
+          { nullable: true; default: HasDefaultValue<T> }
+        >
+      : WithParams<DerivePgColumnInner<T>, { default: HasDefaultValue<T> }>;
 
 // ---------------------------------------------------------------------------
 // Runtime implementation
@@ -84,19 +107,38 @@ export type DerivePgColumn<T extends ZodType> =
  * - z.boolean()          → pg.boolean()
  * - z.date()             → pg.timestamptz()
  * - z.X().nullable()     → adds nullable: true to the result
+ * - z.X().default(val)   → adds default: val to the result
  * - z.X().dbPk()         → adds primaryKey: true to the result
  */
 export function derivePgColumn<T extends ZodType>(
   schema: T,
 ): DerivePgColumn<T> {
-  const nullable = schema.def.type === "nullable";
   // deno-lint-ignore no-explicit-any
-  const inner: any = nullable ? (schema as any).def.innerType : schema;
+  let node: any = schema;
+  let nullable = false;
+  let defaultValue: unknown = undefined;
+
+  // Unwrap ZodNullable and ZodDefault wrappers to get the inner type.
+  // retain nullable/default metadata from wrappers along the way.
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    if (node.def.type === "nullable") {
+      nullable = true;
+      node = node.def.innerType;
+    } else if (node.def.type === "default") {
+      defaultValue = node.def.defaultValue;
+      node = node.def.innerType;
+    } else {
+      break;
+    }
+  }
+  const inner: any = node;
 
   // deno-lint-ignore no-explicit-any
   const paramsBase: any = {};
   if (nullable) paramsBase.nullable = true;
   if (inner.idDbPk === true) paramsBase.primaryKey = true;
+  if (defaultValue !== undefined) paramsBase.default = defaultValue;
 
   const hasParams = Object.keys(paramsBase).length > 0;
 

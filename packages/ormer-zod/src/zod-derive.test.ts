@@ -170,6 +170,112 @@ describe("derivePgColumn nullable types", () => {
   });
 });
 
+describe("derivePgColumn default types", () => {
+  it("z.string().default('hello') -> text|varchar + default", () => {
+    const col = derivePgColumn(z.string().default("hello"));
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      | ColumnType<"text", { default: string }>
+      | ColumnType<"varchar", { maxLength: number } & { default: string }>
+    >();
+    expect(col.type).toBe("text");
+    expect(col.default).toBe("hello");
+  });
+
+  it("z.number().default(5) -> float8 + default", () => {
+    const col = derivePgColumn(z.number().default(5));
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"float8", { default: number }>
+    >();
+    expect(col.type).toBe("float8");
+    expect(col.default).toBe(5);
+  });
+
+  it("z.int().default(42) -> int4 + default", () => {
+    const col = derivePgColumn(z.int().default(42));
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"int4", { default: number }>
+    >();
+    expect(col.type).toBe("int4");
+    expect(col.default).toBe(42);
+  });
+
+  it("z.bigint().default(1n) -> int8 + default", () => {
+    const col = derivePgColumn(z.bigint().default(1n));
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"int8", { default: bigint }>
+    >();
+    expect(col.type).toBe("int8");
+    expect(col.default).toBe(1n);
+  });
+
+  it("z.boolean().default(true) -> boolean + default", () => {
+    const col = derivePgColumn(z.boolean().default(true));
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"boolean", { default: boolean }>
+    >();
+    expect(col.type).toBe("boolean");
+    expect(col.default).toBe(true);
+  });
+
+  it("z.date().default(new Date()) -> timestamptz + default", () => {
+    const d = new Date();
+    const col = derivePgColumn(z.date().default(d));
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"timestamptz", { default: Date }>
+    >();
+    expect(col.type).toBe("timestamptz");
+    expect(col.default).toBe(d);
+  });
+
+  it("z.uuid().default('...') -> uuid + default", () => {
+    const col = derivePgColumn(
+      z.uuid().default("550e8400-e29b-41d4-a716-446655440000"),
+    );
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"uuid", { default: string }>
+    >();
+    expect(col.type).toBe("uuid");
+    expect(col.default).toBe("550e8400-e29b-41d4-a716-446655440000");
+  });
+
+  it("z.string().nullable().default('fallback') -> text|varchar + nullable + default", () => {
+    const col = derivePgColumn(z.string().nullable().default("fallback"));
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      | ColumnType<"text", { default: string | null; nullable: true }>
+      | ColumnType<
+          "varchar",
+          { maxLength: number } & {
+            default: string | null;
+            nullable: true;
+          }
+        >
+    >();
+    expect(col.type).toBe("text");
+    expect(col.nullable).toBe(true);
+    expect(col.default).toBe("fallback");
+  });
+
+  it("z.number().default(0).nullable() -> float8 + default + nullable ", () => {
+    const col = derivePgColumn(z.number().default(0).nullable());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"float8", { default: number | null; nullable: true }>
+    >();
+    expect(col.type).toBe("float8");
+    expect(col.nullable).toBe(true);
+    expect(col.default).toBe(0);
+  });
+
+  it("z.int().default(1).dbPk() -> serial4 + primaryKey + default", () => {
+    const col = derivePgColumn(z.int().default(1).dbPk());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"serial4", { default: number; primaryKey: true }>
+    >();
+    expect(col.type).toBe("serial4");
+    expect(col.primaryKey).toBe(true);
+    expect(col.default).toBe(1);
+  });
+});
+
 describe("unsupported type throws", () => {
   it("z.array(z.string()) throws", () => {
     expect(() => derivePgColumn(z.array(z.string()) as any)).toThrow(
