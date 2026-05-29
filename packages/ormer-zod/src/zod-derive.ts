@@ -46,10 +46,14 @@ type WithParams<C, P> =
       ? ColumnType<Type, P>
       : never;
 
-/** DeriveBaseColumn with primaryKey added if dbPk() was called on the inner type */
+/** DeriveBaseColumn with primaryKey and serial type adjustment for dbPk */
 type DerivePgColumnInner<T extends ZodType> =
   UnwrapNullable<T> extends { idDbPk: true }
-    ? WithParams<DeriveBaseColumn<T>, { primaryKey: true }>
+    ? UnwrapNullable<T> extends z.ZodBigInt
+      ? ColumnType<"serial8", { primaryKey: true }>
+      : UnwrapNullable<T> extends z.ZodNumberFormat
+        ? ColumnType<"serial4", { primaryKey: true }>
+        : WithParams<DeriveBaseColumn<T>, { primaryKey: true }>
     : DeriveBaseColumn<T>;
 
 /** The fully derived pg column type from a Zod schema */
@@ -104,9 +108,11 @@ export function derivePgColumn<T extends ZodType>(
     }
 
     case "ZodBigInt":
+      if (inner.idDbPk === true) return pg.serial8(paramsBase) as any;
       return (hasParams ? pg.int8(paramsBase) : pg.int8()) as any;
 
     case "ZodNumberFormat":
+      if (inner.idDbPk === true) return pg.serial4(paramsBase) as any;
       return (hasParams ? pg.int4(paramsBase) : pg.int4()) as any;
 
     case "ZodNumber": {

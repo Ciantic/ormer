@@ -67,6 +67,24 @@ describe("derivePgColumn types", () => {
     expect(col.type).toBe("int8");
   });
 
+  it("z.int().dbPk() -> serial4", () => {
+    const col = derivePgColumn(z.int().dbPk());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"serial4", { primaryKey: true }>
+    >();
+    expect(col.type).toBe("serial4");
+    expect(col.primaryKey).toBe(true);
+  });
+
+  it("z.bigint().dbPk() -> serial8", () => {
+    const col = derivePgColumn(z.bigint().dbPk());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"serial8", { primaryKey: true }>
+    >();
+    expect(col.type).toBe("serial8");
+    expect(col.primaryKey).toBe(true);
+  });
+
   it("z.number().int() -> float8 | int4", () => {
     const col = derivePgColumn(z.number().int());
     expectTypeOf<typeof col>().toEqualTypeOf<
@@ -182,7 +200,7 @@ describe("derivePgTable", () => {
     const tbl = derivePgTable(schema);
 
     expect(tbl.table).toBe("items");
-    expect(tbl.columns.id.type).toBe("int4");
+    expect(tbl.columns.id.type).toBe("serial4");
     expect(tbl.columns.id.primaryKey).toBe(true);
     expect(tbl.columns.title.type).toBe("text");
     expect(tbl.columns.description.type).toBe("text");
@@ -215,6 +233,38 @@ describe("derivePgTable", () => {
     expect(tbl.columns.invoice_id.foreignKeyTable).toBe("invoice");
     expect(tbl.columns.invoice_id.foreignKeyColumn).toBe("id");
     expect(tbl.columns.amount.type).toBe("float8");
+  });
+
+  it("derives a table with foreign keys to bigint serial8 PK", () => {
+    const invoiceSchema = z
+      .object({
+        id: z.bigint().dbPk(),
+        title: z.string(),
+      })
+      .dbTable("invoice");
+
+    const rowSchema = z
+      .object({
+        id: z.int().dbPk(),
+        invoice_id: z.bigint().nullable().dbFk(invoiceSchema, "id"),
+        amount: z.int(),
+      })
+      .dbTable("invoice_row");
+
+    const tbl = derivePgTable(rowSchema);
+
+    expect(tbl.table).toBe("invoice_row");
+    // PK from z.int().dbPk() -> serial4
+    expectTypeOf<typeof tbl.columns.id.type>().toEqualTypeOf<"serial4">();
+    expect(tbl.columns.id.type).toBe("serial4");
+    expect(tbl.columns.id.primaryKey).toBe(true);
+    // FK from z.bigint() -> int8 (NOT serial8)
+    expectTypeOf<typeof tbl.columns.invoice_id.type>().toEqualTypeOf<"int8">();
+    expect(tbl.columns.invoice_id.type).toBe("int8");
+    expect(tbl.columns.invoice_id.nullable).toBe(true);
+    expect(tbl.columns.invoice_id.foreignKeyTable).toBe("invoice");
+    expect(tbl.columns.invoice_id.foreignKeyColumn).toBe("id");
+    expect(tbl.columns.amount.type).toBe("int4");
   });
 
   it("skips navigation fields (dbRef)", () => {
@@ -254,7 +304,7 @@ describe("derivePgTable", () => {
     const tbl = derivePgTable(personSchema);
 
     expect(tbl.table).toBe("person");
-    expect(tbl.columns.id.type).toBe("int4");
+    expect(tbl.columns.id.type).toBe("serial4");
     expect(tbl.columns.id.primaryKey).toBe(true);
     expect(tbl.columns.first_name.type).toBe("text");
     expect(tbl.columns.supervisor_id.type).toBe("int4");
@@ -288,7 +338,7 @@ describe("derivePgTable types", () => {
     const tbl = derivePgTable(schema);
     expectTypeOf<typeof tbl.table>().toEqualTypeOf<"items">();
     expectTypeOf<(typeof tbl.columns)["id"]>().toEqualTypeOf<
-      ColumnType<"int4", { primaryKey: true }>
+      ColumnType<"serial4", { primaryKey: true }>
     >();
     expectTypeOf<(typeof tbl.columns)["title"]>().toEqualTypeOf<
       ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
@@ -339,6 +389,40 @@ describe("derivePgTable types", () => {
     expectTypeOf<(typeof tbl.columns)["invoice_id"]>().toEqualTypeOf<
       ColumnType<
         "int4",
+        { nullable: true } & {
+          foreignKeyTable: "invoice";
+          foreignKeyColumn: "id";
+        }
+      >
+    >();
+  });
+
+  it("type-only: FK to bigint serial8 PK has int8 type", () => {
+    const invSchema = z
+      .object({ id: z.bigint().dbPk(), title: z.string() })
+      .dbTable("invoice");
+
+    const rowSchema = z
+      .object({
+        id: z.int().dbPk(),
+        invoice_id: z.bigint().nullable().dbFk(invSchema, "id"),
+        amount: z.int(),
+      })
+      .dbTable("invoice_row");
+
+    const tbl = derivePgTable(rowSchema);
+
+    expectTypeOf<
+      (typeof tbl.columns)["invoice_id"]["foreignKeyTable"]
+    >().toEqualTypeOf<"invoice">();
+
+    expectTypeOf<
+      (typeof tbl.columns)["invoice_id"]["foreignKeyColumn"]
+    >().toEqualTypeOf<"id">();
+
+    expectTypeOf<(typeof tbl.columns)["invoice_id"]>().toEqualTypeOf<
+      ColumnType<
+        "int8",
         { nullable: true } & {
           foreignKeyTable: "invoice";
           foreignKeyColumn: "id";
