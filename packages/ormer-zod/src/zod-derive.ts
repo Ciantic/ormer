@@ -56,15 +56,17 @@ type DeriveBaseColumn<T extends ZodType> =
         ?
             | ColumnTypeSingualr<"text">
             | ColumnType<"varchar", { maxLength: number }>
-        : UnwrapModifiers<T> extends z.ZodNumberFormat
-          ? ColumnTypeSingualr<"int4">
-          : UnwrapModifiers<T> extends z.ZodNumber
-            ? ColumnTypeSingualr<"float8">
-            : UnwrapModifiers<T> extends z.ZodBoolean
-              ? ColumnTypeSingualr<"boolean">
-              : UnwrapModifiers<T> extends z.ZodDate
-                ? ColumnTypeSingualr<"timestamptz">
-                : never;
+        : UnwrapModifiers<T> extends z.ZodEmail
+          ? ColumnTypeSingualr<"text">
+          : UnwrapModifiers<T> extends z.ZodNumberFormat
+            ? ColumnTypeSingualr<"int4">
+            : UnwrapModifiers<T> extends z.ZodNumber
+              ? ColumnTypeSingualr<"float8">
+              : UnwrapModifiers<T> extends z.ZodBoolean
+                ? ColumnTypeSingualr<"boolean">
+                : UnwrapModifiers<T> extends z.ZodDate
+                  ? ColumnTypeSingualr<"timestamptz">
+                  : never;
 
 /** Add extra params to a pg column type */
 type WithParams<C, P> =
@@ -167,6 +169,9 @@ export function derivePgColumn<T extends ZodType>(
         return pg.varchar({ maxLength, ...paramsBase }) as any;
       return (hasParams ? pg.text(paramsBase) : pg.text()) as any;
     }
+
+    case "ZodEmail":
+      return (hasParams ? pg.text(paramsBase) : pg.text()) as any;
 
     case "ZodBigInt":
       if (paramsBase.primaryKey === true) return pg.serial8(paramsBase) as any;

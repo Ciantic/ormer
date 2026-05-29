@@ -89,6 +89,12 @@ describe("derivePgColumn types", () => {
     expect(col.type).toBe("float8");
   });
 
+  it("z.string().email() -> text", () => {
+    const col = derivePgColumn(z.email());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
+    expect(col.type).toBe("text");
+  });
+
   it("z.boolean() -> { type: 'boolean' }", () => {
     const col = derivePgColumn(z.boolean());
     expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"boolean">>();
@@ -265,7 +271,13 @@ describe("derivePgColumn default types", () => {
   it("z.int().default(1).dbPk() -> serial4 + primaryKey + default", () => {
     const col = derivePgColumn(z.int().default(1).dbPk());
     expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnType<"serial4", { default: number; primaryKey: true }>
+      ColumnType<
+        "serial4",
+        {
+          default: number;
+          primaryKey: true;
+        }
+      >
     >();
     expect(col.type).toBe("serial4");
     expect(col.primaryKey).toBe(true);

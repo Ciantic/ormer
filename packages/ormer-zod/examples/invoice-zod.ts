@@ -1,6 +1,15 @@
-import { database } from "ormer";
+import {
+  database,
+  createTableSql,
+  PGCOLUMN_TO_SQLTYPE,
+  POSTGRES_OPTS,
+  type InferKyselyTypes,
+} from "ormer";
+import { createPgliteParsers, type PgUnifiedTypeMapping } from "ormer";
 import { derivePgTable } from "../src/index.ts";
 import { z } from "zod";
+import * as k from "kysely";
+import { PGlite } from "@electric-sql/pglite";
 
 const InvoiceSchema = z
   .object({
@@ -25,11 +34,7 @@ const InvoiceRowSchema = z
     price: z.number(),
     tax_percentage: z.number(),
     quantity: z.number(),
-    invoice_id: z
-      .number()
-      .brand("InvoiceId")
-      .nullable()
-      .dbFk(InvoiceSchema, "id"),
+    invoice_id: z.int().brand("InvoiceId").nullable().dbFk(InvoiceSchema, "id"),
     concurrencyStamp: z.string(),
     get invoice() {
       return InvoiceSchema.dbNavigate(InvoiceRowSchema, "invoice_id");
@@ -44,7 +49,7 @@ const PersonSchema = z
     last_name: z.string().nullable(),
     email: z.email(),
     get supervisor_id() {
-      return z.number().brand("PersonId").nullable().dbFk(PersonSchema, "id");
+      return z.int().brand("PersonId").nullable().dbFk(PersonSchema, "id");
     },
     get supervisor() {
       return PersonSchema.dbNavigateSelf("id");
@@ -58,4 +63,70 @@ const rowTable = derivePgTable(InvoiceRowSchema);
 const invoiceTable = derivePgTable(InvoiceSchema);
 const personTable = derivePgTable(PersonSchema);
 
-const db = database({}, rowTable, invoiceTable, personTable);
+const db = database({}, invoiceTable, rowTable, personTable);
+
+// --- PGlite: create in-memory Postgres and run schema SQL ---
+const pglite = new PGlite({
+  parsers: createPgliteParsers(),
+});
+const schema = createTableSql(PGCOLUMN_TO_SQLTYPE, db, POSTGRES_OPTS);
+await pglite.exec(schema);
+console.log("Schema created", schema);
+
+// --- Kysely: typed query builder backed by PGlite ---
+type KyselyTypes = InferKyselyTypes<typeof db, PgUnifiedTypeMapping>;
+
+const kyselyDb = new k.Kysely<KyselyTypes>({
+  dialect: new k.PGliteDialect({
+    pglite,
+  }),
+});
+
+// Insert an invoice (serial id is auto-generated)
+await kyselyDb
+  .insertInto("invoice")
+  .values({
+    title: "Test Invoice",
+    description: "A test invoice created with Ormer + Zod",
+    due_date: "2026-06-30",
+    rowversion: 1,
+    concurrencyStamp: crypto.randomUUID(),
+    created_at: new Date(),
+    updated_at: new Date(),
+  })
+  .execute();
+
+// Insert an invoice row referencing the invoice
+await kyselyDb
+  .insertInto("invoice_rows")
+  .values({
+    title: "Line item 1",
+    price: 100.0,
+    tax_percentage: 24.0,
+    quantity: 2,
+    invoice_id: 1,
+    concurrencyStamp: crypto.randomUUID(),
+  })
+  .execute();
+
+// Insert a person
+await kyselyDb
+  .insertInto("person")
+  .values({
+    first_name: "Jane",
+    last_name: "Doe",
+    email: "jane@example.com",
+    created_at: new Date(),
+    updated_at: new Date(),
+  })
+  .execute();
+
+// Query invoices
+const invoices = await kyselyDb.selectFrom("invoice").selectAll().execute();
+console.log("Invoices:", invoices);
+
+// Query persons
+const persons = await kyselyDb.selectFrom("person").selectAll().execute();
+console.log("Persons:", persons);
+
+await pglite.close();
