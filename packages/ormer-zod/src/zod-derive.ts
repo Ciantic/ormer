@@ -64,7 +64,7 @@ type WithParams<C, P> =
 
 /** DeriveBaseColumn with primaryKey and serial type adjustment for dbPk */
 type DerivePgColumnInner<T extends ZodType> =
-  UnwrapModifiers<T> extends { idDbPk: true }
+  UnwrapModifiers<T> extends { isDbPk: true }
     ? UnwrapModifiers<T> extends z.ZodBigInt
       ? ColumnType<"serial8", { primaryKey: true }>
       : UnwrapModifiers<T> extends z.ZodNumberFormat
@@ -137,7 +137,7 @@ export function derivePgColumn<T extends ZodType>(
   // deno-lint-ignore no-explicit-any
   const paramsBase: any = {};
   if (nullable) paramsBase.nullable = true;
-  if (inner.idDbPk === true) paramsBase.primaryKey = true;
+  if (inner.isDbPk === true) paramsBase.primaryKey = true;
   if (defaultValue !== undefined) paramsBase.default = defaultValue;
 
   const hasParams = Object.keys(paramsBase).length > 0;
@@ -155,11 +155,11 @@ export function derivePgColumn<T extends ZodType>(
     }
 
     case "ZodBigInt":
-      if (inner.idDbPk === true) return pg.serial8(paramsBase) as any;
+      if (inner.isDbPk === true) return pg.serial8(paramsBase) as any;
       return (hasParams ? pg.int8(paramsBase) : pg.int8()) as any;
 
     case "ZodNumberFormat":
-      if (inner.idDbPk === true) return pg.serial4(paramsBase) as any;
+      if (inner.isDbPk === true) return pg.serial4(paramsBase) as any;
       return (hasParams ? pg.int4(paramsBase) : pg.int4()) as any;
 
     case "ZodNumber":

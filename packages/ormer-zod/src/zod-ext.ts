@@ -37,9 +37,9 @@ function dbFk<
   }) as any;
 }
 
-function dbPk<T extends ZodType>(this: T): T & { idDbPk: true } {
+function dbPk<T extends ZodType>(this: T): T & { isDbPk: true } {
   return Object.assign(this, {
-    idDbPk: true,
+    isDbPk: true,
   }) as any;
 }
 
