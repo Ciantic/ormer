@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const InvoiceSchema = z
   .object({
-    id: z.number().brand("InvoiceId").dbPk(),
+    id: z.int().brand("InvoiceId").dbPk(),
     title: z.string(),
     description: z.string().nullable(),
     due_date: z.string(),
@@ -18,7 +18,7 @@ const InvoiceSchema = z
 
 const InvoiceRowSchema = z
   .object({
-    id: z.number().brand("InvoiceRowId").dbPk(),
+    id: z.int().brand("InvoiceRowId").dbPk(),
     title: z.string(),
     price: z.number(),
     tax_percentage: z.number(),
@@ -37,7 +37,7 @@ const InvoiceRowSchema = z
 
 const PersonSchema = z
   .object({
-    id: z.number().brand("PersonId").dbPk(),
+    id: z.int().brand("PersonId").dbPk(),
     first_name: z.string(),
     last_name: z.string().nullable(),
     email: z.email(),
