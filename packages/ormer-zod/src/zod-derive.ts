@@ -34,6 +34,15 @@ type HasDefaultValue<T extends ZodType> =
       ? z.infer<Inner>
       : never;
 
+/** Whether any wrapper in the chain has isDbPk (checked from outside in) */
+type HasDbPk<T extends ZodType> = T extends { isDbPk: true }
+  ? true
+  : T extends z.ZodNullable<infer Inner extends ZodType>
+    ? HasDbPk<Inner>
+    : T extends z.ZodDefault<infer Inner extends ZodType>
+      ? HasDbPk<Inner>
+      : false;
+
 /** Map a non-nullable Zod type to a union of possible pg column types */
 type DeriveBaseColumn<T extends ZodType> =
   UnwrapModifiers<T> extends z.ZodUUID
@@ -64,7 +73,7 @@ type WithParams<C, P> =
 
 /** DeriveBaseColumn with primaryKey and serial type adjustment for dbPk */
 type DerivePgColumnInner<T extends ZodType> =
-  UnwrapModifiers<T> extends { isDbPk: true }
+  HasDbPk<T> extends true
     ? UnwrapModifiers<T> extends z.ZodBigInt
       ? ColumnType<"serial8", { primaryKey: true }>
       : UnwrapModifiers<T> extends z.ZodNumberFormat
@@ -118,10 +127,14 @@ export function derivePgColumn<T extends ZodType>(
   let nullable = false;
   let defaultValue: unknown = undefined;
 
+  // deno-lint-ignore no-explicit-any
+  const paramsBase: any = {};
+
   // Unwrap ZodNullable and ZodDefault wrappers to get the inner type.
   // retain nullable/default metadata from wrappers along the way.
   // eslint-disable-next-line no-constant-condition
   while (true) {
+    if (node.isDbPk === true) paramsBase.primaryKey = true;
     if (node.def.type === "nullable") {
       nullable = true;
       node = node.def.innerType;
@@ -134,8 +147,6 @@ export function derivePgColumn<T extends ZodType>(
   }
   const inner: any = node;
 
-  // deno-lint-ignore no-explicit-any
-  const paramsBase: any = {};
   if (nullable) paramsBase.nullable = true;
   if (inner.isDbPk === true) paramsBase.primaryKey = true;
   if (defaultValue !== undefined) paramsBase.default = defaultValue;
@@ -155,11 +166,11 @@ export function derivePgColumn<T extends ZodType>(
     }
 
     case "ZodBigInt":
-      if (inner.isDbPk === true) return pg.serial8(paramsBase) as any;
+      if (paramsBase.primaryKey === true) return pg.serial8(paramsBase) as any;
       return (hasParams ? pg.int8(paramsBase) : pg.int8()) as any;
 
     case "ZodNumberFormat":
-      if (inner.isDbPk === true) return pg.serial4(paramsBase) as any;
+      if (paramsBase.primaryKey === true) return pg.serial4(paramsBase) as any;
       return (hasParams ? pg.int4(paramsBase) : pg.int4()) as any;
 
     case "ZodNumber":
