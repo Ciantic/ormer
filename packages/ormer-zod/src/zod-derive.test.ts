@@ -1,6 +1,7 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
 import { z } from "zod";
-import { derivePgColumn } from "./zod-derive.ts";
+import { derivePgColumn, derivePgTable } from "./zod-derive.ts";
+import "./zod-ext.ts";
 import type { ColumnType, ColumnTypeSingualr } from "ormer";
 
 // ---------------------------------------------------------------------------
@@ -161,5 +162,190 @@ describe("unsupported type throws", () => {
     expect(() => derivePgColumn(z.array(z.string()) as any)).toThrow(
       "ZodArray",
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// derivePgTable tests
+// ---------------------------------------------------------------------------
+
+describe("derivePgTable", () => {
+  it("derives a simple table from a ZodObject", () => {
+    const schema = z
+      .object({
+        id: z.number().dbPk(),
+        title: z.string(),
+        description: z.string().nullable(),
+      })
+      .dbTable("items");
+
+    const tbl = derivePgTable(schema);
+
+    expect(tbl.table).toBe("items");
+    expect(tbl.columns.id.type).toBe("float8");
+    expect(tbl.columns.id.primaryKey).toBe(true);
+    expect(tbl.columns.title.type).toBe("text");
+    expect(tbl.columns.description.type).toBe("text");
+    expect(tbl.columns.description.nullable).toBe(true);
+  });
+
+  it("derives a table with foreign keys", () => {
+    const invoiceSchema = z
+      .object({
+        id: z.number().dbPk(),
+        title: z.string(),
+      })
+      .dbTable("invoice");
+
+    const rowSchema = z
+      .object({
+        id: z.number().dbPk(),
+        invoice_id: z.number().nullable().dbFk(invoiceSchema, "id"),
+        amount: z.number(),
+      })
+      .dbTable("invoice_row");
+
+    const tbl = derivePgTable(rowSchema);
+
+    expect(tbl.table).toBe("invoice_row");
+    expect(tbl.columns.id.type).toBe("float8");
+    expect(tbl.columns.id.primaryKey).toBe(true);
+    expect(tbl.columns.invoice_id.type).toBe("float8");
+    expect(tbl.columns.invoice_id.nullable).toBe(true);
+    expect(tbl.columns.invoice_id.foreignKeyTable).toBe("invoice");
+    expect(tbl.columns.invoice_id.foreignKeyColumn).toBe("id");
+    expect(tbl.columns.amount.type).toBe("float8");
+  });
+
+  it("skips navigation fields (dbRef)", () => {
+    const rowSchema = z
+      .object({
+        id: z.number().dbPk(),
+        title: z.string(),
+        get rows() {
+          return z.array(rowSchema).dbNavigate(rowSchema, "id");
+        },
+      })
+      .dbTable("items");
+
+    const tbl = derivePgTable(rowSchema);
+
+    expect(tbl.table).toBe("items");
+    expect(tbl.columns.id).toBeDefined();
+    expect(tbl.columns.title).toBeDefined();
+    // rows is a navigation, should NOT appear as a column
+    expect((tbl.columns as any).rows).toBeUndefined();
+  });
+
+  it("derives a self-referencing table with foreign key", () => {
+    const personSchema = z
+      .object({
+        id: z.int().dbPk(),
+        first_name: z.string(),
+        get supervisor_id() {
+          return z.int().nullable().dbFk(personSchema, "id");
+        },
+        get supervisor() {
+          return personSchema.dbNavigateSelf("id");
+        },
+      })
+      .dbTable("person");
+
+    const tbl = derivePgTable(personSchema);
+
+    expect(tbl.table).toBe("person");
+    expect(tbl.columns.id.type).toBe("int4");
+    expect(tbl.columns.id.primaryKey).toBe(true);
+    expect(tbl.columns.first_name.type).toBe("text");
+    expect(tbl.columns.supervisor_id.type).toBe("int4");
+    expect(tbl.columns.supervisor_id.nullable).toBe(true);
+    expect(tbl.columns.supervisor_id.foreignKeyTable).toBe("person");
+    expect(tbl.columns.supervisor_id.foreignKeyColumn).toBe("id");
+    // supervisor is a navigation, should NOT appear as a column
+    expect((tbl.columns as any).supervisor).toBeUndefined();
+  });
+
+  it("throws if ZodObject has no dbTable metadata", () => {
+    const schema = z.object({
+      id: z.number(),
+    });
+
+    expect(() => derivePgTable(schema as any)).toThrow("dbTable");
+  });
+});
+
+describe("derivePgTable types", () => {
+  it("returns correct Table type for simple schema", () => {
+    const schema = z
+      .object({
+        id: z.number().dbPk(),
+        title: z.string(),
+      })
+      .dbTable("items");
+
+    // expectTypeOf<Foo>().toEqualTypeOf<"items">();
+
+    const tbl = derivePgTable(schema);
+    expectTypeOf<typeof tbl.table>().toEqualTypeOf<"items">();
+    expectTypeOf<(typeof tbl.columns)["id"]>().toEqualTypeOf<
+      | ColumnType<"float8", { primaryKey: true }>
+      | ColumnType<"int4", { primaryKey: true }>
+    >();
+    expectTypeOf<(typeof tbl.columns)["title"]>().toEqualTypeOf<
+      ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
+    >();
+  });
+
+  it("type-only: navigation keys are excluded from columns", () => {
+    const schema = z
+      .object({
+        id: z.number().dbPk(),
+        title: z.string(),
+        get rows() {
+          return z.array(schema as any).dbNavigate(schema as any, "id");
+        },
+      })
+      .dbTable("items");
+
+    const tbl = derivePgTable(schema);
+
+    // id and title should exist, rows should be excluded
+    type ColKeys = keyof typeof tbl.columns;
+    expectTypeOf<ColKeys>().toEqualTypeOf<"id" | "title">();
+  });
+
+  it("type-only: foreign key has foreignKeyTable and foreignKeyColumn", () => {
+    const invSchema = z
+      .object({ id: z.number().dbPk(), title: z.string() })
+      .dbTable("invoice");
+
+    const rowSchema = z
+      .object({
+        id: z.number().dbPk(),
+        invoice_id: z.number().nullable().dbFk(invSchema, "id"),
+        amount: z.number(),
+      })
+      .dbTable("invoice_row");
+
+    const tbl = derivePgTable(rowSchema);
+
+    expectTypeOf<
+      (typeof tbl.columns)["invoice_id"]["foreignKeyTable"]
+    >().toEqualTypeOf<"invoice">();
+
+    expectTypeOf<
+      (typeof tbl.columns)["invoice_id"]["foreignKeyColumn"]
+    >().toEqualTypeOf<"id">();
+
+    // expectTypeOf<(typeof tbl.columns)["invoice_id"]>().toEqualTypeOf<
+    //   | ColumnType<
+    //       "float8",
+    //       { nullable: true; foreignKeyTable: string; foreignKeyColumn: string }
+    //     >
+    //   | ColumnType<
+    //       "int4",
+    //       { nullable: true; foreignKeyTable: string; foreignKeyColumn: string }
+    //     >
+    // >();
   });
 });

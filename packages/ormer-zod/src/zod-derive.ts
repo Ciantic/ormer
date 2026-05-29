@@ -1,6 +1,8 @@
-import { pg } from "ormer";
-import type { ColumnType, ColumnTypeSingualr } from "ormer";
+import { pg, table } from "ormer";
+import type { ColumnType, ColumnTypeSingualr, Table } from "ormer";
 import type { z } from "zod";
+
+type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 
 type ZodType = z.ZodType;
 
@@ -44,11 +46,17 @@ type WithParams<C, P> =
       ? ColumnType<Type, P>
       : never;
 
+/** DeriveBaseColumn with primaryKey added if dbPk() was called on the inner type */
+type DerivePgColumnInner<T extends ZodType> =
+  UnwrapNullable<T> extends { idDbPk: true }
+    ? WithParams<DeriveBaseColumn<T>, { primaryKey: true }>
+    : DeriveBaseColumn<T>;
+
 /** The fully derived pg column type from a Zod schema */
 export type DerivePgColumn<T extends ZodType> =
   IsNullable<T> extends true
-    ? WithParams<DeriveBaseColumn<T>, { nullable: true }>
-    : DeriveBaseColumn<T>;
+    ? WithParams<DerivePgColumnInner<T>, { nullable: true }>
+    : DerivePgColumnInner<T>;
 
 // ---------------------------------------------------------------------------
 // Runtime implementation
@@ -79,7 +87,7 @@ export function derivePgColumn<T extends ZodType>(
   // deno-lint-ignore no-explicit-any
   const paramsBase: any = {};
   if (nullable) paramsBase.nullable = true;
-  if (inner.dbPk) paramsBase.primaryKey = true;
+  if (inner.idDbPk === true) paramsBase.primaryKey = true;
 
   const hasParams = Object.keys(paramsBase).length > 0;
 
@@ -118,9 +126,108 @@ export function derivePgColumn<T extends ZodType>(
   }
 }
 
-export function derivePgTable() {
-  // TODO: Implement, this should take in a ZodObjects and derive a PgTable from
-  // it, using the dbTable, dbPk, dbFk, and dbNavigate metadata. It should be
-  // typesafe, meaning that pgtable retains the column names etc what can be
-  // retained in the type level.
+// ---------------------------------------------------------------------------
+// DerivePgTable — Type level
+// ---------------------------------------------------------------------------
+
+/** Add foreignKeyTable/foreignKeyColumn params from dbFk metadata */
+type WithFkParams<C> =
+  C extends ColumnType<infer Type, infer Params>
+    ? ColumnType<
+        Type,
+        Params & { foreignKeyTable: string; foreignKeyColumn: string }
+      >
+    : C extends ColumnTypeSingualr<infer Type>
+      ? ColumnType<Type, { foreignKeyTable: string; foreignKeyColumn: string }>
+      : never;
+
+/**
+ * Derive a PgTable type from a ZodObject with dbTable metadata.
+ *
+ * - Columns are derived from each shape key using {@link DerivePgColumn}.
+ * - Fields with `.dbRef` (navigations) are excluded from the columns map.
+ * - Fields with `.dbFk` get additional `foreignKeyTable` / `foreignKeyColumn`
+ *   parameters.
+ * - The table name is read from `dbTableName` metadata on the ZodObject.
+ *
+ * Only ZodObjects that have had `.dbTable(tableName)` called will match;
+ * plain ZodObjects (without the metadata) resolve to `never`.
+ */
+export type DerivePgTable<T extends z.ZodObject & { dbTableName: string }> =
+  FinalType<
+    Table<
+      T["dbTableName"],
+      {
+        [K in keyof T["shape"] as T["shape"][K] extends {
+          dbNavRel: { schema: z.ZodObject; key: string };
+        }
+          ? never
+          : K]: T["shape"][K] extends {
+          dbFkRel: { schema: z.ZodObject; key: string };
+        }
+          ? WithFkParams<DerivePgColumn<T["shape"][K]>>
+          : DerivePgColumn<T["shape"][K]>;
+      }
+    >
+  >;
+
+// ---------------------------------------------------------------------------
+// DerivePgTable — Runtime
+// ---------------------------------------------------------------------------
+
+/**
+ * Derive an ormer PgTable from a ZodObject schema.
+ *
+ * The ZodObject must have `.dbTable(tableName)` metadata. Each field in the
+ * shape is processed through {@link derivePgColumn}. Foreign key fields
+ * (`.dbFk(...)`) additionally receive `foreignKeyTable` / `foreignKeyColumn`
+ * parameters. Navigation fields (`.dbRef`) are skipped.
+ *
+ * @example
+ * ```ts
+ * const InvoiceTable = derivePgTable(InvoiceSchema);
+ * // InvoiceTable.table === "invoice"
+ * // InvoiceTable.columns.id.type === "int4" (with primaryKey)
+ * // InvoiceTable.columns.title.type === "text"
+ * ```
+ */
+export function derivePgTable<T extends z.ZodObject & { dbTableName: string }>(
+  schema: T,
+): DerivePgTable<T> {
+  const tableName = (schema as any).dbTableName;
+  if (typeof tableName !== "string") {
+    throw new Error(
+      "ZodObject must have .dbTable() metadata. Call schema.dbTable('table_name')",
+    );
+  }
+
+  const shape = (schema as any).shape;
+  const columns: Record<string, any> = {};
+
+  for (const key of Object.keys(shape)) {
+    const fieldSchema = shape[key];
+
+    // Skip navigations (dbRef) — handled as relationship metadata.
+    // Must check hasOwnProperty because dbRef is a prototype method on all ZodTypes.
+    if (Object.hasOwn(fieldSchema, "dbNavRel")) continue;
+
+    // Foreign key — must check hasOwnProperty because dbFk is a prototype
+    // method on all ZodTypes.
+    if (Object.hasOwn(fieldSchema, "dbFkRel")) {
+      const refSchema = fieldSchema.dbFkRel.schema;
+      const refKey = fieldSchema.dbFkRel.key;
+      const col = derivePgColumn(fieldSchema);
+      columns[key] = {
+        ...col,
+        foreignKeyTable: refSchema.dbTableName,
+        foreignKeyColumn: refKey,
+      };
+      continue;
+    }
+
+    // Regular column
+    columns[key] = derivePgColumn(fieldSchema);
+  }
+
+  return table(tableName as never, columns) as any;
 }
