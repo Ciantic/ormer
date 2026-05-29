@@ -27,11 +27,11 @@ function dbNavigateSelf<T extends ZodObject>(
   }) as any;
 }
 
-function dbFk<T extends ZodType, R extends ZodObject>(
-  this: T,
-  refSchema: R,
-  refKey: keyof R["def"]["shape"],
-): T & { dbFkRel: { schema: R; key: string } } {
+function dbFk<
+  T extends ZodType,
+  R extends ZodObject,
+  K extends keyof R["def"]["shape"],
+>(this: T, refSchema: R, refKey: K): T & { dbFkRel: { schema: R; key: K } } {
   return Object.assign(this, {
     dbFkRel: { schema: refSchema, key: refKey },
   }) as any;

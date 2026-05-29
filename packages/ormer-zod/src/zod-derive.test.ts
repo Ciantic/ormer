@@ -337,15 +337,21 @@ describe("derivePgTable types", () => {
       (typeof tbl.columns)["invoice_id"]["foreignKeyColumn"]
     >().toEqualTypeOf<"id">();
 
-    // expectTypeOf<(typeof tbl.columns)["invoice_id"]>().toEqualTypeOf<
-    //   | ColumnType<
-    //       "float8",
-    //       { nullable: true; foreignKeyTable: string; foreignKeyColumn: string }
-    //     >
-    //   | ColumnType<
-    //       "int4",
-    //       { nullable: true; foreignKeyTable: string; foreignKeyColumn: string }
-    //     >
-    // >();
+    expectTypeOf<(typeof tbl.columns)["invoice_id"]>().toEqualTypeOf<
+      | ColumnType<
+          "float8",
+          { nullable: true } & {
+            foreignKeyTable: "invoice";
+            foreignKeyColumn: "id";
+          }
+        >
+      | ColumnType<
+          "int4",
+          { nullable: true } & {
+            foreignKeyTable: "invoice";
+            foreignKeyColumn: "id";
+          }
+        >
+    >();
   });
 });

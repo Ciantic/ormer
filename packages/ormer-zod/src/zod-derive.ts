@@ -131,14 +131,26 @@ export function derivePgColumn<T extends ZodType>(
 // ---------------------------------------------------------------------------
 
 /** Add foreignKeyTable/foreignKeyColumn params from dbFk metadata */
-type WithFkParams<C> =
+type WithFkParams<
+  C,
+  FKRel extends { schema: { dbTableName: string }; key: string },
+> =
   C extends ColumnType<infer Type, infer Params>
     ? ColumnType<
         Type,
-        Params & { foreignKeyTable: string; foreignKeyColumn: string }
+        Params & {
+          foreignKeyTable: FKRel["schema"]["dbTableName"];
+          foreignKeyColumn: FKRel["key"];
+        }
       >
     : C extends ColumnTypeSingualr<infer Type>
-      ? ColumnType<Type, { foreignKeyTable: string; foreignKeyColumn: string }>
+      ? ColumnType<
+          Type,
+          {
+            foreignKeyTable: FKRel["schema"]["dbTableName"];
+            foreignKeyColumn: FKRel["key"];
+          }
+        >
       : never;
 
 /**
@@ -165,7 +177,10 @@ export type DerivePgTable<T extends z.ZodObject & { dbTableName: string }> =
           : K]: T["shape"][K] extends {
           dbFkRel: { schema: z.ZodObject; key: string };
         }
-          ? WithFkParams<DerivePgColumn<T["shape"][K]>>
+          ? WithFkParams<
+              DerivePgColumn<T["shape"][K]>,
+              T["shape"][K]["dbFkRel"]
+            >
           : DerivePgColumn<T["shape"][K]>;
       }
     >
