@@ -61,14 +61,19 @@ describe("derivePgColumn types", () => {
 
   it("z.int() → pg.int4()", () => {
     const col = derivePgColumn(z.int());
-    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"int4">>();
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnTypeSingualr<"float4" | "float8" | "int4" | "int8">
+    >();
     expect(col.type).toBe("int4");
   });
 
   it("z.int().dbPk() → pg.int4({ primaryKey: true, autoIncrement: true })", () => {
     const col = derivePgColumn(z.int().dbPk());
     expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnType<"int4", { primaryKey: true; autoIncrement: true }>
+      ColumnType<
+        "float4" | "float8" | "int4" | "int8",
+        { primaryKey: true; autoIncrement: true }
+      >
     >();
     expect(col.type).toBe("int4");
     expect(col.primaryKey).toBe(true);
@@ -218,6 +223,22 @@ describe("derivePgColumn types", () => {
     expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"cidr">>();
     expect(col.type).toBe("cidr");
   });
+
+  it("z.float32() → pg.float4()", () => {
+    const col = derivePgColumn(z.float32());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnTypeSingualr<"float4" | "float8" | "int4" | "int8">
+    >();
+    expect(col.type).toBe("float4");
+  });
+
+  it("z.float64() → pg.float8()", () => {
+    const col = derivePgColumn(z.float64());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnTypeSingualr<"float4" | "float8" | "int4" | "int8">
+    >();
+    expect(col.type).toBe("float8");
+  });
 });
 
 describe("derivePgColumn nullable types", () => {
@@ -270,7 +291,7 @@ describe("derivePgColumn nullable types", () => {
   it("z.int().nullable() -> { type: 'int4', nullable: true }", () => {
     const col = derivePgColumn(z.int().nullable());
     expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnType<"int4", { nullable: true }>
+      ColumnType<"float4" | "float8" | "int4" | "int8", { nullable: true }>
     >();
     expect(col.type).toBe("int4");
     expect(col.nullable).toBe(true);
@@ -336,7 +357,7 @@ describe("derivePgColumn optional types", () => {
   it("z.int().optional() -> { type: 'int4', nullable: true }", () => {
     const col = derivePgColumn(z.int().optional());
     expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnType<"int4", { nullable: true }>
+      ColumnType<"float4" | "float8" | "int4" | "int8", { nullable: true }>
     >();
     expect(col.type).toBe("int4");
     expect(col.nullable).toBe(true);
@@ -399,7 +420,7 @@ describe("derivePgColumn default types", () => {
   it("z.int().default(42) -> int4 + default", () => {
     const col = derivePgColumn(z.int().default(42));
     expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnType<"int4", { default: number }>
+      ColumnType<"float4" | "float8" | "int4" | "int8", { default: number }>
     >();
     expect(col.type).toBe("int4");
     expect(col.default).toBe(42);
@@ -472,7 +493,7 @@ describe("derivePgColumn default types", () => {
     const col = derivePgColumn(z.int().default(1).dbPk());
     expectTypeOf<typeof col>().toEqualTypeOf<
       ColumnType<
-        "int4",
+        "float4" | "float8" | "int4" | "int8",
         {
           default: number;
           primaryKey: true;
@@ -568,7 +589,9 @@ describe("derivePgTable", () => {
 
     expect(tbl.table).toBe("invoice_row");
     // PK from z.int().dbPk() -> int4
-    expectTypeOf<typeof tbl.columns.id.type>().toEqualTypeOf<"int4">();
+    expectTypeOf<typeof tbl.columns.id.type>().toEqualTypeOf<
+      "float4" | "float8" | "int4" | "int8"
+    >();
     expect(tbl.columns.id.type).toBe("int4");
     expect(tbl.columns.id.primaryKey).toBe(true);
     expect(tbl.columns.id.autoIncrement).toBe(true);
@@ -653,7 +676,10 @@ describe("derivePgTable types", () => {
     const tbl = derivePgTable(schema);
     expectTypeOf<typeof tbl.table>().toEqualTypeOf<"items">();
     expectTypeOf<(typeof tbl.columns)["id"]>().toEqualTypeOf<
-      ColumnType<"int4", { primaryKey: true; autoIncrement: true }>
+      ColumnType<
+        "float4" | "float8" | "int4" | "int8",
+        { primaryKey: true; autoIncrement: true }
+      >
     >();
     expectTypeOf<(typeof tbl.columns)["title"]>().toEqualTypeOf<
       ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
@@ -703,7 +729,7 @@ describe("derivePgTable types", () => {
 
     expectTypeOf<(typeof tbl.columns)["invoice_id"]>().toEqualTypeOf<
       ColumnType<
-        "int4",
+        "float4" | "float8" | "int4" | "int8",
         { nullable: true; foreignKeyTable: "invoice"; foreignKeyColumn: "id" }
       >
     >();

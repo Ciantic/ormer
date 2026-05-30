@@ -64,10 +64,10 @@ type DeriveBaseColumn<T extends ZodType> =
   : T extends z.ZodMAC ? ColumnTypeSingualr<"macaddr">
   : T extends z.ZodCIDRv4 ? ColumnTypeSingualr<"cidr">
   : T extends z.ZodCIDRv6 ? ColumnTypeSingualr<"cidr">
-  : T extends z.ZodInt ? ColumnTypeSingualr<"int4">
+  : T extends z.ZodNumberFormat ? ColumnTypeSingualr<"int4" | "int8" | "float4" | "float8">
+  : T extends z.ZodNumber ? ColumnTypeSingualr<"float8">
   : T extends z.ZodBigInt ? ColumnTypeSingualr<"int8">
   : T extends z.ZodString ? ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
-  : T extends z.ZodNumber ? ColumnTypeSingualr<"float8">
   : T extends z.ZodBoolean ? ColumnTypeSingualr<"boolean">
   : T extends z.ZodDate ? ColumnTypeSingualr<"timestamptz">
   // Are these needed?
@@ -126,9 +126,11 @@ export type DerivePgColumnImproved<T extends ZodType> = RewrapToColumnType<
  * - z.number()              → pg.float8()
  * - z.number().int()        → pg.float8()
  * - z.int()                 → pg.int4()
- * - z.int().dbPk()          → pg.int4({ primaryKey: true, autoIncrement: true })
+ * - z.int().dbPk()          → pg.int4({ primaryKey: true, autoIncrement: true
+ *   })
  * - z.bigint()              → pg.int8()
- * - z.bigint().dbPk()       → pg.int8({ primaryKey: true, autoIncrement: true })
+ * - z.bigint().dbPk()       → pg.int8({ primaryKey: true, autoIncrement: true
+ *   })
  * - z.boolean()             → pg.boolean()
  * - z.date()                → pg.timestamptz()
  * - z.url()                 → pg.text()
@@ -148,10 +150,14 @@ export type DerivePgColumnImproved<T extends ZodType> = RewrapToColumnType<
  * - z.mac()                 → pg.macaddr()
  * - z.cidrv4()              → pg.cidr()
  * - z.cidrv6()              → pg.cidr()
+ * - z.float32()             → pg.float4()
+ * - z.float64()             → pg.float8()
  * - z.X().nullable()        → adds nullable: true to the result
  * - z.X().optional()        → also adds nullable: true to the result
  * - z.X().default(val)      → adds default: val to the result
  * - z.X().dbPk()            → adds primaryKey: true to the result
+ *
+ * Note: z.int(), z.float32(), z.float64() at type-level are indistinguishable.
  *
  * Candidates for future implementation:
  *
@@ -159,14 +165,14 @@ export type DerivePgColumnImproved<T extends ZodType> = RewrapToColumnType<
  * - z.int({ format: "int32" })             → pg.int4()
  * - z.int({ format: "uint32" })            → pg.int8()
  * - z.int({ format: "int16" })             → pg.int2()
- * - z.float32()                            → pg.float4()
  *
  * BigInt subtypes
  * - z.int64()                              → pg.int8()
  * - z.uint64()                             → pg.numeric(20,0)
  *
  * Other types
- * - z.enum([...])                          → pg.text()       (or check constraint)
+ * - z.enum([...])                          → pg.text()       (or check
+ *   constraint)
  * - z.nativeEnum({...})                    → pg.text()
  * - z.symbol()                             → pg.text()       (stored as string)
  * - z.nan()                                → pg.float4()
@@ -313,7 +319,19 @@ export function derivePgColumn<T extends ZodType>(
   }
 
   if (node instanceof z.ZodNumberFormat) {
-    return pg.int4(pgParamsBase) as ColumnType<any, any>;
+    // z.int() / z.float32() / z.float64()
+    //
+    // Distinguish by the format string on the definition, only available at
+    // runtime.
+    const format = (node._zod.def as any).format;
+    if (format === "float32") {
+      return pg.float4(pgParamsBase) as ColumnType<any, any>;
+    } else if (format === "float64") {
+      return pg.float8(pgParamsBase) as ColumnType<any, any>;
+    } else if (format === "safeint") {
+      return pg.int4(pgParamsBase) as ColumnType<any, any>;
+    }
+    throw new Error(`Unsupported ZodNumberFormat format: ${format}`);
   }
 
   if (node instanceof z.ZodNumber) {
