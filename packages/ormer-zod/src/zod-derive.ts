@@ -152,19 +152,17 @@ export type DerivePgColumnImproved<T extends ZodType> = RewrapToColumnType<
  * - z.cidrv6()              → pg.cidr()
  * - z.float32()             → pg.float4()
  * - z.float64()             → pg.float8()
+ * - z.int32()               → pg.int4()
+ * - z.uint32()              → pg.int8()
  * - z.X().nullable()        → adds nullable: true to the result
  * - z.X().optional()        → also adds nullable: true to the result
  * - z.X().default(val)      → adds default: val to the result
  * - z.X().dbPk()            → adds primaryKey: true to the result
  *
- * Note: z.int(), z.float32(), z.float64() at type-level are indistinguishable.
+ * Note: z.int(), z.int32(), z.uint32(), z.float32(), z.float64() at type-level
+ * are indistinguishable (all are ZodNumberFormat).
  *
  * Candidates for future implementation:
- *
- * Number subtypes
- * - z.int({ format: "int32" })             → pg.int4()
- * - z.int({ format: "uint32" })            → pg.int8()
- * - z.int({ format: "int16" })             → pg.int2()
  *
  * BigInt subtypes
  * - z.int64()                              → pg.int8()
@@ -319,7 +317,7 @@ export function derivePgColumn<T extends ZodType>(
   }
 
   if (node instanceof z.ZodNumberFormat) {
-    // z.int() / z.float32() / z.float64()
+    // z.int() / z.float32() / z.float64() / z.int32() / z.uint32()
     //
     // Distinguish by the format string on the definition, only available at
     // runtime.
@@ -328,8 +326,10 @@ export function derivePgColumn<T extends ZodType>(
       return pg.float4(pgParamsBase) as ColumnType<any, any>;
     } else if (format === "float64") {
       return pg.float8(pgParamsBase) as ColumnType<any, any>;
-    } else if (format === "safeint") {
+    } else if (format === "safeint" || format === "int32") {
       return pg.int4(pgParamsBase) as ColumnType<any, any>;
+    } else if (format === "uint32") {
+      return pg.int8(pgParamsBase) as ColumnType<any, any>;
     }
     throw new Error(`Unsupported ZodNumberFormat format: ${format}`);
   }

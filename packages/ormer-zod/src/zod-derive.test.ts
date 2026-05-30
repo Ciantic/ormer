@@ -239,6 +239,22 @@ describe("derivePgColumn types", () => {
     >();
     expect(col.type).toBe("float8");
   });
+
+  it("z.int32() → pg.int4()", () => {
+    const col = derivePgColumn(z.int32());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnTypeSingualr<"float4" | "float8" | "int4" | "int8">
+    >();
+    expect(col.type).toBe("int4");
+  });
+
+  it("z.uint32() → pg.int8()", () => {
+    const col = derivePgColumn(z.uint32());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnTypeSingualr<"float4" | "float8" | "int4" | "int8">
+    >();
+    expect(col.type).toBe("int8");
+  });
 });
 
 describe("derivePgColumn nullable types", () => {
