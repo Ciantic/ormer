@@ -14,7 +14,7 @@ import type { ColumnType, ColumnTypeSingualr } from "ormer";
 // ---------------------------------------------------------------------------
 
 describe("derivePgColumn types", () => {
-  it("z.string() -> text | varchar", () => {
+  it("z.string() → pg.text()", () => {
     const col = derivePgColumn(z.string());
     expectTypeOf<typeof col>().toEqualTypeOf<
       ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
@@ -22,7 +22,7 @@ describe("derivePgColumn types", () => {
     expect(col.type).toBe("text");
   });
 
-  it("z.string().max(255) -> text | varchar", () => {
+  it("z.string().max(255) → pg.varchar(255)", () => {
     const col = derivePgColumn(z.string().max(255));
     expectTypeOf<typeof col>().toEqualTypeOf<
       ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
@@ -33,13 +33,13 @@ describe("derivePgColumn types", () => {
     expect(col.maxLength).toBe(255);
   });
 
-  it("z.uuid() -> uuid", () => {
+  it("z.uuid() → pg.uuid()", () => {
     const col = derivePgColumn(z.uuid());
     expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"uuid">>();
     expect(col.type).toBe("uuid");
   });
 
-  it("z.string().email() -> text | varchar", () => {
+  it("z.string().email() → pg.text()", () => {
     const col = derivePgColumn(z.string().email());
     expectTypeOf<typeof col>().toEqualTypeOf<
       ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
@@ -47,25 +47,25 @@ describe("derivePgColumn types", () => {
     expect(col.type).toBe("text");
   });
 
-  it("z.number() -> float8", () => {
+  it("z.number() → pg.float8()", () => {
     const col = derivePgColumn(z.number());
     expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"float8">>();
     expect(col.type).toBe("float8");
   });
 
-  it("z.int() -> int4", () => {
+  it("z.number().int() → pg.float8()", () => {
+    const col = derivePgColumn(z.number().int());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"float8">>();
+    expect(col.type).toBe("float8");
+  });
+
+  it("z.int() → pg.int4()", () => {
     const col = derivePgColumn(z.int());
     expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"int4">>();
     expect(col.type).toBe("int4");
   });
 
-  it("z.bigint() -> int8", () => {
-    const col = derivePgColumn(z.bigint());
-    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"int8">>();
-    expect(col.type).toBe("int8");
-  });
-
-  it("z.int().dbPk() -> int4 with primaryKey and autoIncrement", () => {
+  it("z.int().dbPk() → pg.int4({ primaryKey: true, autoIncrement: true })", () => {
     const col = derivePgColumn(z.int().dbPk());
     expectTypeOf<typeof col>().toEqualTypeOf<
       ColumnType<"int4", { primaryKey: true; autoIncrement: true }>
@@ -75,7 +75,13 @@ describe("derivePgColumn types", () => {
     expect(col.autoIncrement).toBe(true);
   });
 
-  it("z.bigint().dbPk() -> int8 with primaryKey and autoIncrement", () => {
+  it("z.bigint() → pg.int8()", () => {
+    const col = derivePgColumn(z.bigint());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"int8">>();
+    expect(col.type).toBe("int8");
+  });
+
+  it("z.bigint().dbPk() → pg.int8({ primaryKey: true, autoIncrement: true })", () => {
     const col = derivePgColumn(z.bigint().dbPk());
     expectTypeOf<typeof col>().toEqualTypeOf<
       ColumnType<"int8", { primaryKey: true; autoIncrement: true }>
@@ -85,32 +91,132 @@ describe("derivePgColumn types", () => {
     expect(col.autoIncrement).toBe(true);
   });
 
-  it("z.number().int() -> float8", () => {
-    const col = derivePgColumn(z.number().int());
-    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"float8">>();
-    expect(col.type).toBe("float8");
-  });
-
-  it("z.string().email() -> text", () => {
-    const col = derivePgColumn(z.email());
-    expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
-    >();
-    expect(col.type).toBe("text");
-  });
-
-  it("z.boolean() -> { type: 'boolean' }", () => {
+  it("z.boolean() → pg.boolean()", () => {
     const col = derivePgColumn(z.boolean());
     expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"boolean">>();
     expect(col.type).toBe("boolean");
   });
 
-  it("z.date() -> { type: 'timestamptz' }", () => {
+  it("z.date() → pg.timestamptz()", () => {
     const col = derivePgColumn(z.date());
     expectTypeOf<typeof col>().toEqualTypeOf<
       ColumnTypeSingualr<"timestamptz">
     >();
     expect(col.type).toBe("timestamptz");
+  });
+
+  it("z.url() → pg.text()", () => {
+    const col = derivePgColumn(z.url());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
+    expect(col.type).toBe("text");
+  });
+
+  it("z.emoji() → pg.text()", () => {
+    const col = derivePgColumn(z.emoji());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
+    expect(col.type).toBe("text");
+  });
+
+  it("z.nanoid() → pg.varchar(21)", () => {
+    const col = derivePgColumn(z.nanoid());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"varchar", { maxLength: 21 }>
+    >();
+    expect(col.type).toBe("varchar");
+    expect(col.maxLength).toBe(21);
+  });
+
+  it("z.cuid2() → pg.text()", () => {
+    const col = derivePgColumn(z.cuid2());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
+    expect(col.type).toBe("text");
+  });
+
+  it("z.ulid() → pg.varchar(26)", () => {
+    const col = derivePgColumn(z.ulid());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"varchar", { maxLength: 26 }>
+    >();
+    expect(col.type).toBe("varchar");
+    expect(col.maxLength).toBe(26);
+  });
+
+  it("z.xid() → pg.varchar(20)", () => {
+    const col = derivePgColumn(z.xid());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"varchar", { maxLength: 20 }>
+    >();
+    expect(col.type).toBe("varchar");
+    expect(col.maxLength).toBe(20);
+  });
+
+  it("z.ksuid() → pg.varchar(27)", () => {
+    const col = derivePgColumn(z.ksuid());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"varchar", { maxLength: 27 }>
+    >();
+    expect(col.type).toBe("varchar");
+    expect(col.maxLength).toBe(27);
+  });
+
+  it("z.base64() → pg.text()", () => {
+    const col = derivePgColumn(z.base64());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
+    expect(col.type).toBe("text");
+  });
+
+  it("z.base64url() → pg.text()", () => {
+    const col = derivePgColumn(z.base64url());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
+    expect(col.type).toBe("text");
+  });
+
+  it("z.e164() → pg.text() (phone numbers)", () => {
+    const col = derivePgColumn(z.e164());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
+    expect(col.type).toBe("text");
+  });
+
+  it("z.jwt() → pg.text()", () => {
+    const col = derivePgColumn(z.jwt());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
+    expect(col.type).toBe("text");
+  });
+
+  it("z.guid() → pg.uuid()", () => {
+    const col = derivePgColumn(z.guid());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"uuid">>();
+    expect(col.type).toBe("uuid");
+  });
+
+  it("z.ipv4() → pg.inet()", () => {
+    const col = derivePgColumn(z.ipv4());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"inet">>();
+    expect(col.type).toBe("inet");
+  });
+
+  it("z.ipv6() → pg.inet()", () => {
+    const col = derivePgColumn(z.ipv6());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"inet">>();
+    expect(col.type).toBe("inet");
+  });
+
+  it("z.mac() → pg.macaddr()", () => {
+    const col = derivePgColumn(z.mac());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"macaddr">>();
+    expect(col.type).toBe("macaddr");
+  });
+
+  it("z.cidrv4() → pg.cidr()", () => {
+    const col = derivePgColumn(z.cidrv4());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"cidr">>();
+    expect(col.type).toBe("cidr");
+  });
+
+  it("z.cidrv6() → pg.cidr()", () => {
+    const col = derivePgColumn(z.cidrv6());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"cidr">>();
+    expect(col.type).toBe("cidr");
   });
 });
 

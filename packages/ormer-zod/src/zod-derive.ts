@@ -46,24 +46,35 @@ type HasDefaultValue<T extends ZodType> =
 
 type HasDbPk<T extends ZodType> = T extends ZodDbPrimaryKey ? true : false;
 
-/** Map a non-nullable Zod type to a union of possible pg column types */
-type DeriveBaseColumn<T extends ZodType> = T extends z.ZodUUID
-  ? ColumnTypeSingualr<"uuid">
-  : T extends z.ZodInt
-    ? ColumnTypeSingualr<"int4">
-    : T extends z.ZodType<bigint, bigint>
-      ? ColumnTypeSingualr<"int8">
-      : T extends z.ZodType<string, string>
-        ?
-            | ColumnTypeSingualr<"text">
-            | ColumnType<"varchar", { maxLength: number }>
-        : T extends z.ZodType<number, number>
-          ? ColumnTypeSingualr<"float8">
-          : T extends z.ZodType<boolean, boolean>
-            ? ColumnTypeSingualr<"boolean">
-            : T extends z.ZodType<Date, Date>
-              ? ColumnTypeSingualr<"timestamptz">
-              : never;
+// prettier-ignore
+type DeriveBaseColumn<T extends ZodType> = 
+  // Constructor-types
+    T extends z.ZodUUID ? ColumnTypeSingualr<"uuid">
+  : T extends z.ZodGUID ? ColumnTypeSingualr<"uuid">
+  : T extends z.ZodURL ? ColumnTypeSingualr<"text">
+  : T extends z.ZodEmail ? ColumnTypeSingualr<"text">
+  : T extends z.ZodEmoji ? ColumnTypeSingualr<"text">
+  : T extends z.ZodNanoID ? ColumnType<"varchar", { maxLength: 21 }>
+  : T extends z.ZodCUID2 ? ColumnTypeSingualr<"text">
+  : T extends z.ZodULID ? ColumnType<"varchar", { maxLength: 26 }>
+  : T extends z.ZodXID ? ColumnType<"varchar", { maxLength: 20 }>
+  : T extends z.ZodKSUID ? ColumnType<"varchar", { maxLength: 27 }>
+  : T extends z.ZodBase64 ? ColumnTypeSingualr<"text">
+  : T extends z.ZodBase64URL ? ColumnTypeSingualr<"text">
+  : T extends z.ZodE164 ? ColumnTypeSingualr<"text">
+  : T extends z.ZodJWT ? ColumnTypeSingualr<"text">
+  : T extends z.ZodIPv4 ? ColumnTypeSingualr<"inet">
+  : T extends z.ZodIPv6 ? ColumnTypeSingualr<"inet">
+  : T extends z.ZodMAC ? ColumnTypeSingualr<"macaddr">
+  : T extends z.ZodCIDRv4 ? ColumnTypeSingualr<"cidr">
+  : T extends z.ZodCIDRv6 ? ColumnTypeSingualr<"cidr">
+  : T extends z.ZodInt ? ColumnTypeSingualr<"int4">
+  : T extends z.ZodBigInt ? ColumnTypeSingualr<"int8">
+  : T extends z.ZodString ? ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
+  : T extends z.ZodNumber ? ColumnTypeSingualr<"float8">
+  : T extends z.ZodBoolean ? ColumnTypeSingualr<"boolean">
+  : T extends z.ZodDate ? ColumnTypeSingualr<"timestamptz">
+  : never;
 
 type OmitNever<T> = Omit<
   T,
@@ -105,24 +116,59 @@ export type DerivePgColumnImproved<T extends ZodType> = RewrapToColumnType<
 /**
  * Derive a PgColumn from a ZodType schema.
  *
- * Mapping:
- * - z.string()           → pg.text()
- * - z.string().max(255)  → pg.varchar(255)
- * - z.string().uuid()    → pg.uuid()
- * - z.string().email()   → pg.text()
- * - z.uuid()             → pg.uuid()
- * - z.number()           → pg.float8()
- * - z.number().int()     → pg.float8()
- * - z.int()              → pg.int4()
- * - z.int().dbPk()       → pg.int4({ primaryKey: true, autoIncrement: true })
- * - z.bigint()           → pg.int8()
- * - z.bigint().dbPk()    → pg.int8({ primaryKey: true, autoIncrement: true })
- * - z.boolean()          → pg.boolean()
- * - z.date()             → pg.timestamptz()
- * - z.X().nullable()     → adds nullable: true to the result
- * - z.X().optional()     → also adds nullable: true to the result
- * - z.X().default(val)   → adds default: val to the result
- * - z.X().dbPk()         → adds primaryKey: true to the result
+ * Currently implemented mappings:
+ * - z.string()              → pg.text()
+ * - z.string().max(255)     → pg.varchar({ maxLength: 255 })
+ * - z.uuid()                → pg.uuid()
+ * - z.number()              → pg.float8()
+ * - z.number().int()        → pg.float8()
+ * - z.int()                 → pg.int4()
+ * - z.int().dbPk()          → pg.int4({ primaryKey: true, autoIncrement: true })
+ * - z.bigint()              → pg.int8()
+ * - z.bigint().dbPk()       → pg.int8({ primaryKey: true, autoIncrement: true })
+ * - z.boolean()             → pg.boolean()
+ * - z.date()                → pg.timestamptz()
+ * - z.url()                 → pg.text()
+ * - z.emoji()               → pg.text()
+ * - z.nanoid()              → pg.varchar({ maxLength: 21 })
+ * - z.cuid2()               → pg.text()
+ * - z.ulid()                → pg.varchar({ maxLength: 26 })
+ * - z.xid()                 → pg.varchar({ maxLength: 20 })
+ * - z.ksuid()               → pg.varchar({ maxLength: 27 })
+ * - z.base64()              → pg.text()
+ * - z.base64url()           → pg.text()
+ * - z.e164()                → pg.text() (phone numbers)
+ * - z.jwt()                 → pg.text()
+ * - z.guid()                → pg.uuid()
+ * - z.ipv4()                → pg.inet()
+ * - z.ipv6()                → pg.inet()
+ * - z.mac()                 → pg.macaddr()
+ * - z.cidrv4()              → pg.cidr()
+ * - z.cidrv6()              → pg.cidr()
+ * - z.X().nullable()        → adds nullable: true to the result
+ * - z.X().optional()        → also adds nullable: true to the result
+ * - z.X().default(val)      → adds default: val to the result
+ * - z.X().dbPk()            → adds primaryKey: true to the result
+ *
+ * Candidates for future implementation:
+ *
+ * Number subtypes
+ * - z.int({ format: "int32" })             → pg.int4()
+ * - z.int({ format: "uint32" })            → pg.int8()
+ * - z.int({ format: "int16" })             → pg.int2()
+ * - z.float32()                            → pg.float4()
+ *
+ * BigInt subtypes
+ * - z.int64()                              → pg.int8()
+ * - z.uint64()                             → pg.numeric(20,0)
+ *
+ * Other types
+ * - z.enum([...])                          → pg.text()       (or check constraint)
+ * - z.nativeEnum({...})                    → pg.text()
+ * - z.symbol()                             → pg.text()       (stored as string)
+ * - z.nan()                                → pg.float4()
+ * - z.object() / z.record() / z.array()    → pg.jsonb()
+ * - z.undefined / z.null / z.void          → → (unlikely column types)
  */
 export function derivePgColumn<T extends ZodType>(
   schema: T & { db?: Partial<ZodDbParams> },
@@ -162,6 +208,86 @@ export function derivePgColumn<T extends ZodType>(
 
   if (node instanceof z.ZodUUID) {
     return pg.uuid(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodGUID) {
+    return pg.uuid(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodURL) {
+    return pg.text(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodEmoji) {
+    return pg.text(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodNanoID) {
+    return pg.varchar({
+      ...pgParamsBase,
+      maxLength: 21,
+    }) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodCUID2) {
+    return pg.text(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodULID) {
+    return pg.varchar({
+      ...pgParamsBase,
+      maxLength: 26,
+    }) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodXID) {
+    return pg.varchar({
+      ...pgParamsBase,
+      maxLength: 20,
+    }) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodKSUID) {
+    return pg.varchar({
+      ...pgParamsBase,
+      maxLength: 27,
+    }) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodBase64) {
+    return pg.text(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodBase64URL) {
+    return pg.text(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodE164) {
+    return pg.text(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodJWT) {
+    return pg.text(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodIPv4) {
+    return pg.inet(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodIPv6) {
+    return pg.inet(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodMAC) {
+    return pg.macaddr(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodCIDRv4) {
+    return pg.cidr(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodCIDRv6) {
+    return pg.cidr(pgParamsBase) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodString) {
