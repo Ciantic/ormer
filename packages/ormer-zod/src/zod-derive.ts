@@ -135,11 +135,9 @@ export type DerivePgColumnImproved<T extends ZodType> =
  * - z.number()              → pg.float8()
  * - z.number().int()        → pg.float8()
  * - z.int()                 → pg.int4()
- * - z.int().dbPk()          → pg.int4({ primaryKey: true, autoIncrement: true
- *   })
+ * - z.int().dbPk()          → pg.int4({ primaryKey: true, autoIncrement: true })
  * - z.bigint()              → pg.int8()
- * - z.bigint().dbPk()       → pg.int8({ primaryKey: true, autoIncrement: true
- *   })
+ * - z.bigint().dbPk()       → pg.int8({ primaryKey: true, autoIncrement: true })
  * - z.boolean()             → pg.boolean()
  * - z.date()                → pg.timestamptz()
  * - z.url()                 → pg.text()
