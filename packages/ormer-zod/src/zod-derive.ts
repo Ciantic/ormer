@@ -150,16 +150,15 @@ export function derivePgColumn<T extends ZodType>(
   }
 
   // Create params for the pg.X(params) call
-  const pgParamsBase: Partial<Params> = {
-    ...(nullable ? { nullable: true } : {}),
-    ...(typeof defaultValue !== "undefined"
-      ? { default: defaultValue as unknown }
-      : {}),
-    ...(primaryKey ? { primaryKey: true } : {}),
-    ...(node instanceof z.ZodNumberFormat || node instanceof z.ZodBigInt
-      ? { autoIncrement: true }
-      : {}),
-  };
+  let pgParamsBase: Partial<Params> = {};
+  if (nullable) pgParamsBase.nullable = true;
+  if (typeof defaultValue !== "undefined") pgParamsBase.default = defaultValue;
+  if (primaryKey) {
+    pgParamsBase.primaryKey = true;
+    if (node instanceof z.ZodNumberFormat || node instanceof z.ZodBigInt) {
+      pgParamsBase.autoIncrement = true;
+    }
+  }
 
   if (node instanceof z.ZodUUID) {
     return pg.uuid(pgParamsBase) as ColumnType<any, any>;
