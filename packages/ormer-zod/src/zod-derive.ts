@@ -66,6 +66,7 @@ type DeriveBaseColumn<T extends ZodType> =
   : T extends z.ZodCIDRv6 ? ColumnTypeSingualr<"cidr">
   : T extends z.ZodNumberFormat ? ColumnTypeSingualr<"int4" | "int8" | "float4" | "float8">
   : T extends z.ZodNumber ? ColumnTypeSingualr<"float8">
+  : T extends z.ZodBigIntFormat ? ColumnTypeSingualr<"int8"> | ColumnType<"decimal", { precision: 20; scale: 0 }>
   : T extends z.ZodBigInt ? ColumnTypeSingualr<"int8">
   : T extends z.ZodString ? ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
   : T extends z.ZodBoolean ? ColumnTypeSingualr<"boolean">
@@ -154,19 +155,19 @@ export type DerivePgColumnImproved<T extends ZodType> = RewrapToColumnType<
  * - z.float64()             → pg.float8()
  * - z.int32()               → pg.int4()
  * - z.uint32()              → pg.int8()
+ * - z.int64()               → pg.int8()
+ * - z.uint64()              → pg.decimal({ precision: 20, scale: 0 })
  * - z.X().nullable()        → adds nullable: true to the result
  * - z.X().optional()        → also adds nullable: true to the result
  * - z.X().default(val)      → adds default: val to the result
  * - z.X().dbPk()            → adds primaryKey: true to the result
  *
- * Note: z.int(), z.int32(), z.uint32(), z.float32(), z.float64() at type-level
- * are indistinguishable (all are ZodNumberFormat).
+ * Notes:
+ * - z.int(), z.int32(), z.uint32(), z.float32(), z.float64() at type-level are
+ *   indistinguishable (all are ZodNumberFormat).
+ * - Likewise z.int64(), z.uint64() are both ZodBigIntFormat.
  *
  * Candidates for future implementation:
- *
- * BigInt subtypes
- * - z.int64()                              → pg.int8()
- * - z.uint64()                             → pg.numeric(20,0)
  *
  * Other types
  * - z.enum([...])                          → pg.text()       (or check
@@ -310,6 +311,22 @@ export function derivePgColumn<T extends ZodType>(
 
   if (node instanceof z.ZodEmail) {
     return pg.text(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodBigIntFormat) {
+    // z.int64() / z.uint64()
+    //
+    // Distinguish by the format string on the definition.
+    const format = (node._zod.def as any).format;
+    if (format === "uint64") {
+      return pg.decimal({
+        ...pgParamsBase,
+        precision: 20,
+        scale: 0,
+      }) as ColumnType<any, any>;
+    }
+    // int64 (and any other bigint format) → int8
+    return pg.int8(pgParamsBase) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodBigInt) {

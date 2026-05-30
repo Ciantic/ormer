@@ -255,6 +255,29 @@ describe("derivePgColumn types", () => {
     >();
     expect(col.type).toBe("int8");
   });
+
+  it("z.int64() → pg.int8()", () => {
+    const col = derivePgColumn(z.int64());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      | ColumnTypeSingualr<"int8">
+      | ColumnType<"decimal", { precision: 20; scale: 0 }>
+    >();
+    expect(col.type).toBe("int8");
+  });
+
+  it("z.uint64() → pg.decimal({ precision: 20, scale: 0 })", () => {
+    const col = derivePgColumn(z.uint64());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      | ColumnTypeSingualr<"int8">
+      | ColumnType<"decimal", { precision: 20; scale: 0 }>
+    >();
+    if (col.type === "int8") {
+      throw new Error("z.uint64() should map to decimal");
+    }
+    expect(col.type).toEqual("decimal");
+    expect(col.precision).toBe(20);
+    expect(col.scale).toBe(0);
+  });
 });
 
 describe("derivePgColumn nullable types", () => {
