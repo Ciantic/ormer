@@ -1,8 +1,8 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
 import { z } from "zod";
+import { pg, type ColumnType, type ColumnTypeSingualr } from "ormer";
 import { derivePgColumn, derivePgTable } from "./zod-derive.ts";
 import "./zod-ext.ts";
-import type { ColumnType, ColumnTypeSingualr } from "ormer";
 
 // ---------------------------------------------------------------------------
 // Type-level tests
@@ -277,6 +277,27 @@ describe("derivePgColumn types", () => {
     expect(col.type).toEqual("decimal");
     expect(col.precision).toBe(20);
     expect(col.scale).toBe(0);
+  });
+});
+
+describe("derivePgColumn dbPg override", () => {
+  it("z.string().dbPg(pg.uuid()) → pg.uuid()", () => {
+    const col = derivePgColumn(z.string().dbPg(pg.uuid()));
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"uuid">>();
+    expect(col.type).toBe("uuid");
+  });
+
+  it("z.string().dbPg(pg.uuid()).nullable() → uuid + nullable", () => {
+    const col = derivePgColumn(z.string().nullable().dbPg(pg.uuid()));
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"uuid">>();
+    expect(col.type).toBe("uuid");
+    expect((col as any).nullable).toBeUndefined();
+  });
+
+  it("z.int().dbPg(pg.text()) → text", () => {
+    const col = derivePgColumn(z.int().dbPg(pg.text()));
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
+    expect(col.type).toBe("text");
   });
 });
 

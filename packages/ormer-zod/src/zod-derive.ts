@@ -7,6 +7,7 @@ import type {
   ZodDbNavigate,
   ZodDbFk,
   ZodDbParams,
+  ZodDbPgColumnType,
 } from "./zod-ext.ts";
 
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
@@ -97,21 +98,28 @@ type RewrapToColumnType<T> = T extends {
     ? ColumnTypeSingualr<Type>
     : never;
 
-export type DerivePgColumnImproved<T extends ZodType> = RewrapToColumnType<
-  DeriveBaseColumn<UnwrapModifiers<T>> &
-    OmitNever<{
-      primaryKey: HasDbPk<T> extends true ? true : never;
-      nullable: IsNullable<T> extends true ? true : never;
-      default: HasDefaultValue<T> extends true ? z.infer<T> : never;
-      autoIncrement: HasDbPk<T> extends true
-        ? UnwrapModifiers<T> extends z.ZodBigInt
-          ? true
-          : UnwrapModifiers<T> extends z.ZodNumberFormat
-            ? true
-            : never
-        : never;
-    }>
->;
+// prettier-ignore
+export type DerivePgColumnImproved<T extends ZodType> =
+  // Explicit .dbPg() override — skip derivation entirely
+  T extends ZodDbPgColumnType<any> ? T["db"]["pgColumnType"]
+
+  // Otherwise, derive from the base type + modifiers
+  : RewrapToColumnType<
+      DeriveBaseColumn<UnwrapModifiers<T>> &
+        // DeriveOrExplicit<T> &
+        OmitNever<{
+          primaryKey: HasDbPk<T> extends true ? true : never;
+          nullable: IsNullable<T> extends true ? true : never;
+          default: HasDefaultValue<T> extends true ? z.infer<T> : never;
+          autoIncrement: HasDbPk<T> extends true
+            ? UnwrapModifiers<T> extends z.ZodBigInt
+              ? true
+              : UnwrapModifiers<T> extends z.ZodNumberFormat
+                ? true
+                : never
+            : never;
+        }>
+    >;
 
 // ---------------------------------------------------------------------------
 // Runtime implementation
@@ -157,6 +165,7 @@ export type DerivePgColumnImproved<T extends ZodType> = RewrapToColumnType<
  * - z.uint32()              → pg.int8()
  * - z.int64()               → pg.int8()
  * - z.uint64()              → pg.decimal({ precision: 20, scale: 0 })
+ * - z.X().dbPg(col)         → overrides derivation with the given column
  * - z.X().nullable()        → adds nullable: true to the result
  * - z.X().optional()        → also adds nullable: true to the result
  * - z.X().default(val)      → adds default: val to the result
@@ -181,6 +190,11 @@ export type DerivePgColumnImproved<T extends ZodType> = RewrapToColumnType<
 export function derivePgColumn<T extends ZodType>(
   schema: T & { db?: Partial<ZodDbParams> },
 ): DerivePgColumnImproved<T> {
+  // Explicit .dbPg() override — skip derivation entirely
+  if (schema.db?.pgColumnType) {
+    return schema.db?.pgColumnType as ColumnType<any, any>;
+  }
+
   let node = schema;
   let nullable = false;
   let defaultValue: unknown = undefined;
@@ -488,7 +502,7 @@ export function derivePgTable<T extends z.ZodObject & ZodDbTableName<string>>(
       const refKey = fieldSchema.db.fkRel.key;
       const col = derivePgColumn(fieldSchema);
       columns[key] = {
-        ...col,
+        ...(col as any),
         foreignKeyTable: refSchema.db.tableName,
         foreignKeyColumn: refKey,
       };

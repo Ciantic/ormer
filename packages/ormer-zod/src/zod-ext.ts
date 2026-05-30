@@ -1,3 +1,5 @@
+import type { ColumnType } from "kysely";
+import type { ColumnTypeSingualr } from "ormer";
 import type { ZodType, ZodObject } from "zod";
 import { z } from "zod";
 
@@ -13,7 +15,8 @@ export type ZodDbParams = FinalTypeDb<
     ZodDbNavigate<any, string> &
     ZodDbNavigateSelf<any, string> &
     ZodDbPrimaryKey &
-    ZodDbTableName<string>
+    ZodDbTableName<string> &
+    ZodDbPgColumnType<any>
 >;
 
 // ---------------------------------------------------------------------------
@@ -44,6 +47,12 @@ export type ZodDbNavigateSelf<
 
 export type ZodDbFk<R extends ZodObject, K extends keyof R["def"]["shape"]> = {
   db: { fkRel: { schema: R; key: K } };
+};
+
+export type ZodDbPgColumnType<
+  C extends ColumnTypeSingualr<string> | ColumnType<string, any>,
+> = {
+  db: { pgColumnType: C };
 };
 
 function dbTable<T extends ZodType, const N extends string>(
@@ -93,6 +102,16 @@ function dbPk<T extends ZodType>(this: T): T & ZodDbPrimaryKey {
   }) as any;
 }
 
+function dbPg<
+  T extends ZodType,
+  const C extends ColumnTypeSingualr<string> | ColumnType<string, any>,
+>(this: T, columnType: C): T & ZodDbPgColumnType<C> {
+  // Notably, this also drops all the other db params, but that's intentional
+  return Object.assign(this, {
+    db: { pgColumnType: columnType },
+  }) as any;
+}
+
 declare module "zod" {
   interface ZodType {
     dbTable: typeof dbTable;
@@ -100,6 +119,7 @@ declare module "zod" {
     dbNavigateSelf: typeof dbNavigateSelf;
     dbFk: typeof dbFk;
     dbPk: typeof dbPk;
+    dbPg: typeof dbPg;
   }
 }
 
@@ -108,3 +128,4 @@ z.ZodType.prototype.dbNavigate = dbNavigate;
 z.ZodObject.prototype.dbNavigateSelf = dbNavigateSelf;
 z.ZodType.prototype.dbFk = dbFk;
 z.ZodType.prototype.dbPk = dbPk;
+z.ZodType.prototype.dbPg = dbPg;
