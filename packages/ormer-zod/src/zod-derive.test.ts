@@ -180,6 +180,96 @@ describe("derivePgColumn nullable types", () => {
   });
 });
 
+describe("derivePgColumn optional types", () => {
+  it("z.string().optional() -> text|varchar + nullable", () => {
+    const col = derivePgColumn(z.string().optional());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      | ColumnType<"text", { nullable: true }>
+      | ColumnType<"varchar", { maxLength: number; nullable: true }>
+    >();
+    expect(col.type).toBe("text");
+    expect(col.nullable).toBe(true);
+  });
+
+  it("z.number().optional() -> float8 + nullable", () => {
+    const col = derivePgColumn(z.number().optional());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"float8", { nullable: true }>
+    >();
+    expect(col.type).toBe("float8");
+    expect(col.nullable).toBe(true);
+  });
+
+  it("z.boolean().optional() -> { type: 'boolean', nullable: true }", () => {
+    const col = derivePgColumn(z.boolean().optional());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"boolean", { nullable: true }>
+    >();
+    expect(col.type).toBe("boolean");
+    expect(col.nullable).toBe(true);
+  });
+
+  it("z.date().optional() -> { type: 'timestamptz', nullable: true }", () => {
+    const col = derivePgColumn(z.date().optional());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"timestamptz", { nullable: true }>
+    >();
+    expect(col.type).toBe("timestamptz");
+    expect(col.nullable).toBe(true);
+  });
+
+  it("z.uuid().optional() -> { type: 'uuid', nullable: true }", () => {
+    const col = derivePgColumn(z.uuid().optional());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"uuid", { nullable: true }>
+    >();
+    expect(col.type).toBe("uuid");
+    expect(col.nullable).toBe(true);
+  });
+
+  it("z.int().optional() -> { type: 'int4', nullable: true }", () => {
+    const col = derivePgColumn(z.int().optional());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"int4", { nullable: true }>
+    >();
+    expect(col.type).toBe("int4");
+    expect(col.nullable).toBe(true);
+  });
+
+  it("z.bigint().optional() -> { type: 'int8', nullable: true }", () => {
+    const col = derivePgColumn(z.bigint().optional());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"int8", { nullable: true }>
+    >();
+    expect(col.type).toBe("int8");
+    expect(col.nullable).toBe(true);
+  });
+
+  it("z.string().optional().default('fallback') -> text|varchar + nullable + default", () => {
+    const col = derivePgColumn(z.string().optional().default("fallback"));
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      | ColumnType<"text", { default: string; nullable: true }>
+      | ColumnType<
+          "varchar",
+          { maxLength: number; default: string; nullable: true }
+        >
+    >();
+    expect(col.type).toBe("text");
+    expect(col.nullable).toBe(true);
+    expect(col.default).toBe("fallback");
+  });
+
+  it("z.number().default(0).optional() -> float8 + default + nullable", () => {
+    const col = derivePgColumn(z.number().default(0).optional());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"float8", { default: number | undefined; nullable: true }>
+    >();
+    expect(col.type).toBe("float8");
+    expect(col.nullable).toBe(true);
+    expect(col.default).toBe(0);
+  });
+});
+
 describe("derivePgColumn default types", () => {
   it("z.string().default('hello') -> text|varchar + default", () => {
     const col = derivePgColumn(z.string().default("hello"));

@@ -14,19 +14,25 @@ type UnwrapUntilReturnTrue<T, Check> = T extends Check
   ? true
   : T extends z.ZodNullable<infer Inner extends ZodType>
     ? UnwrapUntilReturnTrue<Inner, Check>
-    : T extends z.ZodDefault<infer Inner extends ZodType>
+    : T extends z.ZodOptional<infer Inner extends ZodType>
       ? UnwrapUntilReturnTrue<Inner, Check>
-      : false;
+      : T extends z.ZodDefault<infer Inner extends ZodType>
+        ? UnwrapUntilReturnTrue<Inner, Check>
+        : false;
 
 type UnwrapModifiers<T extends ZodType> =
   T extends z.ZodNullable<infer Inner extends ZodType>
     ? UnwrapModifiers<Inner>
-    : T extends z.ZodDefault<infer Inner extends ZodType>
+    : T extends z.ZodOptional<infer Inner extends ZodType>
       ? UnwrapModifiers<Inner>
-      : T;
+      : T extends z.ZodDefault<infer Inner extends ZodType>
+        ? UnwrapModifiers<Inner>
+        : T;
 
 type IsNullable<T extends ZodType> =
-  UnwrapUntilReturnTrue<T, z.ZodNullable<any>> extends true ? true : false;
+  UnwrapUntilReturnTrue<T, z.ZodNullable<any> | z.ZodOptional<any>> extends true
+    ? true
+    : false;
 
 type HasDefaultValue<T extends ZodType> =
   UnwrapUntilReturnTrue<T, z.ZodDefault<any>> extends true ? true : false;
@@ -107,6 +113,7 @@ export type DerivePgColumnImproved<T extends ZodType> = RewrapToColumnType<
  * - z.boolean()          → pg.boolean()
  * - z.date()             → pg.timestamptz()
  * - z.X().nullable()     → adds nullable: true to the result
+ * - z.X().optional()     → also adds nullable: true to the result
  * - z.X().default(val)   → adds default: val to the result
  * - z.X().dbPk()         → adds primaryKey: true to the result
  */
@@ -127,6 +134,9 @@ export function derivePgColumn<T extends ZodType>(
   while (true) {
     if (node.isDbPk === true) paramsBase.primaryKey = true;
     if (node.def.type === "nullable") {
+      nullable = true;
+      node = node.def.innerType;
+    } else if (node.def.type === "optional") {
       nullable = true;
       node = node.def.innerType;
     } else if (node.def.type === "default") {
