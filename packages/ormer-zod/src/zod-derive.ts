@@ -111,12 +111,10 @@ export type DerivePgColumnImproved<T extends ZodType> =
           primaryKey: HasDbPk<T> extends true ? true : never;
           nullable: IsNullable<T> extends true ? true : never;
           default: HasDefaultValue<T> extends true ? z.infer<T> : never;
-          autoIncrement: HasDbPk<T> extends true
-            ? UnwrapModifiers<T> extends z.ZodBigInt
-              ? true
-              : UnwrapModifiers<T> extends z.ZodNumberFormat
-                ? true
-                : never
+          autoIncrement: HasDbPk<T> extends true ? 
+              UnwrapModifiers<T> extends z.ZodBigInt ? true 
+            : UnwrapModifiers<T> extends z.ZodNumberFormat ? true 
+            : never
             : never;
         }>
     >;
@@ -432,22 +430,16 @@ type WithFkParams<
  *
  * Only ZodObjects that have had `.dbTable(tableName)` called will match;
  * plain ZodObjects (without the metadata) resolve to `never`.
+ *
  */
 export type DerivePgTable<T extends z.ZodObject & ZodDbTableName<string>> =
-  Table<
-    T["db"]["tableName"],
-    {
-      [K in keyof T["shape"] as T["shape"][K] extends ZodDbNavigate<
-        z.ZodObject,
-        string
-      >
-        ? never
-        : K]: T["shape"][K] extends ZodDbFk<z.ZodObject, string>
-        ? WithFkParams<
-            DerivePgColumnImproved<T["shape"][K]>,
-            T["shape"][K]["db"]["fkRel"]
-          >
-        : DerivePgColumnImproved<T["shape"][K]>;
+  // prettier-ignore
+  Table<T["db"]["tableName"], {
+      [
+        K in keyof T["shape"] as T["shape"][K] extends ZodDbNavigate<z.ZodObject, string> ? never : K
+      ]: T["shape"][K] extends ZodDbFk<z.ZodObject, string> 
+         ? WithFkParams<DerivePgColumnImproved<T["shape"][K]>, T["shape"][K]["db"]["fkRel"]>
+         : DerivePgColumnImproved<T["shape"][K]>;
     }
   >;
 
