@@ -17,24 +17,20 @@ type ZodType = z.ZodType;
 // Type-level derivation
 // ---------------------------------------------------------------------------
 
+// prettier-ignore
 type UnwrapUntilReturnTrue<T, Check> = T extends Check
   ? true
-  : T extends z.ZodNullable<infer Inner extends ZodType>
-    ? UnwrapUntilReturnTrue<Inner, Check>
-    : T extends z.ZodOptional<infer Inner extends ZodType>
-      ? UnwrapUntilReturnTrue<Inner, Check>
-      : T extends z.ZodDefault<infer Inner extends ZodType>
-        ? UnwrapUntilReturnTrue<Inner, Check>
-        : false;
+  : T extends z.ZodNullable<infer Inner extends ZodType> ? UnwrapUntilReturnTrue<Inner, Check>
+  : T extends z.ZodOptional<infer Inner extends ZodType> ? UnwrapUntilReturnTrue<Inner, Check>
+  : T extends z.ZodDefault<infer Inner extends ZodType>  ? UnwrapUntilReturnTrue<Inner, Check>
+  : false;
 
+// prettier-ignore
 type UnwrapModifiers<T extends ZodType> =
-  T extends z.ZodNullable<infer Inner extends ZodType>
-    ? UnwrapModifiers<Inner>
-    : T extends z.ZodOptional<infer Inner extends ZodType>
-      ? UnwrapModifiers<Inner>
-      : T extends z.ZodDefault<infer Inner extends ZodType>
-        ? UnwrapModifiers<Inner>
-        : T;
+    T extends z.ZodNullable<infer Inner extends ZodType> ? UnwrapModifiers<Inner>
+  : T extends z.ZodOptional<infer Inner extends ZodType> ? UnwrapModifiers<Inner>
+  : T extends z.ZodDefault<infer Inner extends ZodType>  ? UnwrapModifiers<Inner>
+  : T;
 
 type IsNullable<T extends ZodType> =
   UnwrapUntilReturnTrue<T, z.ZodNullable<any> | z.ZodOptional<any>> extends true
