@@ -74,6 +74,13 @@ type DeriveBaseColumn<T extends ZodType> =
   : T extends z.ZodNumber ? ColumnTypeSingualr<"float8">
   : T extends z.ZodBoolean ? ColumnTypeSingualr<"boolean">
   : T extends z.ZodDate ? ColumnTypeSingualr<"timestamptz">
+  // Are these needed?
+  //
+  // : T extends z.ZodType<string, string> ? ColumnTypeSingualr<"text">
+  // : T extends z.ZodType<number, number> ? ColumnTypeSingualr<"float8">
+  // : T extends z.ZodType<boolean, boolean> ? ColumnTypeSingualr<"boolean">
+  // : T extends z.ZodType<Date, Date> ? ColumnTypeSingualr<"timestamptz">
+  // : T extends z.ZodType<bigint, bigint> ? ColumnTypeSingualr<"int8">
   : never;
 
 type OmitNever<T> = Omit<
@@ -324,6 +331,20 @@ export function derivePgColumn<T extends ZodType>(
   if (node instanceof z.ZodDate) {
     return pg.timestamptz(pgParamsBase) as ColumnType<any, any>;
   }
+
+  // Are these needed?
+  //
+  // if (node.def.type === "string") {
+  //   return pg.text(pgParamsBase) as ColumnType<any, any>;
+  // } else if (node.def.type === "number") {
+  //   return pg.float8(pgParamsBase) as ColumnType<any, any>;
+  // } else if (node.def.type === "boolean") {
+  //   return pg.boolean(pgParamsBase) as ColumnType<any, any>;
+  // } else if (node.def.type === "date") {
+  //   return pg.timestamptz(pgParamsBase) as ColumnType<any, any>;
+  // } else if (node.def.type === "bigint") {
+  //   return pg.int8(pgParamsBase) as ColumnType<any, any>;
+  // }
 
   throw new Error(`Unsupported Zod type: ${node?.constructor?.name}`);
 }
