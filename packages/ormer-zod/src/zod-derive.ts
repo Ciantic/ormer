@@ -1,6 +1,13 @@
 import { pg, table } from "ormer";
-import type { ColumnType, ColumnTypeSingualr, Table } from "ormer";
-import type { z } from "zod";
+import type { ColumnType, ColumnTypeSingualr, Params, Table } from "ormer";
+import { z } from "zod";
+import type {
+  ZodDbTableName,
+  ZodDbPrimaryKey,
+  ZodDbNavigate,
+  ZodDbFk,
+  ZodDbParams,
+} from "./zod-ext.ts";
 
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 
@@ -37,7 +44,7 @@ type IsNullable<T extends ZodType> =
 type HasDefaultValue<T extends ZodType> =
   UnwrapUntilReturnTrue<T, z.ZodDefault<any>> extends true ? true : false;
 
-type HasDbPk<T extends ZodType> = T extends { isDbPk: true } ? true : false;
+type HasDbPk<T extends ZodType> = T extends ZodDbPrimaryKey ? true : false;
 
 /** Map a non-nullable Zod type to a union of possible pg column types */
 type DeriveBaseColumn<T extends ZodType> = T extends z.ZodUUID
@@ -118,79 +125,82 @@ export type DerivePgColumnImproved<T extends ZodType> = RewrapToColumnType<
  * - z.X().dbPk()         → adds primaryKey: true to the result
  */
 export function derivePgColumn<T extends ZodType>(
-  schema: T,
+  schema: T & { db?: Partial<ZodDbParams> },
 ): DerivePgColumnImproved<T> {
-  // deno-lint-ignore no-explicit-any
-  let node: any = schema;
+  let node = schema;
   let nullable = false;
   let defaultValue: unknown = undefined;
+  let primaryKey = false;
 
-  // deno-lint-ignore no-explicit-any
-  const paramsBase: any = {};
-
-  // Unwrap ZodNullable and ZodDefault wrappers to get the inner type.
-  // retain nullable/default metadata from wrappers along the way.
-  // eslint-disable-next-line no-constant-condition
+  // Unwrap modifiers (.nullable, .optional, .default) to get to the base type
   while (true) {
-    if (node.isDbPk === true) paramsBase.primaryKey = true;
-    if (node.def.type === "nullable") {
+    if (node.db?.primaryKey === true) primaryKey = true;
+    if (node instanceof z.ZodNullable) {
       nullable = true;
-      node = node.def.innerType;
-    } else if (node.def.type === "optional") {
+      node = node.def.innerType as typeof node;
+    } else if (node instanceof z.ZodOptional) {
       nullable = true;
-      node = node.def.innerType;
-    } else if (node.def.type === "default") {
+      node = node.def.innerType as typeof node;
+    } else if (node instanceof z.ZodDefault) {
       defaultValue = node.def.defaultValue;
-      node = node.def.innerType;
+      node = node.def.innerType as typeof node;
     } else {
       break;
     }
   }
-  const inner: any = node;
 
-  if (nullable) paramsBase.nullable = true;
-  if (inner.isDbPk === true) paramsBase.primaryKey = true;
-  if (defaultValue !== undefined) paramsBase.default = defaultValue;
+  // Create params for the pg.X(params) call
+  const pgParamsBase: Partial<Params> = {
+    ...(nullable ? { nullable: true } : {}),
+    ...(typeof defaultValue !== "undefined"
+      ? { default: defaultValue as unknown }
+      : {}),
+    ...(primaryKey ? { primaryKey: true } : {}),
+    ...(node instanceof z.ZodNumberFormat || node instanceof z.ZodBigInt
+      ? { autoIncrement: true }
+      : {}),
+  };
 
-  const hasParams = Object.keys(paramsBase).length > 0;
-
-  switch (inner.constructor.name) {
-    case "ZodUUID":
-      return (hasParams ? pg.uuid(paramsBase) : pg.uuid()) as any;
-
-    case "ZodString": {
-      const maxLength: number | null = inner.maxLength;
-
-      if (maxLength != null)
-        return pg.varchar({ maxLength, ...paramsBase }) as any;
-      return (hasParams ? pg.text(paramsBase) : pg.text()) as any;
-    }
-
-    case "ZodEmail":
-      return (hasParams ? pg.text(paramsBase) : pg.text()) as any;
-
-    case "ZodBigInt":
-      if (paramsBase.primaryKey === true)
-        return pg.int8({ ...paramsBase, autoIncrement: true }) as any;
-      return (hasParams ? pg.int8(paramsBase) : pg.int8()) as any;
-
-    case "ZodNumberFormat":
-      if (paramsBase.primaryKey === true)
-        return pg.int4({ ...paramsBase, autoIncrement: true }) as any;
-      return (hasParams ? pg.int4(paramsBase) : pg.int4()) as any;
-
-    case "ZodNumber":
-      return (hasParams ? pg.float8(paramsBase) : pg.float8()) as any;
-
-    case "ZodBoolean":
-      return (hasParams ? pg.boolean(paramsBase) : pg.boolean()) as any;
-
-    case "ZodDate":
-      return (hasParams ? pg.timestamptz(paramsBase) : pg.timestamptz()) as any;
-
-    default:
-      throw new Error(`Unsupported Zod type: ${inner.constructor.name}`);
+  if (node instanceof z.ZodUUID) {
+    return pg.uuid(pgParamsBase) as ColumnType<any, any>;
   }
+
+  if (node instanceof z.ZodString) {
+    if (node.maxLength != null) {
+      return pg.varchar({
+        ...pgParamsBase,
+        maxLength: node.maxLength,
+      }) as ColumnType<any, any>;
+    } else {
+      return pg.text(pgParamsBase) as ColumnType<any, any>;
+    }
+  }
+
+  if (node instanceof z.ZodEmail) {
+    return pg.text(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodBigInt) {
+    return pg.int8(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodNumberFormat) {
+    return pg.int4(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodNumber) {
+    return pg.float8(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodBoolean) {
+    return pg.boolean(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodDate) {
+    return pg.timestamptz(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  throw new Error(`Unsupported Zod type: ${node?.constructor?.name}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -200,14 +210,14 @@ export function derivePgColumn<T extends ZodType>(
 /** Add foreignKeyTable/foreignKeyColumn params from dbFk metadata */
 type WithFkParams<
   C,
-  FKRel extends { schema: { dbTableName: string }; key: string },
+  FKRel extends { schema: { db: { tableName: string } }; key: string },
 > =
   C extends ColumnType<infer Type, infer Params>
     ? ColumnType<
         Type,
         FinalType<
           Omit<Params, "type"> & {
-            foreignKeyTable: FKRel["schema"]["dbTableName"];
+            foreignKeyTable: FKRel["schema"]["db"]["tableName"];
             foreignKeyColumn: FKRel["key"];
           }
         >
@@ -216,7 +226,7 @@ type WithFkParams<
       ? ColumnType<
           Type,
           {
-            foreignKeyTable: FKRel["schema"]["dbTableName"];
+            foreignKeyTable: FKRel["schema"]["db"]["tableName"];
             foreignKeyColumn: FKRel["key"];
           }
         >
@@ -229,25 +239,24 @@ type WithFkParams<
  * - Fields with `.dbRef` (navigations) are excluded from the columns map.
  * - Fields with `.dbFk` get additional `foreignKeyTable` / `foreignKeyColumn`
  *   parameters.
- * - The table name is read from `dbTableName` metadata on the ZodObject.
+ * - The table name is read from `db.tableName` metadata on the ZodObject.
  *
  * Only ZodObjects that have had `.dbTable(tableName)` called will match;
  * plain ZodObjects (without the metadata) resolve to `never`.
  */
-export type DerivePgTable<T extends z.ZodObject & { dbTableName: string }> =
+export type DerivePgTable<T extends z.ZodObject & ZodDbTableName<string>> =
   Table<
-    T["dbTableName"],
+    T["db"]["tableName"],
     {
-      [K in keyof T["shape"] as T["shape"][K] extends {
-        dbNavRel: { schema: z.ZodObject; key: string };
-      }
+      [K in keyof T["shape"] as T["shape"][K] extends ZodDbNavigate<
+        z.ZodObject,
+        string
+      >
         ? never
-        : K]: T["shape"][K] extends {
-        dbFkRel: { schema: z.ZodObject; key: string };
-      }
+        : K]: T["shape"][K] extends ZodDbFk<z.ZodObject, string>
         ? WithFkParams<
             DerivePgColumnImproved<T["shape"][K]>,
-            T["shape"][K]["dbFkRel"]
+            T["shape"][K]["db"]["fkRel"]
           >
         : DerivePgColumnImproved<T["shape"][K]>;
     }
@@ -276,15 +285,16 @@ type UnwrapDeriveTable<T> =
  * // InvoiceTable.columns.title.type === "text"
  * ```
  */
-export function derivePgTable<T extends z.ZodObject & { dbTableName: string }>(
+export function derivePgTable<T extends z.ZodObject & ZodDbTableName<string>>(
   schema: T,
 ): UnwrapDeriveTable<DerivePgTable<T>> {
-  const tableName = (schema as any).dbTableName;
-  if (typeof tableName !== "string") {
+  const dbMeta = (schema as any).db;
+  if (!dbMeta || typeof dbMeta.tableName !== "string") {
     throw new Error(
       "ZodObject must have .dbTable() metadata. Call schema.dbTable('table_name')",
     );
   }
+  const tableName = dbMeta.tableName;
 
   const shape = (schema as any).shape;
   const columns: Record<string, any> = {};
@@ -293,18 +303,16 @@ export function derivePgTable<T extends z.ZodObject & { dbTableName: string }>(
     const fieldSchema = shape[key];
 
     // Skip navigations (dbRef) — handled as relationship metadata.
-    // Must check hasOwnProperty because dbRef is a prototype method on all ZodTypes.
-    if (Object.hasOwn(fieldSchema, "dbNavRel")) continue;
+    if (fieldSchema.db && Object.hasOwn(fieldSchema.db, "navRel")) continue;
 
-    // Foreign key — must check hasOwnProperty because dbFk is a prototype
-    // method on all ZodTypes.
-    if (Object.hasOwn(fieldSchema, "dbFkRel")) {
-      const refSchema = fieldSchema.dbFkRel.schema;
-      const refKey = fieldSchema.dbFkRel.key;
+    // Foreign key
+    if (fieldSchema.db && Object.hasOwn(fieldSchema.db, "fkRel")) {
+      const refSchema = fieldSchema.db.fkRel.schema;
+      const refKey = fieldSchema.db.fkRel.key;
       const col = derivePgColumn(fieldSchema);
       columns[key] = {
         ...col,
-        foreignKeyTable: refSchema.dbTableName,
+        foreignKeyTable: refSchema.db.tableName,
         foreignKeyColumn: refKey,
       };
       continue;

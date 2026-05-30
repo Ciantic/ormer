@@ -1,29 +1,77 @@
 import type { ZodType, ZodObject } from "zod";
 import { z } from "zod";
 
+// ---------------------------------------------------------------------------
+// Db params — union of all possible shapes the `db` property can take
+// ---------------------------------------------------------------------------
+type FinalTypeDb<T> = T extends { db: infer U }
+  ? { [K in keyof U]: U[K] }
+  : never;
+
+export type ZodDbParams = FinalTypeDb<
+  ZodDbFk<any, string> &
+    ZodDbNavigate<any, string> &
+    ZodDbNavigateSelf<any, string> &
+    ZodDbPrimaryKey &
+    ZodDbTableName<string>
+>;
+
+// ---------------------------------------------------------------------------
+// Reusable db metadata types (each carries the full `db: { ... }` wrapper)
+// ---------------------------------------------------------------------------
+
+export type ZodDbTableName<T extends string> = {
+  db: { tableName: T };
+};
+
+export type ZodDbPrimaryKey = {
+  db: { primaryKey: true };
+};
+
+export type ZodDbNavigate<
+  R extends ZodObject,
+  K extends keyof R["def"]["shape"] = string,
+> = {
+  db: { navRel: { schema: R; key: K } };
+};
+
+export type ZodDbNavigateSelf<
+  T extends ZodObject,
+  K extends keyof T["def"]["shape"] = string,
+> = {
+  db: { navRel: { schema: T; key: K } };
+};
+
+export type ZodDbFk<R extends ZodObject, K extends keyof R["def"]["shape"]> = {
+  db: { fkRel: { schema: R; key: K } };
+};
+
 function dbTable<T extends ZodType, const N extends string>(
   this: T,
   tableName: N,
-): T & { dbTableName: N } {
-  return Object.assign(this, { dbTableName: tableName }) as any;
+): T & ZodDbTableName<N> {
+  const existingDb = (this as any).db || {};
+  return Object.assign(this, { db: { ...existingDb, tableName } }) as any;
 }
 
-function dbNavigate<T extends ZodType, R extends ZodObject>(
-  this: T,
-  refSchema: R,
-  refKey: keyof R["def"]["shape"],
-): T & { dbNavRel: { schema: R; key: string } } {
+function dbNavigate<
+  T extends ZodType,
+  R extends ZodObject,
+  K extends keyof R["def"]["shape"],
+>(this: T, refSchema: R, refKey: K): T & ZodDbNavigate<R, K> {
+  const existingDb = (this as any).db || {};
   return Object.assign(this, {
-    dbNavRel: { schema: refSchema, key: refKey },
+    db: { ...existingDb, navRel: { schema: refSchema, key: refKey } },
   }) as any;
 }
 
-function dbNavigateSelf<T extends ZodObject>(
+function dbNavigateSelf<T extends ZodObject, K extends keyof T["def"]["shape"]>(
   this: T,
-  refKey: keyof T["def"]["shape"],
-): T & { dbNavRel: { schema: T; key: string } } {
+  refKey: K,
+): T & ZodDbNavigateSelf<T, K> {
+  const existingDb = (this as any).db || {};
   return Object.assign(this, {
-    dbNavRel: { schema: this, key: refKey },
+    db: { ...existingDb, navRel: { schema: this, key: refKey } },
   }) as any;
 }
 
@@ -31,15 +79,17 @@ function dbFk<
   T extends ZodType,
   R extends ZodObject,
   K extends keyof R["def"]["shape"],
->(this: T, refSchema: R, refKey: K): T & { dbFkRel: { schema: R; key: K } } {
+>(this: T, refSchema: R, refKey: K): T & ZodDbFk<R, K> {
+  const existingDb = (this as any).db || {};
   return Object.assign(this, {
-    dbFkRel: { schema: refSchema, key: refKey },
+    db: { ...existingDb, fkRel: { schema: refSchema, key: refKey } },
   }) as any;
 }
 
-function dbPk<T extends ZodType>(this: T): T & { isDbPk: true } {
+function dbPk<T extends ZodType>(this: T): T & ZodDbPrimaryKey {
+  const existingDb = (this as any).db || {};
   return Object.assign(this, {
-    isDbPk: true,
+    db: { ...existingDb, primaryKey: true },
   }) as any;
 }
 

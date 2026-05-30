@@ -12,36 +12,34 @@ type R<T, B> = {
 // Combine two types, with properties from U taking precedence over T
 type Combine<T, U> = Omit<T, keyof U> & U;
 
-// deno-lint-ignore ban-types
+// TODO: This and type was ReadOnly, is there benefit for that? I removed it for now.
 export type Params<ExtraProps extends object = {}> = FinalType<
-  Readonly<
-    Combine<
-      {
-        primaryKey?: boolean;
-        unique?: boolean;
-        updateKey?: boolean;
-        notInsertable?: boolean;
-        notUpdatable?: boolean;
-        nullable?: boolean;
-        default?: unknown;
-        foreignKeyTable?: string;
-        foreignKeyColumn?: string;
-        autoIncrement?: boolean;
-        schema?: UnknownSchema;
+  Combine<
+    {
+      primaryKey?: boolean;
+      unique?: boolean;
+      updateKey?: boolean;
+      notInsertable?: boolean;
+      notUpdatable?: boolean;
+      nullable?: boolean;
+      default?: any;
+      foreignKeyTable?: string;
+      foreignKeyColumn?: string;
+      autoIncrement?: boolean;
+      schema?: UnknownSchema;
 
-        // Should not use these
-        // columnName?: string; // Automatically assigned by table()
-        // tableName?: string; // Automatically assigned by table()
-      },
-      ExtraProps
-    >
+      // Should not use these
+      // columnName?: string; // Automatically assigned by table()
+      // tableName?: string; // Automatically assigned by table()
+    },
+    ExtraProps
   >
 >;
 
-export type ColumnTypeSingualr<Type extends string> = { readonly type: Type };
+export type ColumnTypeSingualr<Type extends string> = { type: Type };
 
 export type ColumnType<Type extends string, Params> = {
-  readonly type: Type;
+  type: Type;
 } & Params;
 
 export type ForeignKeyCol = {
