@@ -287,14 +287,14 @@ describe("derivePgColumn dbPg override", () => {
     expect(col.type).toBe("uuid");
   });
 
-  it("z.string().dbPg(pg.uuid()).nullable() → uuid + nullable", () => {
+  it("z.string().nullable().dbPg(pg.uuid()) → pg.uuid()", () => {
     const col = derivePgColumn(z.string().nullable().dbPg(pg.uuid()));
     expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"uuid">>();
     expect(col.type).toBe("uuid");
     expect((col as any).nullable).toBeUndefined();
   });
 
-  it("z.int().dbPg(pg.text()) → text", () => {
+  it("z.int().dbPg(pg.text()) → pg.text()", () => {
     const col = derivePgColumn(z.int().dbPg(pg.text()));
     expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
     expect(col.type).toBe("text");
