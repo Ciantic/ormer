@@ -16,7 +16,7 @@ import { PGlite } from "@electric-sql/pglite";
 
 const InvoiceSchema = z
   .object({
-    id: z.int().brand("InvoiceId").dbPk(),
+    id: z.bigint().brand("InvoiceId").dbPk(),
     title: z.string(),
     description: z.string().nullable(),
     due_date: z.string(),
@@ -32,12 +32,16 @@ const InvoiceSchema = z
 
 const InvoiceRowSchema = z
   .object({
-    id: z.int().brand("InvoiceRowId").dbPk(),
+    id: z.bigint().brand("InvoiceRowId").dbPk(),
     title: z.string(),
     price: z.number(),
     tax_percentage: z.number(),
     quantity: z.number(),
-    invoice_id: z.int().brand("InvoiceId").nullable().dbFk(InvoiceSchema, "id"),
+    invoice_id: z
+      .bigint()
+      .brand("InvoiceId")
+      .nullable()
+      .dbFk(InvoiceSchema, "id"),
     concurrencyStamp: z.string(),
     get invoice() {
       return InvoiceSchema.dbNavigate(InvoiceRowSchema, "invoice_id");
@@ -47,12 +51,12 @@ const InvoiceRowSchema = z
 
 const PersonSchema = z
   .object({
-    id: z.int().brand("PersonId").dbPk(),
+    id: z.bigint().brand("PersonId").dbPk(),
     first_name: z.string(),
     last_name: z.string().nullable(),
     email: z.email(),
     get supervisor_id() {
-      return z.int().brand("PersonId").nullable().dbFk(PersonSchema, "id");
+      return z.bigint().brand("PersonId").nullable().dbFk(PersonSchema, "id");
     },
     get supervisor() {
       return PersonSchema.dbNavigateSelf("id");
