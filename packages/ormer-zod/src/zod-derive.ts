@@ -60,7 +60,7 @@ type DeriveBaseColumn<T extends ZodType> =
 // prettier-ignore
 type DerivePgColumn<T extends ZodType> =
   // Explicit .dbPg() override — skip derivation entirely
-  T extends ZodDbPgColumnType<any> ? T["db"]["pgColumnType"]
+  T extends ZodDbPgColumnType<any> ? T["def"]["db"]["pgColumnType"]
 
   // Otherwise, derive from the base type + modifiers
   : RewrapToColumnType<
@@ -144,12 +144,13 @@ type DerivePgColumn<T extends ZodType> =
  * - z.object() / z.record() / z.array()    → pg.jsonb()
  * - z.undefined / z.null / z.void          → → (unlikely column types)
  */
-export function derivePgColumn<T extends ZodType>(
-  schema: T & { db?: Partial<ZodDbParams> },
-): DerivePgColumn<T> {
+export function derivePgColumn<
+  T extends ZodType & { def?: { db?: Partial<ZodDbParams> } },
+>(schema: T): DerivePgColumn<T> {
   // Explicit .dbPg() override — skip derivation entirely
-  if (schema.db?.pgColumnType) {
-    return schema.db?.pgColumnType as ColumnType<any, any>;
+  const dbMeta = schema.def?.db;
+  if (dbMeta?.pgColumnType) {
+    return dbMeta?.pgColumnType as ColumnType<any, any>;
   }
 
   let node = schema;
@@ -161,10 +162,11 @@ export function derivePgColumn<T extends ZodType>(
 
   // Unwrap modifiers (.nullable, .optional, .default) to get to the base type
   while (true) {
-    if (node.db?.primaryKey === true) primaryKey = true;
-    if (node.db?.foreignKeyTable && node.db?.foreignKeyColumn) {
-      foreignKeyTable = node.db.foreignKeyTable;
-      foreignKeyColumn = node.db.foreignKeyColumn;
+    const ndb = (node as any).def?.db;
+    if (ndb?.primaryKey === true) primaryKey = true;
+    if (ndb?.foreignKeyTable && ndb?.foreignKeyColumn) {
+      foreignKeyTable = ndb.foreignKeyTable;
+      foreignKeyColumn = ndb.foreignKeyColumn;
     }
     if (node instanceof z.ZodNullable) {
       nullable = true;
@@ -298,7 +300,7 @@ export function derivePgColumn<T extends ZodType>(
     // z.int64() / z.uint64()
     //
     // Distinguish by the format string on the definition.
-    const format = (node._zod.def as any).format;
+    const format = node._zod.def.format;
     if (format === "uint64") {
       return pg.decimal({
         ...pgParamsBase,
@@ -319,7 +321,7 @@ export function derivePgColumn<T extends ZodType>(
     //
     // Distinguish by the format string on the definition, only available at
     // runtime.
-    const format = (node._zod.def as any).format;
+    const format = node._zod.def.format;
     if (format === "float32") {
       return pg.float4(pgParamsBase) as ColumnType<any, any>;
     } else if (format === "float64") {
@@ -368,9 +370,11 @@ export function derivePgColumn<T extends ZodType>(
 /**
  * Derive a PgTable type from a ZodObject with dbTable metadata.
  */
-export type DerivePgTable<T extends z.ZodObject & ZodDbTableName<string>> =
+export type DerivePgTable<
+  T extends { shape: Record<string, any> } & ZodDbTableName<string>,
+> =
   // prettier-ignore
-  Table<T["db"]["tableName"], {
+  Table<T["def"]["db"]["tableName"], {
     [ K in keyof T["shape"] as T["shape"][K] extends ZodDbNavigate<any, any> ? never : K ]: DerivePgColumn<T["shape"][K]>
   }>;
 
@@ -380,7 +384,7 @@ export type DerivePgTable<T extends z.ZodObject & ZodDbTableName<string>> =
 export function derivePgTable<T extends z.ZodObject & ZodDbTableName<string>>(
   schema: T,
 ): RewrapDeriveTable<DerivePgTable<T>> {
-  const dbMeta = (schema as any).db;
+  const dbMeta = schema?.def?.db as Partial<ZodDbParams> | undefined;
   if (!dbMeta || typeof dbMeta.tableName !== "string") {
     throw new Error(
       "ZodObject must have .dbTable() metadata. Call schema.dbTable('table_name')",
@@ -395,7 +399,8 @@ export function derivePgTable<T extends z.ZodObject & ZodDbTableName<string>>(
     const fieldSchema = shape[key];
 
     // Skip navigations (dbRef) — handled as relationship metadata.
-    if (fieldSchema.db && Object.hasOwn(fieldSchema.db, "navigation")) continue;
+    const fieldDb = (fieldSchema as any).def?.db;
+    if (fieldDb && Object.hasOwn(fieldDb, "navigation")) continue;
 
     // Regular column
     columns[key] = derivePgColumn(fieldSchema);

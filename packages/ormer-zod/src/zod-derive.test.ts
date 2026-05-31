@@ -568,6 +568,40 @@ describe("derivePgColumn default types", () => {
   });
 });
 
+describe("test ordering doesn't break the behavior", () => {
+  it("z.int().dbPk().meta({ description: 'test' })", () => {
+    const col = derivePgColumn(z.int().dbPk().meta({ description: "test" }));
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<
+        "float4" | "float8" | "int4" | "int8",
+        { primaryKey: true; autoIncrement: true }
+      >
+    >();
+    expect(col.type).toBe("int4");
+    expect(col.primaryKey).toBe(true);
+    expect(col.autoIncrement).toBe(true);
+  });
+
+  it("z.int().dbFk(...).meta({ description: 'test' })", () => {
+    const otherSchema = z.object({ id: z.int().dbPk() }).dbTable("other");
+    const col = derivePgColumn(
+      z.int().dbFk(otherSchema, "id").meta({ description: "test" }),
+    );
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<
+        "float4" | "float8" | "int4" | "int8",
+        {
+          foreignKeyTable: "other";
+          foreignKeyColumn: "id";
+        }
+      >
+    >();
+    expect(col.type).toBe("int4");
+    expect(col.foreignKeyTable).toBe("other");
+    expect(col.foreignKeyColumn).toBe("id");
+  });
+});
+
 describe("unsupported type throws", () => {
   it("z.array(z.string()) throws", () => {
     expect(() => derivePgColumn(z.array(z.string()) as any)).toThrow(

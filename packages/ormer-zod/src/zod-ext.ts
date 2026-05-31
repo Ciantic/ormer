@@ -5,7 +5,7 @@ import { z } from "zod";
 // ---------------------------------------------------------------------------
 // Db params — union of all possible shapes the `db` property can take
 // ---------------------------------------------------------------------------
-type FinalTypeDb<T> = T extends { db: infer U }
+type FinalTypeDb<T> = T extends { def: { db: infer U } }
   ? { [K in keyof U]: U[K] }
   : never;
 
@@ -26,36 +26,38 @@ export type ZodDbParams = FinalTypeDb<
 // ---------------------------------------------------------------------------
 
 export type ZodDbTableName<T extends string> = {
-  db: { tableName: T };
+  def: { db: { tableName: T } };
 };
 
 export type ZodDbPrimaryKey = {
-  db: { primaryKey: true };
+  def: { db: { primaryKey: true } };
 };
 
 export type ZodDbNavigate<
   R extends ZodObjectLite,
   K extends keyof R["def"]["shape"] = string,
 > = {
-  db: { navigation: { schema: R; key: K } };
+  def: { db: { navigation: { schema: R; key: K } } };
 };
 
 export type ZodDbFk<N, C> = {
-  db: { foreignKeyTable: N; foreignKeyColumn: C };
+  def: { db: { foreignKeyTable: N; foreignKeyColumn: C } };
 };
 
 export type ZodDbPgColumnType<
   C extends ColumnTypeSingualr<string> | ColumnType<string, any>,
 > = {
-  db: { pgColumnType: C };
+  def: { db: { pgColumnType: C } };
 };
 
 function dbTable<T extends {}, const N extends string>(
   this: T,
   tableName: N,
 ): T & ZodDbTableName<N> {
-  const existingDb = (this as any).db || {};
-  return Object.assign(this, { db: { ...existingDb, tableName } }) as any;
+  const existingDb = (this as any)._zod?.def?.db || {};
+  const db = { ...existingDb, tableName };
+  (this as any)._zod.def.db = db;
+  return this as any;
 }
 
 function dbNavigate<
@@ -63,42 +65,46 @@ function dbNavigate<
   R extends ZodObjectLite,
   K extends keyof R["def"]["shape"],
 >(this: T, refSchema: R, refKey: K): T & ZodDbNavigate<R, K> {
-  const existingDb = (this as any).db || {};
-  return Object.assign(this, {
-    db: { ...existingDb, navigation: { schema: refSchema, key: refKey } },
-  }) as any;
+  const existingDb = (this as any)._zod?.def?.db || {};
+  const db = { ...existingDb, navigation: { schema: refSchema, key: refKey } };
+  (this as any)._zod.def.db = db;
+  return this as any;
 }
 
 function dbNavigateSelf<
   T extends ZodObjectLite,
   K extends keyof T["def"]["shape"],
 >(this: T, refKey: K): T & ZodDbNavigate<T, K> {
-  const existingDb = (this as any).db || {};
-  return Object.assign(this, {
-    db: { ...existingDb, navigation: { schema: this, key: refKey } },
-  }) as any;
+  const existingDb = (this as any)._zod?.def?.db || {};
+  const db = { ...existingDb, navigation: { schema: this, key: refKey } };
+  (this as any)._zod.def.db = db;
+  return this as any;
 }
 
 function dbFk<
   T extends {},
   R extends { def: { shape: Record<string, any> } } & ZodDbTableName<string>,
   K extends keyof R["def"]["shape"],
->(this: T, refSchema: R, refKey: K): T & ZodDbFk<R["db"]["tableName"], K> {
-  const existingDb = (this as any).db || {};
-  return Object.assign(this, {
-    db: {
-      ...existingDb,
-      foreignKeyTable: refSchema.db.tableName,
-      foreignKeyColumn: refKey,
-    },
-  }) as any;
+>(
+  this: T,
+  refSchema: R,
+  refKey: K,
+): T & ZodDbFk<R["def"]["db"]["tableName"], K> {
+  const existingDb = (this as any)._zod?.def?.db || {};
+  const db = {
+    ...existingDb,
+    foreignKeyTable: refSchema.def.db.tableName,
+    foreignKeyColumn: refKey,
+  };
+  (this as any)._zod.def.db = db;
+  return this as any;
 }
 
 function dbPk<T extends {}>(this: T): T & ZodDbPrimaryKey {
-  const existingDb = (this as any).db || {};
-  return Object.assign(this, {
-    db: { ...existingDb, primaryKey: true },
-  }) as any;
+  const existingDb = (this as any)._zod?.def?.db || {};
+  const db = { ...existingDb, primaryKey: true };
+  (this as any)._zod.def.db = db;
+  return this as any;
 }
 
 function dbPg<
@@ -106,9 +112,9 @@ function dbPg<
   const C extends ColumnTypeSingualr<string> | ColumnType<string, any>,
 >(this: T, columnType: C): T & ZodDbPgColumnType<C> {
   // Notably, this also drops all the other db params, but that's intentional
-  return Object.assign(this, {
-    db: { pgColumnType: columnType },
-  }) as any;
+  const db = { pgColumnType: columnType };
+  (this as any)._zod.def.db = db;
+  return this as any;
 }
 
 declare module "zod" {
