@@ -9,7 +9,6 @@ import type {
   ZodDbPgColumnType,
 } from "./zod-ext.ts";
 import type {
-  FinalType,
   ZodType,
   UnwrapModifiers,
   IsNullable,

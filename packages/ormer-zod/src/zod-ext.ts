@@ -1,6 +1,5 @@
 import type { ColumnType } from "kysely";
 import type { ColumnTypeSingualr } from "ormer";
-import type { ZodType, ZodObject } from "zod";
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
@@ -59,7 +58,7 @@ export type ZodDbPgColumnType<
   db: { pgColumnType: C };
 };
 
-function dbTable<T extends ZodType, const N extends string>(
+function dbTable<T extends {}, const N extends string>(
   this: T,
   tableName: N,
 ): T & ZodDbTableName<N> {
@@ -68,7 +67,7 @@ function dbTable<T extends ZodType, const N extends string>(
 }
 
 function dbNavigate<
-  T extends ZodType,
+  T extends {},
   R extends ZodObjectLite,
   K extends keyof R["def"]["shape"],
 >(this: T, refSchema: R, refKey: K): T & ZodDbNavigate<R, K> {
@@ -89,7 +88,7 @@ function dbNavigateSelf<
 }
 
 function dbFk<
-  T extends ZodType,
+  T extends {},
   R extends { def: { shape: Record<string, any> } } & ZodDbTableName<string>,
   K extends keyof R["def"]["shape"],
 >(this: T, refSchema: R, refKey: K): T & ZodDbFk<R["db"]["tableName"], K> {
@@ -103,7 +102,7 @@ function dbFk<
   }) as any;
 }
 
-function dbPk<T extends ZodType>(this: T): T & ZodDbPrimaryKey {
+function dbPk<T extends {}>(this: T): T & ZodDbPrimaryKey {
   const existingDb = (this as any).db || {};
   return Object.assign(this, {
     db: { ...existingDb, primaryKey: true },
@@ -111,7 +110,7 @@ function dbPk<T extends ZodType>(this: T): T & ZodDbPrimaryKey {
 }
 
 function dbPg<
-  T extends ZodType,
+  T extends {},
   const C extends ColumnTypeSingualr<string> | ColumnType<string, any>,
 >(this: T, columnType: C): T & ZodDbPgColumnType<C> {
   // Notably, this also drops all the other db params, but that's intentional
