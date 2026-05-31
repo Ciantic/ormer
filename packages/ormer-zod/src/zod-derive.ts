@@ -126,6 +126,7 @@ type DerivePgColumn<T extends ZodType> =
  * - z.X().nullable()        → adds nullable: true to the result
  * - z.X().optional()        → also adds nullable: true to the result
  * - z.X().default(val)      → adds default: val to the result
+ * - z.X().prefault(val)     → also adds default: val to the result
  * - z.X().dbPk()            → adds primaryKey: true to the result
  *
  * Notes:
