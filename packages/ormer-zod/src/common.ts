@@ -27,6 +27,7 @@ export type UnwrapUntilReturnTrue<T, Check> = T extends Check
   : T extends z.ZodNullable<infer Inner extends ZodType> ? UnwrapUntilReturnTrue<Inner, Check>
   : T extends z.ZodOptional<infer Inner extends ZodType> ? UnwrapUntilReturnTrue<Inner, Check>
   : T extends z.ZodDefault<infer Inner extends ZodType>  ? UnwrapUntilReturnTrue<Inner, Check>
+  : T extends z.ZodReadonly<infer Inner extends ZodType> ? UnwrapUntilReturnTrue<Inner, Check>
   : false;
 
 // prettier-ignore
@@ -34,6 +35,7 @@ export type UnwrapModifiers<T extends ZodType> =
     T extends z.ZodNullable<infer Inner extends ZodType> ? UnwrapModifiers<Inner>
   : T extends z.ZodOptional<infer Inner extends ZodType> ? UnwrapModifiers<Inner>
   : T extends z.ZodDefault<infer Inner extends ZodType>  ? UnwrapModifiers<Inner>
+  : T extends z.ZodReadonly<infer Inner extends ZodType> ? UnwrapModifiers<Inner>
   : T;
 
 export type IsNullable<T extends ZodType> =
@@ -44,9 +46,8 @@ export type IsNullable<T extends ZodType> =
 export type HasDefaultValue<T extends ZodType> =
   UnwrapUntilReturnTrue<T, z.ZodDefault<any>> extends true ? true : false;
 
-export type HasDbPk<T extends ZodType> = T extends ZodDbPrimaryKey
-  ? true
-  : false;
+export type HasDbPk<T extends ZodType> =
+  UnwrapUntilReturnTrue<T, ZodDbPrimaryKey> extends true ? true : false;
 
 // This utility only cleans up the hover-type, it doesn't change it
 export type RewrapToColumnType<T> = T extends {

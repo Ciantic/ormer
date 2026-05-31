@@ -602,6 +602,64 @@ describe("test ordering doesn't break the behavior", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// readonly() wrapper tests
+// ---------------------------------------------------------------------------
+
+describe("derivePgColumn readonly wrapper", () => {
+  it("z.string().readonly() → pg.text()", () => {
+    const col = derivePgColumn(z.string().readonly());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
+    >();
+    expect(col.type).toBe("text");
+  });
+
+  it("z.number().readonly() → pg.float8()", () => {
+    const col = derivePgColumn(z.number().readonly());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"float8">>();
+    expect(col.type).toBe("float8");
+  });
+
+  it("z.uuid().readonly() → pg.uuid()", () => {
+    const col = derivePgColumn(z.uuid().readonly());
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"uuid">>();
+    expect(col.type).toBe("uuid");
+  });
+
+  it("z.boolean().nullable().readonly() → pg.boolean({ nullable: true })", () => {
+    const col = derivePgColumn(z.boolean().nullable().readonly());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"boolean", { nullable: true }>
+    >();
+    expect(col.type).toBe("boolean");
+    expect(col.nullable).toBe(true);
+  });
+
+  it("z.string().default('x').readonly() → pg.text({ default: 'x' })", () => {
+    const col = derivePgColumn(z.string().default("x").readonly());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      | ColumnType<"text", { default: string }>
+      | ColumnType<"varchar", { maxLength: number; default: string }>
+    >();
+    expect(col.type).toBe("text");
+    expect(col.default).toBe("x");
+  });
+
+  it("z.int().dbPk().readonly() → pg.int4({ primaryKey, autoIncrement })", () => {
+    const col = derivePgColumn(z.int().dbPk().readonly());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<
+        "float4" | "float8" | "int4" | "int8",
+        { primaryKey: true; autoIncrement: true }
+      >
+    >();
+    expect(col.type).toBe("int4");
+    expect(col.primaryKey).toBe(true);
+    expect(col.autoIncrement).toBe(true);
+  });
+});
+
 describe("unsupported type throws", () => {
   it("z.array(z.string()) throws", () => {
     expect(() => derivePgColumn(z.array(z.string()) as any)).toThrow(
