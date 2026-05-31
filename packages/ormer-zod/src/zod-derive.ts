@@ -3,45 +3,22 @@ import type { ColumnType, ColumnTypeSingualr, Params, Table } from "ormer";
 import { z } from "zod";
 import type {
   ZodDbTableName,
-  ZodDbPrimaryKey,
   ZodDbNavigate,
   ZodDbFk,
   ZodDbParams,
   ZodDbPgColumnType,
 } from "./zod-ext.ts";
-
-type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
-
-type ZodType = z.ZodType;
-
-// ---------------------------------------------------------------------------
-// Type-level derivation
-// ---------------------------------------------------------------------------
-
-// prettier-ignore
-type UnwrapUntilReturnTrue<T, Check> = T extends Check
-  ? true
-  : T extends z.ZodNullable<infer Inner extends ZodType> ? UnwrapUntilReturnTrue<Inner, Check>
-  : T extends z.ZodOptional<infer Inner extends ZodType> ? UnwrapUntilReturnTrue<Inner, Check>
-  : T extends z.ZodDefault<infer Inner extends ZodType>  ? UnwrapUntilReturnTrue<Inner, Check>
-  : false;
-
-// prettier-ignore
-type UnwrapModifiers<T extends ZodType> =
-    T extends z.ZodNullable<infer Inner extends ZodType> ? UnwrapModifiers<Inner>
-  : T extends z.ZodOptional<infer Inner extends ZodType> ? UnwrapModifiers<Inner>
-  : T extends z.ZodDefault<infer Inner extends ZodType>  ? UnwrapModifiers<Inner>
-  : T;
-
-type IsNullable<T extends ZodType> =
-  UnwrapUntilReturnTrue<T, z.ZodNullable<any> | z.ZodOptional<any>> extends true
-    ? true
-    : false;
-
-type HasDefaultValue<T extends ZodType> =
-  UnwrapUntilReturnTrue<T, z.ZodDefault<any>> extends true ? true : false;
-
-type HasDbPk<T extends ZodType> = T extends ZodDbPrimaryKey ? true : false;
+import type {
+  FinalType,
+  ZodType,
+  UnwrapModifiers,
+  IsNullable,
+  HasDefaultValue,
+  HasDbPk,
+  OmitNever,
+  RewrapToColumnType,
+  RewrapDeriveTable,
+} from "./common.ts";
 
 // prettier-ignore
 type DeriveBaseColumn<T extends ZodType> = 
@@ -81,25 +58,8 @@ type DeriveBaseColumn<T extends ZodType> =
   // : T extends z.ZodType<bigint, bigint> ? ColumnTypeSingualr<"int8">
   : never;
 
-type OmitNever<T> = Omit<
-  T,
-  { [K in keyof T]: T[K] extends never ? K : never }[keyof T]
->;
-
-type NonEmptyObject<T> = keyof T extends never ? never : T;
-
-type RewrapToColumnType<T> = T extends {
-  type: infer Type extends string;
-} & infer Params
-  ? Omit<Params, "type"> extends NonEmptyObject<Omit<Params, "type">>
-    ? ColumnType<Type, FinalType<Omit<Params, "type">>>
-    : ColumnTypeSingualr<Type>
-  : T extends ColumnTypeSingualr<infer Type>
-    ? ColumnTypeSingualr<Type>
-    : never;
-
 // prettier-ignore
-export type DerivePgColumnImproved<T extends ZodType> =
+type DerivePgColumn<T extends ZodType> =
   // Explicit .dbPg() override — skip derivation entirely
   T extends ZodDbPgColumnType<any> ? T["db"]["pgColumnType"]
 
@@ -185,7 +145,7 @@ export type DerivePgColumnImproved<T extends ZodType> =
  */
 export function derivePgColumn<T extends ZodType>(
   schema: T & { db?: Partial<ZodDbParams> },
-): DerivePgColumnImproved<T> {
+): DerivePgColumn<T> {
   // Explicit .dbPg() override — skip derivation entirely
   if (schema.db?.pgColumnType) {
     return schema.db?.pgColumnType as ColumnType<any, any>;
@@ -391,10 +351,9 @@ export function derivePgColumn<T extends ZodType>(
 }
 
 // ---------------------------------------------------------------------------
-// DerivePgTable — Type level
+// DerivePgTable
 // ---------------------------------------------------------------------------
 
-/** Add foreignKeyTable/foreignKeyColumn params from dbFk metadata */
 type WithFkParams<
   C,
   FKRel extends { schema: { db: { tableName: string } }; key: string },
@@ -421,16 +380,6 @@ type WithFkParams<
 
 /**
  * Derive a PgTable type from a ZodObject with dbTable metadata.
- *
- * - Columns are derived from each shape key using {@link DerivePgColumn}.
- * - Fields with `.dbRef` (navigations) are excluded from the columns map.
- * - Fields with `.dbFk` get additional `foreignKeyTable` / `foreignKeyColumn`
- *   parameters.
- * - The table name is read from `db.tableName` metadata on the ZodObject.
- *
- * Only ZodObjects that have had `.dbTable(tableName)` called will match;
- * plain ZodObjects (without the metadata) resolve to `never`.
- *
  */
 export type DerivePgTable<T extends z.ZodObject & ZodDbTableName<string>> =
   // prettier-ignore
@@ -438,37 +387,17 @@ export type DerivePgTable<T extends z.ZodObject & ZodDbTableName<string>> =
       [
         K in keyof T["shape"] as T["shape"][K] extends ZodDbNavigate<z.ZodObject, string> ? never : K
       ]: T["shape"][K] extends ZodDbFk<z.ZodObject, string> 
-         ? WithFkParams<DerivePgColumnImproved<T["shape"][K]>, T["shape"][K]["db"]["fkRel"]>
-         : DerivePgColumnImproved<T["shape"][K]>;
+         ? WithFkParams<DerivePgColumn<T["shape"][K]>, T["shape"][K]["db"]["fkRel"]>
+         : DerivePgColumn<T["shape"][K]>;
     }
   >;
 
-// ---------------------------------------------------------------------------
-// DerivePgTable — Runtime
-// ---------------------------------------------------------------------------
-
-type UnwrapDeriveTable<T> =
-  T extends Table<infer Name, infer Columns> ? Table<Name, Columns> : never;
-
 /**
  * Derive an ormer PgTable from a ZodObject schema.
- *
- * The ZodObject must have `.dbTable(tableName)` metadata. Each field in the
- * shape is processed through {@link derivePgColumn}. Foreign key fields
- * (`.dbFk(...)`) additionally receive `foreignKeyTable` / `foreignKeyColumn`
- * parameters. Navigation fields (`.dbRef`) are skipped.
- *
- * @example
- * ```ts
- * const InvoiceTable = derivePgTable(InvoiceSchema);
- * // InvoiceTable.table === "invoice"
- * // InvoiceTable.columns.id.type === "int4" (with primaryKey)
- * // InvoiceTable.columns.title.type === "text"
- * ```
  */
 export function derivePgTable<T extends z.ZodObject & ZodDbTableName<string>>(
   schema: T,
-): UnwrapDeriveTable<DerivePgTable<T>> {
+): RewrapDeriveTable<DerivePgTable<T>> {
   const dbMeta = (schema as any).db;
   if (!dbMeta || typeof dbMeta.tableName !== "string") {
     throw new Error(
