@@ -16,7 +16,6 @@ type ZodObjectLite = { def: { shape: Record<string, any> } };
 export type ZodDbParams = FinalTypeDb<
   ZodDbFk<any, string> &
     ZodDbNavigate<any, string> &
-    ZodDbNavigateSelf<any, string> &
     ZodDbPrimaryKey &
     ZodDbTableName<string> &
     ZodDbPgColumnType<any>
@@ -39,13 +38,6 @@ export type ZodDbNavigate<
   K extends keyof R["def"]["shape"] = string,
 > = {
   db: { navigation: { schema: R; key: K } };
-};
-
-export type ZodDbNavigateSelf<
-  T extends ZodObjectLite,
-  K extends keyof T["def"]["shape"] = string,
-> = {
-  db: { navigation: { schema: T; key: K } };
 };
 
 export type ZodDbFk<N, C> = {
@@ -80,7 +72,7 @@ function dbNavigate<
 function dbNavigateSelf<
   T extends ZodObjectLite,
   K extends keyof T["def"]["shape"],
->(this: T, refKey: K): T & ZodDbNavigateSelf<T, K> {
+>(this: T, refKey: K): T & ZodDbNavigate<T, K> {
   const existingDb = (this as any).db || {};
   return Object.assign(this, {
     db: { ...existingDb, navigation: { schema: this, key: refKey } },
