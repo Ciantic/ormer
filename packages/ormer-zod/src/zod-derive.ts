@@ -174,11 +174,13 @@ export function derivePgColumn<
       nullable = true;
     } else if (node instanceof z.ZodDefault) {
       defaultValue = node.def.defaultValue;
+    } else if (node instanceof z.ZodPrefault) {
+      defaultValue = node.def.defaultValue;
     } else if (node instanceof z.ZodReadonly) {
       // readonly is a pure wrapper — no modifier to set, just unwrap
     }
     if ("innerType" in node.def) {
-      // z.ZodNullable, z.ZodOptional, z.ZodDefault all have innerType
+      // z.ZodNullable, z.ZodOptional, z.ZodDefault, z.ZodPrefault all have innerType
       node = node.def.innerType as typeof node;
     } else {
       break;

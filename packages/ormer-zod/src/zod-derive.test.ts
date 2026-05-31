@@ -660,6 +660,79 @@ describe("derivePgColumn readonly wrapper", () => {
   });
 });
 
+describe("derivePgColumn prefault wrapper", () => {
+  it("z.string().prefault('hello') → pg.text({ default: 'hello' })", () => {
+    const col = derivePgColumn(z.string().prefault("hello"));
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      | ColumnType<"text", { default: string }>
+      | ColumnType<"varchar", { maxLength: number; default: string }>
+    >();
+    expect(col.type).toBe("text");
+    expect(col.default).toBe("hello");
+  });
+
+  it("z.number().prefault(42) → pg.float8({ default: 42 })", () => {
+    const col = derivePgColumn(z.number().prefault(42));
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"float8", { default: number }>
+    >();
+    expect(col.type).toBe("float8");
+    expect(col.default).toBe(42);
+  });
+
+  it("z.boolean().prefault(true) → pg.boolean({ default: true })", () => {
+    const col = derivePgColumn(z.boolean().prefault(true));
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<"boolean", { default: boolean }>
+    >();
+    expect(col.type).toBe("boolean");
+    expect(col.default).toBe(true);
+  });
+
+  it("z.string().prefault('x').nullable() → pg.text({ default: 'x', nullable: true })", () => {
+    const col = derivePgColumn(z.string().prefault("x").nullable());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      | ColumnType<"text", { default: string | null; nullable: true }>
+      | ColumnType<
+          "varchar",
+          { maxLength: number; default: string | null; nullable: true }
+        >
+    >();
+    expect(col.type).toBe("text");
+    expect(col.default).toBe("x");
+    expect(col.nullable).toBe(true);
+  });
+
+  it("z.int().prefault(1).dbPk() → pg.int4({ default: 1, primaryKey, autoIncrement })", () => {
+    const col = derivePgColumn(z.int().prefault(1).dbPk());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnType<
+        "float4" | "float8" | "int4" | "int8",
+        { default: number; primaryKey: true; autoIncrement: true }
+      >
+    >();
+    expect(col.type).toBe("int4");
+    expect(col.default).toBe(1);
+    expect(col.primaryKey).toBe(true);
+    expect(col.autoIncrement).toBe(true);
+  });
+
+  it("z.string().prefault(() => 'lazy').readonly() → pg.text({ default: 'lazy' })", () => {
+    const col = derivePgColumn(
+      z
+        .string()
+        .prefault(() => "lazy")
+        .readonly(),
+    );
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      | ColumnType<"text", { default: string }>
+      | ColumnType<"varchar", { maxLength: number; default: string }>
+    >();
+    expect(col.type).toBe("text");
+    expect(col.default).toBe("lazy");
+  });
+});
+
 describe("unsupported type throws", () => {
   it("z.array(z.string()) throws", () => {
     expect(() => derivePgColumn(z.array(z.string()) as any)).toThrow(
