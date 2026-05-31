@@ -76,6 +76,8 @@ type DerivePgColumn<T extends ZodType> =
             : UnwrapModifiers<T> extends z.ZodNumberFormat ? true 
             : never
             : never;
+          foreignKeyTable: T extends ZodDbFk<infer N extends string, infer _> ? N : never;
+          foreignKeyColumn: T extends ZodDbFk<infer _, infer C extends string> ? C : never;
         }>
     >;
 
@@ -155,10 +157,16 @@ export function derivePgColumn<T extends ZodType>(
   let nullable = false;
   let defaultValue: unknown = undefined;
   let primaryKey = false;
+  let foreignKeyTable: string | undefined = undefined;
+  let foreignKeyColumn: string | undefined = undefined;
 
   // Unwrap modifiers (.nullable, .optional, .default) to get to the base type
   while (true) {
     if (node.db?.primaryKey === true) primaryKey = true;
+    if (node.db?.foreignKeyTable && node.db?.foreignKeyColumn) {
+      foreignKeyTable = node.db.foreignKeyTable;
+      foreignKeyColumn = node.db.foreignKeyColumn;
+    }
     if (node instanceof z.ZodNullable) {
       nullable = true;
       node = node.def.innerType as typeof node;
@@ -182,6 +190,10 @@ export function derivePgColumn<T extends ZodType>(
     if (node instanceof z.ZodNumberFormat || node instanceof z.ZodBigInt) {
       pgParamsBase.autoIncrement = true;
     }
+  }
+  if (foreignKeyTable && foreignKeyColumn) {
+    pgParamsBase.foreignKeyTable = foreignKeyTable;
+    pgParamsBase.foreignKeyColumn = foreignKeyColumn;
   }
 
   if (node instanceof z.ZodUUID) {
@@ -384,13 +396,8 @@ type WithFkParams<
 export type DerivePgTable<T extends z.ZodObject & ZodDbTableName<string>> =
   // prettier-ignore
   Table<T["db"]["tableName"], {
-      [
-        K in keyof T["shape"] as T["shape"][K] extends ZodDbNavigate<z.ZodObject, string> ? never : K
-      ]: T["shape"][K] extends ZodDbFk<z.ZodObject, string> 
-         ? WithFkParams<DerivePgColumn<T["shape"][K]>, T["shape"][K]["db"]["fkRel"]>
-         : DerivePgColumn<T["shape"][K]>;
-    }
-  >;
+    [ K in keyof T["shape"] as T["shape"][K] extends ZodDbNavigate<any, any> ? never : K ]: DerivePgColumn<T["shape"][K]>
+  }>;
 
 /**
  * Derive an ormer PgTable from a ZodObject schema.
@@ -413,20 +420,7 @@ export function derivePgTable<T extends z.ZodObject & ZodDbTableName<string>>(
     const fieldSchema = shape[key];
 
     // Skip navigations (dbRef) — handled as relationship metadata.
-    if (fieldSchema.db && Object.hasOwn(fieldSchema.db, "navRel")) continue;
-
-    // Foreign key
-    if (fieldSchema.db && Object.hasOwn(fieldSchema.db, "fkRel")) {
-      const refSchema = fieldSchema.db.fkRel.schema;
-      const refKey = fieldSchema.db.fkRel.key;
-      const col = derivePgColumn(fieldSchema);
-      columns[key] = {
-        ...(col as any),
-        foreignKeyTable: refSchema.db.tableName,
-        foreignKeyColumn: refKey,
-      };
-      continue;
-    }
+    if (fieldSchema.db && Object.hasOwn(fieldSchema.db, "navigation")) continue;
 
     // Regular column
     columns[key] = derivePgColumn(fieldSchema);

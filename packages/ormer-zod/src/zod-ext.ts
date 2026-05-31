@@ -10,6 +10,10 @@ type FinalTypeDb<T> = T extends { db: infer U }
   ? { [K in keyof U]: U[K] }
   : never;
 
+// ZodObject is kind of heavy for inference, this is the subset we only need.
+// With regular old ZodObject I encountered tsc max stack issues.
+type ZodObjectLite = { def: { shape: Record<string, any> } };
+
 export type ZodDbParams = FinalTypeDb<
   ZodDbFk<any, string> &
     ZodDbNavigate<any, string> &
@@ -32,21 +36,21 @@ export type ZodDbPrimaryKey = {
 };
 
 export type ZodDbNavigate<
-  R extends ZodObject,
+  R extends ZodObjectLite,
   K extends keyof R["def"]["shape"] = string,
 > = {
-  db: { navRel: { schema: R; key: K } };
+  db: { navigation: { schema: R; key: K } };
 };
 
 export type ZodDbNavigateSelf<
-  T extends ZodObject,
+  T extends ZodObjectLite,
   K extends keyof T["def"]["shape"] = string,
 > = {
-  db: { navRel: { schema: T; key: K } };
+  db: { navigation: { schema: T; key: K } };
 };
 
-export type ZodDbFk<R extends ZodObject, K extends keyof R["def"]["shape"]> = {
-  db: { fkRel: { schema: R; key: K } };
+export type ZodDbFk<N, C> = {
+  db: { foreignKeyTable: N; foreignKeyColumn: C };
 };
 
 export type ZodDbPgColumnType<
@@ -65,33 +69,37 @@ function dbTable<T extends ZodType, const N extends string>(
 
 function dbNavigate<
   T extends ZodType,
-  R extends ZodObject,
+  R extends ZodObjectLite,
   K extends keyof R["def"]["shape"],
 >(this: T, refSchema: R, refKey: K): T & ZodDbNavigate<R, K> {
   const existingDb = (this as any).db || {};
   return Object.assign(this, {
-    db: { ...existingDb, navRel: { schema: refSchema, key: refKey } },
+    db: { ...existingDb, navigation: { schema: refSchema, key: refKey } },
   }) as any;
 }
 
-function dbNavigateSelf<T extends ZodObject, K extends keyof T["def"]["shape"]>(
-  this: T,
-  refKey: K,
-): T & ZodDbNavigateSelf<T, K> {
+function dbNavigateSelf<
+  T extends ZodObjectLite,
+  K extends keyof T["def"]["shape"],
+>(this: T, refKey: K): T & ZodDbNavigateSelf<T, K> {
   const existingDb = (this as any).db || {};
   return Object.assign(this, {
-    db: { ...existingDb, navRel: { schema: this, key: refKey } },
+    db: { ...existingDb, navigation: { schema: this, key: refKey } },
   }) as any;
 }
 
 function dbFk<
   T extends ZodType,
-  R extends ZodObject,
+  R extends { def: { shape: Record<string, any> } } & ZodDbTableName<string>,
   K extends keyof R["def"]["shape"],
->(this: T, refSchema: R, refKey: K): T & ZodDbFk<R, K> {
+>(this: T, refSchema: R, refKey: K): T & ZodDbFk<R["db"]["tableName"], K> {
   const existingDb = (this as any).db || {};
   return Object.assign(this, {
-    db: { ...existingDb, fkRel: { schema: refSchema, key: refKey } },
+    db: {
+      ...existingDb,
+      foreignKeyTable: refSchema.db.tableName,
+      foreignKeyColumn: refKey,
+    },
   }) as any;
 }
 
