@@ -155,13 +155,16 @@ export function derivePgColumn<
   }
 
   let node = schema;
-  let nullable = false;
+  let nullable: boolean | undefined = undefined;
+  let optional: boolean | undefined = undefined;
   let defaultValue: unknown = undefined;
   let primaryKey = false;
   let foreignKeyTable: string | undefined = undefined;
   let foreignKeyColumn: string | undefined = undefined;
 
   // Unwrap modifiers (.nullable, .optional, .default) to get to the base type
+  //
+  // For optionality, the first encountered is the right value
   while (true) {
     const ndb = (node as any).def?.db;
     if (ndb?.primaryKey === true) primaryKey = true;
@@ -169,19 +172,30 @@ export function derivePgColumn<
       foreignKeyTable = ndb.foreignKeyTable;
       foreignKeyColumn = ndb.foreignKeyColumn;
     }
+
     if (node instanceof z.ZodNullable) {
       nullable = true;
     } else if (node instanceof z.ZodOptional) {
-      nullable = true;
+      if (optional === undefined) optional = true;
+    } else if (node instanceof z.ZodExactOptional) {
+      if (optional === undefined) optional = true;
     } else if (node instanceof z.ZodDefault) {
       defaultValue = node.def.defaultValue;
     } else if (node instanceof z.ZodPrefault) {
       defaultValue = node.def.defaultValue;
+    } else if (node instanceof z.ZodCatch) {
+      defaultValue = node.def.catchValue;
+    } else if (node instanceof z.ZodNonOptional) {
+      if (optional === undefined) optional = false;
     } else if (node instanceof z.ZodReadonly) {
       // readonly is a pure wrapper — no modifier to set, just unwrap
+    } else if (node instanceof z.ZodPipe) {
+      // pipe chains transformations — unwrap to the input schema
+      node = node.def.in as typeof node;
+      continue;
     }
     if ("innerType" in node.def) {
-      // z.ZodNullable, z.ZodOptional, z.ZodDefault, z.ZodPrefault all have innerType
+      // z.ZodNullable, z.ZodOptional, z.ZodDefault, z.ZodPrefault, ZodExactOptional, ZodCatch, ZodNonOptional all have innerType
       node = node.def.innerType as typeof node;
     } else {
       break;
@@ -191,6 +205,7 @@ export function derivePgColumn<
   // Create params for the pg.X(params) call
   let pgParamsBase: Partial<Params> = {};
   if (nullable) pgParamsBase.nullable = true;
+  if (optional) pgParamsBase.nullable = true;
   if (typeof defaultValue !== "undefined") pgParamsBase.default = defaultValue;
   if (primaryKey) {
     pgParamsBase.primaryKey = true;

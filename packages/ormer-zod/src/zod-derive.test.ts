@@ -733,6 +733,61 @@ describe("derivePgColumn prefault wrapper", () => {
   });
 });
 
+describe("derivePgColumn other wrappers (pure unwrap and catch)", () => {
+  it("z.string().exactOptional() → pg.text({ nullable: true })", () => {
+    const col = derivePgColumn(z.string().exactOptional());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      | ColumnType<"text", { nullable: true }>
+      | ColumnType<"varchar", { maxLength: number; nullable: true }>
+    >();
+    expect(col.type).toBe("text");
+    expect(col.nullable).toBe(true);
+  });
+
+  it("z.string().optional().nonoptional() → pg.text() is not nullable", () => {
+    const col = derivePgColumn(z.string().optional().nonoptional());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
+    >();
+    expect(col.type).toBe("text");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((col as any).nullable).toBeUndefined();
+  });
+
+  it("z.string().nullable().optional().nonoptional() → pg.text() is nullable", () => {
+    const col = derivePgColumn(z.string().nullable().optional().nonoptional());
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      | ColumnType<"text", { nullable: true }>
+      | ColumnType<"varchar", { maxLength: number; nullable: true }>
+    >();
+    expect(col.type).toBe("text");
+    expect((col as any).nullable).toBe(true);
+  });
+
+  it("z.string().catch('fallback') → pg.text({ default: 'fallback' })", () => {
+    const col = derivePgColumn(z.string().catch("fallback"));
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      | ColumnType<"text", { default: string }>
+      | ColumnType<"varchar", { maxLength: number; default: string }>
+    >();
+    expect(col.type).toBe("text");
+    // Zod wraps catchValue in a function at runtime
+    expect(typeof col.default).toBe("function");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((col.default as any)()).toBe("fallback");
+  });
+
+  it("z.string().pipe(z.coerce.number()) → pg.text()", () => {
+    // ZodPipe unwraps to the IN type (ZodString → text/varchar),
+    // NOT the OUT type (ZodNumber → float8).
+    const col = derivePgColumn(z.string().pipe(z.coerce.number()));
+    expectTypeOf<typeof col>().toEqualTypeOf<
+      ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
+    >();
+    expect(col.type).toBe("text");
+  });
+});
+
 describe("unsupported type throws", () => {
   it("z.array(z.string()) throws", () => {
     expect(() => derivePgColumn(z.array(z.string()) as any)).toThrow(
