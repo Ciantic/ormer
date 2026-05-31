@@ -366,30 +366,6 @@ export function derivePgColumn<T extends ZodType>(
 // DerivePgTable
 // ---------------------------------------------------------------------------
 
-type WithFkParams<
-  C,
-  FKRel extends { schema: { db: { tableName: string } }; key: string },
-> =
-  C extends ColumnType<infer Type, infer Params>
-    ? ColumnType<
-        Type,
-        FinalType<
-          Omit<Params, "type"> & {
-            foreignKeyTable: FKRel["schema"]["db"]["tableName"];
-            foreignKeyColumn: FKRel["key"];
-          }
-        >
-      >
-    : C extends ColumnTypeSingualr<infer Type>
-      ? ColumnType<
-          Type,
-          {
-            foreignKeyTable: FKRel["schema"]["db"]["tableName"];
-            foreignKeyColumn: FKRel["key"];
-          }
-        >
-      : never;
-
 /**
  * Derive a PgTable type from a ZodObject with dbTable metadata.
  */
