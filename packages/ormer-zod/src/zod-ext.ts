@@ -1,6 +1,6 @@
 import type { ColumnType } from "kysely";
 import type { ColumnTypeSingualr } from "ormer";
-import { z, ZodBigIntFormat, ZodNumberFormat } from "zod";
+import { z, type ZodBigIntFormat, type ZodNumberFormat } from "zod";
 
 // ---------------------------------------------------------------------------
 // Db params — union of all possible shapes the `db` property can take
@@ -9,9 +9,15 @@ type FinalTypeDb<T> = T extends { def: { db: infer U } }
   ? { [K in keyof U]: U[K] }
   : never;
 
+type ZodTypeLite = {
+  def: z.core.$ZodTypeDef & { db?: Partial<ZodDbParams> };
+};
+
 // ZodObject is kind of heavy for inference, this is the subset we only need.
 // With regular old ZodObject I encountered tsc max stack issues.
-type ZodObjectLite = { def: { shape: Record<string, any> } };
+type ZodObjectLite = {
+  def: { shape: Record<string, any>; db?: Partial<ZodDbParams> };
+};
 
 export type ZodDbParams = FinalTypeDb<
   ZodDbFk<any, string> &
@@ -33,10 +39,7 @@ export type ZodDbPrimaryKey = {
   def: { db: { primaryKey: true } };
 };
 
-export type ZodDbNavigate<
-  R extends ZodObjectLite,
-  K extends keyof R["def"]["shape"] = string,
-> = {
+export type ZodDbNavigate<R, K> = {
   def: { db: { navigation: { schema: R; key: K } } };
 };
 
@@ -50,39 +53,42 @@ export type ZodDbPgColumnType<
   def: { db: { pgColumnType: C } };
 };
 
-function dbTable<T extends {}, const N extends string>(
+function dbTable<T extends ZodTypeLite, const N extends string>(
   this: T,
   tableName: N,
 ): T & ZodDbTableName<N> {
-  const existingDb = (this as any).def?.db || {};
-  const db = { ...existingDb, tableName };
-  (this as any).def.db = db;
-  return this as any;
+  this.def.db = {
+    ...this.def.db,
+    tableName: tableName,
+  };
+  return this as T & ZodDbTableName<N>;
 }
 
 function dbNavigate<
-  T extends {},
+  T extends ZodTypeLite,
   R extends ZodObjectLite,
   K extends keyof R["def"]["shape"],
 >(this: T, refSchema: R, refKey: K): T & ZodDbNavigate<R, K> {
-  const existingDb = (this as any).def?.db || {};
-  const db = { ...existingDb, navigation: { schema: refSchema, key: refKey } };
-  (this as any).def.db = db;
-  return this as any;
+  this.def.db = {
+    ...this.def.db,
+    navigation: { schema: refSchema, key: refKey as any },
+  };
+  return this as T & ZodDbNavigate<R, K>;
 }
 
 function dbNavigateSelf<
   T extends ZodObjectLite,
   K extends keyof T["def"]["shape"],
 >(this: T, refKey: K): T & ZodDbNavigate<T, K> {
-  const existingDb = (this as any).def?.db || {};
-  const db = { ...existingDb, navigation: { schema: this, key: refKey } };
-  (this as any).def.db = db;
-  return this as any;
+  this.def.db = {
+    ...this.def.db,
+    navigation: { schema: this, key: refKey as any },
+  };
+  return this as T & ZodDbNavigate<T, K>;
 }
 
 function dbFk<
-  T extends {},
+  T extends ZodTypeLite,
   R extends { def: { shape: Record<string, any> } } & ZodDbTableName<string>,
   K extends keyof R["def"]["shape"],
 >(
@@ -90,31 +96,25 @@ function dbFk<
   refSchema: R,
   refKey: K,
 ): T & ZodDbFk<R["def"]["db"]["tableName"], K> {
-  const existingDb = (this as any).def?.db || {};
-  const db = {
-    ...existingDb,
+  this.def.db = {
+    ...this.def.db,
     foreignKeyTable: refSchema.def.db.tableName,
-    foreignKeyColumn: refKey,
+    foreignKeyColumn: refKey as any,
   };
-  (this as any).def.db = db;
-  return this as any;
+  return this as T & ZodDbFk<R["def"]["db"]["tableName"], K>;
 }
 
-function dbPk<T extends {}>(this: T): T & ZodDbPrimaryKey {
-  const existingDb = (this as any).def?.db || {};
-  const db = { ...existingDb, primaryKey: true };
-  (this as any).def.db = db;
-  return this as any;
+function dbPk<T extends ZodTypeLite>(this: T): T & ZodDbPrimaryKey {
+  this.def.db = { ...this.def.db, primaryKey: true };
+  return this as T & ZodDbPrimaryKey;
 }
 
 function dbPg<
-  T extends {},
+  T extends ZodTypeLite,
   const C extends ColumnTypeSingualr<string> | ColumnType<string, any>,
 >(this: T, columnType: C): T & ZodDbPgColumnType<C> {
-  // Notably, this also drops all the other db params, but that's intentional
-  const db = { pgColumnType: columnType };
-  (this as any).def.db = db;
-  return this as any;
+  this.def.db = { pgColumnType: columnType };
+  return this as T & ZodDbPgColumnType<C>;
 }
 
 export type ZodNumberFormatVal<
