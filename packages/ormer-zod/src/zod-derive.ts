@@ -41,7 +41,7 @@ type DeriveBaseColumn<T extends ZodType> =
   : T extends z.ZodMAC ? ColumnTypeSingualr<"macaddr">
   : T extends z.ZodCIDRv4 ? ColumnTypeSingualr<"cidr">
   : T extends z.ZodCIDRv6 ? ColumnTypeSingualr<"cidr">
-  : T extends z.ZodNumberFormat ? ColumnTypeSingualr<"int4" | "int8" | "float4" | "float8">
+  : T extends z.ZodNumberFormat ? ColumnTypeSingualr<"int4" | "int8" | "float4" | "float8"> // // https://github.com/colinhacks/zod/issues/6045
   : T extends z.ZodNumber ? ColumnTypeSingualr<"float8">
   : T extends z.ZodBigIntFormat ? ColumnTypeSingualr<"int8"> | ColumnType<"decimal", { precision: 20; scale: 0 }>
   : T extends z.ZodBigInt ? ColumnTypeSingualr<"int8">
@@ -342,6 +342,8 @@ export function derivePgColumn<
     //
     // Distinguish by the format string on the definition, only available at
     // runtime.
+    //
+    // This is not possible at the type-level: https://github.com/colinhacks/zod/issues/6045
     const format = node._zod.def.format;
     if (format === "float32") {
       return pg.float4(pgParamsBase) as ColumnType<any, any>;
