@@ -7,13 +7,8 @@ import type {
   ZodDbFk,
   ZodDbParams,
   ZodDbPgColumnType,
-  ZodFloat32NumberFormat,
-  ZodFloat64NumberFormat,
-  ZodIntNumberFormat,
-  ZodInt32NumberFormat,
-  ZodUint32NumberFormat,
-  ZodInt64BigIntFormat,
-  ZodUint64BigIntFormat,
+  ZodBigIntFormatVal,
+  ZodNumberFormatVal,
 } from "./zod-ext.ts";
 import type {
   ZodType,
@@ -52,15 +47,15 @@ type DeriveBaseColumn<T extends ZodType> =
 
   // Custom workarounds because of this: https://github.com/colinhacks/zod/issues/6045
   // Number formats
-  : T extends ZodIntNumberFormat ? ColumnTypeSingualr<"int4"> 
-  : T extends ZodInt32NumberFormat ? ColumnTypeSingualr<"int4">
-  : T extends ZodUint32NumberFormat ? { type: "ERROR" } // No symmetric PG mapping
-  : T extends ZodFloat32NumberFormat ? ColumnTypeSingualr<"float4">
-  : T extends ZodFloat64NumberFormat ? ColumnTypeSingualr<"float8">
+  : T extends ZodNumberFormatVal<"safeint"> ? ColumnTypeSingualr<"int4"> 
+  : T extends ZodNumberFormatVal<"int32"> ? ColumnTypeSingualr<"int4">
+  : T extends ZodNumberFormatVal<"uint32"> ? { type: "ERROR" } // No symmetric PG mapping
+  : T extends ZodNumberFormatVal<"float32"> ? ColumnTypeSingualr<"float4">
+  : T extends ZodNumberFormatVal<"float64"> ? ColumnTypeSingualr<"float8">
 
   // Bigints
-  : T extends ZodInt64BigIntFormat ? ColumnTypeSingualr<"int8">
-  : T extends ZodUint64BigIntFormat ? ColumnType<"decimal", { precision: 20; scale: 0 }>
+  : T extends ZodBigIntFormatVal<"int64"> ? ColumnTypeSingualr<"int8">
+  : T extends ZodBigIntFormatVal<"uint64"> ? ColumnType<"decimal", { precision: 20; scale: 0 }>
   
   : T extends z.ZodNumberFormat ? { type: "ERROR" } // This should not happen, above list exhaustive
   : T extends z.ZodBigIntFormat ? { type: "ERROR" } // This should not happen, above list exhaustive
@@ -96,9 +91,10 @@ type DerivePgColumn<T extends ZodType> =
                   : never;
           default: HasDefaultValue<T> extends true ? z.infer<T> : never;
           autoIncrement: HasDbPk<T> extends true ? 
-              UnwrapModifiers<T> extends ZodIntNumberFormat ? true 
-            : UnwrapModifiers<T> extends ZodInt32NumberFormat ? true 
-            : UnwrapModifiers<T> extends ZodInt64BigIntFormat ? true 
+              UnwrapModifiers<T> extends ZodNumberFormatVal<"safeint"> ? true 
+            : UnwrapModifiers<T> extends ZodNumberFormatVal<"int32"> ? true 
+            : UnwrapModifiers<T> extends ZodBigIntFormatVal<"uint64"> ? true 
+            : UnwrapModifiers<T> extends ZodBigIntFormatVal<"int64"> ? true 
             : never
             : never;
           foreignKeyTable: T extends ZodDbFk<infer N extends string, infer _> ? N : never;

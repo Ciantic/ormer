@@ -117,28 +117,16 @@ function dbPg<
   return this as any;
 }
 
-export type ZodIntNumberFormat = ZodNumberFormat & {
-  _zod: { def: { format: "safeint" } };
-};
-export type ZodInt32NumberFormat = ZodNumberFormat & {
-  _zod: { def: { format: "int32" } };
-};
-export type ZodUint32NumberFormat = ZodNumberFormat & {
-  _zod: { def: { format: "uint32" } };
-};
-export type ZodFloat32NumberFormat = ZodNumberFormat & {
-  _zod: { def: { format: "float32" } };
-};
-export type ZodFloat64NumberFormat = ZodNumberFormat & {
-  _zod: { def: { format: "float64" } };
+export type ZodNumberFormatVal<
+  F extends "safeint" | "int32" | "uint32" | "float32" | "float64",
+> = {
+  _zod: { def: { format: F } };
 };
 
-export type ZodInt64BigIntFormat = ZodBigIntFormat & {
-  _zod: { def: { format: "int64" } };
+export type ZodBigIntFormatVal<F extends "int64" | "uint64"> = {
+  _zod: { def: { format: F } };
 };
-export type ZodUint64BigIntFormat = ZodBigIntFormat & {
-  _zod: { def: { format: "uint64" } };
-};
+
 declare module "zod" {
   interface ZodType {
     dbTable: typeof dbTable;
@@ -161,32 +149,32 @@ declare module "zod" {
     // Patch Zod ZodNumberFormat's https://github.com/colinhacks/zod/issues/6045
     export function int(
       params?: string | z.core.$ZodNumberFormatParams,
-    ): ZodIntNumberFormat;
+    ): ZodNumberFormat & ZodNumberFormatVal<"safeint">;
 
     export function int32(
       params?: string | z.core.$ZodNumberFormatParams,
-    ): ZodInt32NumberFormat;
+    ): ZodNumberFormat & ZodNumberFormatVal<"int32">;
 
     export function uint32(
       params?: string | z.core.$ZodNumberFormatParams,
-    ): ZodUint32NumberFormat;
+    ): ZodNumberFormat & ZodNumberFormatVal<"uint32">;
 
     export function float32(
       params?: string | z.core.$ZodNumberFormatParams,
-    ): ZodFloat32NumberFormat;
+    ): ZodNumberFormat & ZodNumberFormatVal<"float32">;
 
     export function float64(
       params?: string | z.core.$ZodNumberFormatParams,
-    ): ZodFloat64NumberFormat;
+    ): ZodNumberFormat & ZodNumberFormatVal<"float64">;
 
     // Patch Zod ZodBigIntFormat's https://github.com/colinhacks/zod/issues/6045
     export function int64(
       params?: string | z.core.$ZodBigIntFormatParams,
-    ): ZodInt64BigIntFormat;
+    ): ZodBigIntFormat & ZodBigIntFormatVal<"int64">;
 
     export function uint64(
       params?: string | z.core.$ZodBigIntFormatParams,
-    ): ZodUint64BigIntFormat;
+    ): ZodBigIntFormat & ZodBigIntFormatVal<"uint64">;
   }
 }
 
