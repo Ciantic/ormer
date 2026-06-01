@@ -54,9 +54,9 @@ function dbTable<T extends {}, const N extends string>(
   this: T,
   tableName: N,
 ): T & ZodDbTableName<N> {
-  const existingDb = (this as any)._zod?.def?.db || {};
+  const existingDb = (this as any).def?.db || {};
   const db = { ...existingDb, tableName };
-  (this as any)._zod.def.db = db;
+  (this as any).def.db = db;
   return this as any;
 }
 
@@ -65,9 +65,9 @@ function dbNavigate<
   R extends ZodObjectLite,
   K extends keyof R["def"]["shape"],
 >(this: T, refSchema: R, refKey: K): T & ZodDbNavigate<R, K> {
-  const existingDb = (this as any)._zod?.def?.db || {};
+  const existingDb = (this as any).def?.db || {};
   const db = { ...existingDb, navigation: { schema: refSchema, key: refKey } };
-  (this as any)._zod.def.db = db;
+  (this as any).def.db = db;
   return this as any;
 }
 
@@ -75,9 +75,9 @@ function dbNavigateSelf<
   T extends ZodObjectLite,
   K extends keyof T["def"]["shape"],
 >(this: T, refKey: K): T & ZodDbNavigate<T, K> {
-  const existingDb = (this as any)._zod?.def?.db || {};
+  const existingDb = (this as any).def?.db || {};
   const db = { ...existingDb, navigation: { schema: this, key: refKey } };
-  (this as any)._zod.def.db = db;
+  (this as any).def.db = db;
   return this as any;
 }
 
@@ -90,20 +90,20 @@ function dbFk<
   refSchema: R,
   refKey: K,
 ): T & ZodDbFk<R["def"]["db"]["tableName"], K> {
-  const existingDb = (this as any)._zod?.def?.db || {};
+  const existingDb = (this as any).def?.db || {};
   const db = {
     ...existingDb,
     foreignKeyTable: refSchema.def.db.tableName,
     foreignKeyColumn: refKey,
   };
-  (this as any)._zod.def.db = db;
+  (this as any).def.db = db;
   return this as any;
 }
 
 function dbPk<T extends {}>(this: T): T & ZodDbPrimaryKey {
-  const existingDb = (this as any)._zod?.def?.db || {};
+  const existingDb = (this as any).def?.db || {};
   const db = { ...existingDb, primaryKey: true };
-  (this as any)._zod.def.db = db;
+  (this as any).def.db = db;
   return this as any;
 }
 
@@ -113,7 +113,7 @@ function dbPg<
 >(this: T, columnType: C): T & ZodDbPgColumnType<C> {
   // Notably, this also drops all the other db params, but that's intentional
   const db = { pgColumnType: columnType };
-  (this as any)._zod.def.db = db;
+  (this as any).def.db = db;
   return this as any;
 }
 
