@@ -56,19 +56,19 @@ export type UnwrapModifiers<T extends ZodType> =
   : T extends z.ZodPipe<infer Inner extends ZodType, infer _> ? UnwrapModifiers<Inner>
   : T;
 
-// prettier-ignore
 export type IsNullable<T extends ZodType> =
-  // If any of the modifiers is nullable, then it's nullable
-    UnwrapUntilReturnTrue<T, z.ZodNullable<any>> extends true ? true
-  // If there are optionality modifiers, the top-most one determines nullability
-  : UnwrapUntilReturnTrue<T,
-      | z.ZodOptional<any> 
-      | z.ZodExactOptional<any> 
-      | z.ZodNonOptional<any>
-    > extends true 
+  UnwrapUntilReturnTrue<T, z.ZodNullable<any>> extends true ? true : false;
+
+// prettier-ignore
+export type IsOptional<T extends ZodType> =
+  UnwrapUntilReturnTrue<T,
+    | z.ZodOptional<any> 
+    | z.ZodExactOptional<any>
+    | z.ZodNonOptional<any>
+  > extends true
       // In case top-most is non-optional, then it's not nullable, 
       // otherwise it is.
-      ? T extends z.ZodNonOptional<any> ? false : true
+    ? T extends z.ZodNonOptional<any> ? false : true
     : false;
 
 export type HasDefaultValue<T extends ZodType> =

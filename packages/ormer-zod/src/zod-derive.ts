@@ -17,6 +17,7 @@ import type {
   OmitNever,
   RewrapToColumnType,
   RewrapDeriveTable,
+  IsOptional,
 } from "./common.ts";
 
 // prettier-ignore
@@ -68,7 +69,9 @@ type DerivePgColumn<T extends ZodType> =
         // DeriveOrExplicit<T> &
         OmitNever<{
           primaryKey: HasDbPk<T> extends true ? true : never;
-          nullable: IsNullable<T> extends true ? true : never;
+          nullable: IsNullable<T> extends true ? true 
+                  : IsOptional<T> extends true ? true 
+                  : never;
           default: HasDefaultValue<T> extends true ? z.infer<T> : never;
           autoIncrement: HasDbPk<T> extends true ? 
               UnwrapModifiers<T> extends z.ZodBigInt ? true 
