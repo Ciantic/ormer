@@ -71,7 +71,7 @@ describe("derivePgColumn types", () => {
     expect(col.autoIncrement).toBe(true);
   });
 
-  it("z.bigint() → pg.int8()", () => {
+  it("z.bigint() → pg.decimal()", () => {
     const col = derivePgColumn(z.bigint());
     expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"decimal">>();
     expect(col.type).toBe("decimal");
@@ -822,7 +822,6 @@ describe("derivePgTable", () => {
     expect(tbl.columns.id.type).toBe("int4");
     expect(tbl.columns.id.primaryKey).toBe(true);
     expect(tbl.columns.id.autoIncrement).toBe(true);
-    // FK from z.bigint() -> int8 (NOT serial8)
     expectTypeOf<typeof tbl.columns.invoice_id.type>().toEqualTypeOf<"int8">();
     expect(tbl.columns.invoice_id.type).toBe("int8");
     expect(tbl.columns.invoice_id.nullable).toBe(true);
