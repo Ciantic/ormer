@@ -801,7 +801,7 @@ describe("derivePgTable", () => {
   it("derives a table with foreign keys to PK", () => {
     const invoiceSchema = z
       .object({
-        id: z.bigint().dbPk(),
+        id: z.int64().dbPk(),
         title: z.string(),
       })
       .dbTable("invoice");
