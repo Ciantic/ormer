@@ -233,10 +233,18 @@ describe("derivePgColumn types", () => {
     expect(col.type).toBe("int4");
   });
 
-  it("z.uint32() → pg.int8()", () => {
-    const col = derivePgColumn(z.uint32());
-    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"ERROR">>();
-    expect(col.type).toBe("ERROR");
+  it("z.uint32() → throws error", () => {
+    try {
+      const col = derivePgColumn(z.uint32());
+      // If it doesn't throw, fail the test:
+      expect.fail(
+        `Expected derivePgColumn(z.uint32()) to throw an error, but got ${JSON.stringify(col)}`,
+      );
+    } catch (e) {
+      expect((e as Error).message).toBe(
+        `PG has no mapping for ZodNumberFormat: uint32`,
+      );
+    }
   });
 
   it("z.int64() → pg.int8()", () => {

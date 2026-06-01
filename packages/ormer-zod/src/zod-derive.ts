@@ -190,7 +190,7 @@ export function derivePgColumn<
   //
   // For optionality, the first encountered is the right value
   while (true) {
-    const ndb = (node as any).def?.db;
+    const ndb = node.def?.db;
     if (ndb?.primaryKey === true) primaryKey = true;
     if (ndb?.foreignKeyTable && ndb?.foreignKeyColumn) {
       foreignKeyTable = ndb.foreignKeyTable;
@@ -348,15 +348,15 @@ export function derivePgColumn<
     const format = node._zod.def.format;
     if (format === "int64") {
       return pg.int8(pgParamsBase) as ColumnType<any, any>;
-    }
-
-    if (format === "uint64") {
+    } else if (format === "uint64") {
       return pg.decimal({
         ...pgParamsBase,
         precision: 20,
         scale: 0,
       }) as ColumnType<any, any>;
     }
+
+    // List is exhaustive, so this should not happen:
     throw new Error(`Unsupported ZodBigIntFormat format: ${format}`);
   }
 
@@ -379,8 +379,10 @@ export function derivePgColumn<
     } else if (format === "safeint" || format === "int32") {
       return pg.int4(pgParamsBase) as ColumnType<any, any>;
     } else if (format === "uint32") {
-      return { type: "ERROR" } as ColumnType<any, any>; // No symmetric PG mapping
+      throw new Error(`PG has no mapping for ZodNumberFormat: ${format}`);
     }
+
+    // List is exhaustive, so this should not happen:
     throw new Error(`Unsupported ZodNumberFormat format: ${format}`);
   }
 
@@ -442,18 +444,17 @@ export function derivePgTable<T extends z.ZodObject & ZodDbTableName<string>>(
   }
   const tableName = dbMeta.tableName;
 
-  const shape = (schema as any).shape;
-  const columns: Record<string, any> = {};
+  const shape = schema.shape;
+  const columns: Record<string, ColumnType<any, any>> = {};
 
   for (const key of Object.keys(shape)) {
-    const fieldSchema = shape[key];
+    if (shape[key].def?.db?.navigation) {
+      // Skip navigations (dbRef) — handled as relationship metadata.
+      // TODO: navigation is supported by table, implement that
+      continue;
+    }
 
-    // Skip navigations (dbRef) — handled as relationship metadata.
-    const fieldDb = (fieldSchema as any).def?.db;
-    if (fieldDb && Object.hasOwn(fieldDb, "navigation")) continue;
-
-    // Regular column
-    columns[key] = derivePgColumn(fieldSchema);
+    columns[key] = derivePgColumn(shape[key]);
   }
 
   return table(tableName as never, columns) as any;
