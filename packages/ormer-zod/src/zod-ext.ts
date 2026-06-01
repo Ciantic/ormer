@@ -1,6 +1,6 @@
 import type { ColumnType } from "kysely";
 import type { ColumnTypeSingualr } from "ormer";
-import { z } from "zod";
+import { z, ZodBigIntFormat, ZodNumberFormat } from "zod";
 
 // ---------------------------------------------------------------------------
 // Db params — union of all possible shapes the `db` property can take
@@ -117,6 +117,28 @@ function dbPg<
   return this as any;
 }
 
+export type ZodIntNumberFormat = ZodNumberFormat & {
+  _zod: { def: { format: "safeint" } };
+};
+export type ZodInt32NumberFormat = ZodNumberFormat & {
+  _zod: { def: { format: "int32" } };
+};
+export type ZodUint32NumberFormat = ZodNumberFormat & {
+  _zod: { def: { format: "uint32" } };
+};
+export type ZodFloat32NumberFormat = ZodNumberFormat & {
+  _zod: { def: { format: "float32" } };
+};
+export type ZodFloat64NumberFormat = ZodNumberFormat & {
+  _zod: { def: { format: "float64" } };
+};
+
+export type ZodInt64BigIntFormat = ZodBigIntFormat & {
+  _zod: { def: { format: "int64" } };
+};
+export type ZodUint64BigIntFormat = ZodBigIntFormat & {
+  _zod: { def: { format: "uint64" } };
+};
 declare module "zod" {
   interface ZodType {
     dbTable: typeof dbTable;
@@ -125,6 +147,38 @@ declare module "zod" {
     dbFk: typeof dbFk;
     dbPk: typeof dbPk;
     dbPg: typeof dbPg;
+  }
+
+  namespace z {
+    // Patch Zod ZodNumberFormat's https://github.com/colinhacks/zod/issues/6045
+    export function int(
+      params?: string | z.core.$ZodNumberFormatParams,
+    ): ZodIntNumberFormat;
+
+    export function int32(
+      params?: string | z.core.$ZodNumberFormatParams,
+    ): ZodInt32NumberFormat;
+
+    export function uint32(
+      params?: string | z.core.$ZodNumberFormatParams,
+    ): ZodUint32NumberFormat;
+
+    export function float32(
+      params?: string | z.core.$ZodNumberFormatParams,
+    ): ZodFloat32NumberFormat;
+
+    export function float64(
+      params?: string | z.core.$ZodNumberFormatParams,
+    ): ZodFloat64NumberFormat;
+
+    // Patch Zod ZodBigIntFormat's https://github.com/colinhacks/zod/issues/6045
+    export function int64(
+      params?: string | z.core.$ZodBigIntFormatParams,
+    ): ZodInt64BigIntFormat;
+
+    export function uint64(
+      params?: string | z.core.$ZodBigIntFormatParams,
+    ): ZodUint64BigIntFormat;
   }
 }
 

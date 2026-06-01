@@ -85,9 +85,11 @@ export function float8(params?: any) {
 }
 
 export type DecimalCol = Params<{ precision: number; scale: number }>;
+export function decimal<T extends DecimalCol>(): ColumnTypeSingualr<"decimal">;
 export function decimal<T extends DecimalCol>(
   params: R<T, DecimalCol>,
-): ColumnType<"decimal", T> {
+): ColumnType<"decimal", T>;
+export function decimal(params?: any) {
   return { type: "decimal", ...params };
 }
 

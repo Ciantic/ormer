@@ -7,6 +7,13 @@ import type {
   ZodDbFk,
   ZodDbParams,
   ZodDbPgColumnType,
+  ZodFloat32NumberFormat,
+  ZodFloat64NumberFormat,
+  ZodIntNumberFormat,
+  ZodInt32NumberFormat,
+  ZodUint32NumberFormat,
+  ZodInt64BigIntFormat,
+  ZodUint64BigIntFormat,
 } from "./zod-ext.ts";
 import type {
   ZodType,
@@ -42,10 +49,24 @@ type DeriveBaseColumn<T extends ZodType> =
   : T extends z.ZodMAC ? ColumnTypeSingualr<"macaddr">
   : T extends z.ZodCIDRv4 ? ColumnTypeSingualr<"cidr">
   : T extends z.ZodCIDRv6 ? ColumnTypeSingualr<"cidr">
-  : T extends z.ZodNumberFormat ? ColumnTypeSingualr<"int4" | "int8" | "float4" | "float8"> // // https://github.com/colinhacks/zod/issues/6045
+
+  // Custom workarounds because of this: https://github.com/colinhacks/zod/issues/6045
+  // Number formats
+  : T extends ZodIntNumberFormat ? ColumnTypeSingualr<"int4"> 
+  : T extends ZodInt32NumberFormat ? ColumnTypeSingualr<"int4">
+  : T extends ZodUint32NumberFormat ? { type: "ERROR" } // No symmetric PG mapping
+  : T extends ZodFloat32NumberFormat ? ColumnTypeSingualr<"float4">
+  : T extends ZodFloat64NumberFormat ? ColumnTypeSingualr<"float8">
+
+  // Bigints
+  : T extends ZodInt64BigIntFormat ? ColumnTypeSingualr<"int8">
+  : T extends ZodUint64BigIntFormat ? ColumnType<"decimal", { precision: 20; scale: 0 }>
+  
+  : T extends z.ZodNumberFormat ? { type: "ERROR" } // This should not happen, above list exhaustive
+  : T extends z.ZodBigIntFormat ? { type: "ERROR" } // This should not happen, above list exhaustive
+  
   : T extends z.ZodNumber ? ColumnTypeSingualr<"float8">
-  : T extends z.ZodBigIntFormat ? ColumnTypeSingualr<"int8"> | ColumnType<"decimal", { precision: 20; scale: 0 }>
-  : T extends z.ZodBigInt ? ColumnTypeSingualr<"int8">
+  : T extends z.ZodBigInt ? ColumnTypeSingualr<"decimal">
   : T extends z.ZodString ? ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
   : T extends z.ZodBoolean ? ColumnTypeSingualr<"boolean">
   : T extends z.ZodDate ? ColumnTypeSingualr<"timestamptz">
@@ -74,8 +95,9 @@ type DerivePgColumn<T extends ZodType> =
                   : never;
           default: HasDefaultValue<T> extends true ? z.infer<T> : never;
           autoIncrement: HasDbPk<T> extends true ? 
-              UnwrapModifiers<T> extends z.ZodBigInt ? true 
-            : UnwrapModifiers<T> extends z.ZodNumberFormat ? true 
+              UnwrapModifiers<T> extends ZodIntNumberFormat ? true 
+            : UnwrapModifiers<T> extends ZodInt32NumberFormat ? true 
+            : UnwrapModifiers<T> extends ZodInt64BigIntFormat ? true 
             : never
             : never;
           foreignKeyTable: T extends ZodDbFk<infer N extends string, infer _> ? N : never;
@@ -325,6 +347,10 @@ export function derivePgColumn<
     //
     // Distinguish by the format string on the definition.
     const format = node._zod.def.format;
+    if (format === "int64") {
+      return pg.int8(pgParamsBase) as ColumnType<any, any>;
+    }
+
     if (format === "uint64") {
       return pg.decimal({
         ...pgParamsBase,
@@ -332,12 +358,11 @@ export function derivePgColumn<
         scale: 0,
       }) as ColumnType<any, any>;
     }
-    // int64 (and any other bigint format) → int8
-    return pg.int8(pgParamsBase) as ColumnType<any, any>;
+    throw new Error(`Unsupported ZodBigIntFormat format: ${format}`);
   }
 
   if (node instanceof z.ZodBigInt) {
-    return pg.int8(pgParamsBase) as ColumnType<any, any>;
+    return pg.decimal() as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodNumberFormat) {
@@ -355,7 +380,7 @@ export function derivePgColumn<
     } else if (format === "safeint" || format === "int32") {
       return pg.int4(pgParamsBase) as ColumnType<any, any>;
     } else if (format === "uint32") {
-      return pg.int8(pgParamsBase) as ColumnType<any, any>;
+      return { type: "ERROR" } as ColumnType<any, any>; // No symmetric PG mapping
     }
     throw new Error(`Unsupported ZodNumberFormat format: ${format}`);
   }
