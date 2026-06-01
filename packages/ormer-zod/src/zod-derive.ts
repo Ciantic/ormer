@@ -118,13 +118,20 @@ type DerivePgColumn<T extends ZodType> =
  * - z.uuid()                → pg.uuid()
  * - z.number()              → pg.float8()
  * - z.number().int()        → pg.float8()
+ * - z.float32()             → pg.float4()
+ * - z.float64()             → pg.float8()
  * - z.int()                 → pg.int4()
  * - z.int().dbPk()          → pg.int4({ primaryKey: true, autoIncrement: true })
- * - z.bigint()              → pg.int8()
- * - z.bigint().dbPk()       → pg.int8({ primaryKey: true, autoIncrement: true })
+ * - z.bigint()              → pg.decimal()
+ * - z.int32()               → pg.int4()
+ * - z.uint32()              → ERROR (no symmetric PG mapping)
+ * - z.int64()               → pg.int8()
+ * - z.int64().dbPk()        → pg.int8({ primaryKey: true, autoIncrement: true })
+ * - z.uint64()              → pg.decimal({ precision: 20, scale: 0 })
  * - z.boolean()             → pg.boolean()
  * - z.date()                → pg.timestamptz()
  * - z.url()                 → pg.text()
+ * - z.email()               → pg.text()
  * - z.emoji()               → pg.text()
  * - z.nanoid()              → pg.varchar({ maxLength: 21 })
  * - z.cuid2()               → pg.text()
@@ -141,18 +148,13 @@ type DerivePgColumn<T extends ZodType> =
  * - z.mac()                 → pg.macaddr()
  * - z.cidrv4()              → pg.cidr()
  * - z.cidrv6()              → pg.cidr()
- * - z.float32()             → pg.float4()
- * - z.float64()             → pg.float8()
- * - z.int32()               → pg.int4()
- * - z.uint32()              → pg.int8()
- * - z.int64()               → pg.int8()
- * - z.uint64()              → pg.decimal({ precision: 20, scale: 0 })
  * - z.X().dbPg(col)         → overrides derivation with the given column
  * - z.X().nullable()        → adds nullable: true to the result
  * - z.X().optional()        → also adds nullable: true to the result
  * - z.X().default(val)      → adds default: val to the result
  * - z.X().prefault(val)     → also adds default: val to the result
  * - z.X().dbPk()            → adds primaryKey: true to the result
+ * - z.X().dbFk(table, col)  → adds foreignKeyTable and foreignKeyColumn
  *
  * Notes:
  * - z.int(), z.int32(), z.uint32(), z.float32(), z.float64() at type-level are
