@@ -990,3 +990,185 @@ describe("derivePgTable types", () => {
     >();
   });
 });
+
+// ---------------------------------------------------------------------------
+// .extend() and .omit() with dbTable / derivePgTable
+// ---------------------------------------------------------------------------
+
+describe("derivePgTable with .extend()", () => {
+  it("extend then dbTable produces correct column derivations", () => {
+    const baseSchema = z.object({
+      id: z.int().dbPk(),
+      title: z.string(),
+    });
+
+    const extendedSchema = baseSchema
+      .extend({
+        description: z.string().nullable(),
+        created_at: z.date(),
+      })
+      .dbTable("items");
+
+    const tbl = derivePgTable(extendedSchema);
+
+    expect(tbl.table).toBe("items");
+
+    // Original fields
+    expect(tbl.columns.id.type).toBe("int4");
+    expect(tbl.columns.id.primaryKey).toBe(true);
+    expect(tbl.columns.id.autoIncrement).toBe(true);
+    expect(tbl.columns.title.type).toBe("text");
+
+    // Extended fields
+    expect(tbl.columns.description.type).toBe("text");
+    expect(tbl.columns.description.nullable).toBe(true);
+    expect(tbl.columns.created_at.type).toBe("timestamptz");
+  });
+
+  it("extend carries FK field metadata to derived table", () => {
+    const invoiceSchema = z
+      .object({
+        id: z.int64().dbPk(),
+        title: z.string(),
+      })
+      .dbTable("invoice");
+
+    const baseRowSchema = z.object({
+      id: z.int().dbPk(),
+      invoice_id: z.int64().nullable().dbFk(invoiceSchema, "id"),
+    });
+
+    const extendedSchema = baseRowSchema
+      .extend({
+        amount: z.float64(),
+      })
+      .dbTable("invoice_row");
+
+    const tbl = derivePgTable(extendedSchema);
+
+    expect(tbl.table).toBe("invoice_row");
+    expect(tbl.columns.invoice_id.foreignKeyTable).toBe("invoice");
+    expect(tbl.columns.invoice_id.foreignKeyColumn).toBe("id");
+    expect(tbl.columns.amount.type).toBe("float8");
+  });
+});
+
+describe("derivePgTable with .omit()", () => {
+  it("omit then dbTable produces correct subset", () => {
+    const fullSchema = z.object({
+      id: z.int().dbPk(),
+      title: z.string(),
+      description: z.string().nullable(),
+      created_at: z.date(),
+    });
+
+    const omittedSchema = fullSchema
+      .omit({
+        description: true,
+        created_at: true,
+      })
+      .dbTable("items");
+
+    const tbl = derivePgTable(omittedSchema);
+
+    expect(tbl.table).toBe("items");
+
+    // Retained fields
+    expect(tbl.columns.id.type).toBe("int4");
+    expect(tbl.columns.id.primaryKey).toBe(true);
+    expect(tbl.columns.title.type).toBe("text");
+
+    // Omitted fields should not exist
+    expect((tbl.columns as any).description).toBeUndefined();
+    expect((tbl.columns as any).created_at).toBeUndefined();
+  });
+
+  it("omitted FK field is not present in derived table", () => {
+    const invoiceSchema = z
+      .object({
+        id: z.int64().dbPk(),
+        title: z.string(),
+      })
+      .dbTable("invoice");
+
+    const fullRowSchema = z.object({
+      id: z.int().dbPk(),
+      invoice_id: z.int64().nullable().dbFk(invoiceSchema, "id"),
+      amount: z.float64(),
+    });
+
+    const omittedSchema = fullRowSchema
+      .omit({ invoice_id: true })
+      .dbTable("invoice_row");
+
+    const tbl = derivePgTable(omittedSchema);
+
+    expect(tbl.table).toBe("invoice_row");
+    expect(tbl.columns.id).toBeDefined();
+    expect(tbl.columns.amount).toBeDefined();
+    expect((tbl.columns as any).invoice_id).toBeUndefined();
+  });
+
+  it("omit + extend round-trip works", () => {
+    const fullSchema = z.object({
+      id: z.int().dbPk(),
+      title: z.string(),
+      description: z.string().nullable(),
+      created_at: z.date(),
+    });
+
+    // Omit then re-extend (simulating partial schema reuse)
+    const roundTrip = fullSchema
+      .omit({ description: true, created_at: true })
+      .extend({
+        summary: z.string().default(""),
+        updated_at: z.date().nullable(),
+      })
+      .dbTable("items");
+
+    const tbl = derivePgTable(roundTrip);
+
+    expect(tbl.table).toBe("items");
+
+    // From original
+    expect(tbl.columns.id.type).toBe("int4");
+    expect(tbl.columns.id.primaryKey).toBe(true);
+    expect(tbl.columns.title.type).toBe("text");
+
+    // Not present (omitted)
+    expect((tbl.columns as any).description).toBeUndefined();
+    expect((tbl.columns as any).created_at).toBeUndefined();
+
+    // New from re-extend
+    expect(tbl.columns.summary.type).toBe("text");
+    expect(tbl.columns.summary.default).toBe("");
+    expect(tbl.columns.updated_at.type).toBe("timestamptz");
+    expect(tbl.columns.updated_at.nullable).toBe(true);
+  });
+});
+
+describe("derivePgTable with .pick()", () => {
+  it("pick then dbTable produces subset of columns", () => {
+    const fullSchema = z.object({
+      id: z.int().dbPk(),
+      title: z.string(),
+      description: z.string().nullable(),
+      created_at: z.date(),
+    });
+
+    const pickedSchema = fullSchema
+      .pick({ id: true, title: true })
+      .dbTable("items");
+
+    const tbl = derivePgTable(pickedSchema);
+
+    expect(tbl.table).toBe("items");
+    expect(tbl.columns.id.type).toBe("int4");
+    expect(tbl.columns.id.primaryKey).toBe(true);
+    expect(tbl.columns.title.type).toBe("text");
+
+    // Omitted fields should not exist
+    expect((tbl.columns as any).description).toBeUndefined();
+    expect((tbl.columns as any).created_at).toBeUndefined();
+  });
+});
