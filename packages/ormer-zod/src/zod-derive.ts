@@ -67,7 +67,8 @@ type DeriveBaseColumn<T extends ZodType> =
   
   : T extends z.ZodNumber ? ColumnTypeSingualr<"float8">
   : T extends z.ZodBigInt ? ColumnTypeSingualr<"decimal">
-  : T extends z.ZodString ? ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
+  : T extends z.ZodString & { maxLength: infer Max extends number } ? ColumnType<"varchar", { maxLength: Max }>
+  : T extends z.ZodString ? ColumnTypeSingualr<"text">
   : T extends z.ZodBoolean ? ColumnTypeSingualr<"boolean">
   : T extends z.ZodDate ? ColumnTypeSingualr<"timestamptz">
   // Are these needed?

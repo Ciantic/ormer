@@ -16,16 +16,14 @@ import "./zod-ext.ts";
 describe("derivePgColumn types", () => {
   it("z.string() → pg.text()", () => {
     const col = derivePgColumn(z.string());
-    expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
-    >();
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
     expect(col.type).toBe("text");
   });
 
   it("z.string().max(255) → pg.varchar(255)", () => {
     const col = derivePgColumn(z.string().max(255));
     expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
+      ColumnType<"varchar", { maxLength: 255 }>
     >();
     expect(col.type).toBe("varchar");
     if (!("maxLength" in col))
@@ -41,9 +39,7 @@ describe("derivePgColumn types", () => {
 
   it("z.string().email() → pg.text()", () => {
     const col = derivePgColumn(z.string().email());
-    expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
-    >();
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
     expect(col.type).toBe("text");
   });
 
@@ -291,8 +287,7 @@ describe("derivePgColumn nullable types", () => {
   it("z.string().nullable() -> text|varchar + nullable", () => {
     const col = derivePgColumn(z.string().nullable());
     expectTypeOf<typeof col>().toEqualTypeOf<
-      | ColumnType<"text", { nullable: true }>
-      | ColumnType<"varchar", { maxLength: number; nullable: true }>
+      ColumnType<"text", { nullable: true }>
     >();
     expect(col.type).toBe("text");
     expect(col.nullable).toBe(true);
@@ -357,8 +352,7 @@ describe("derivePgColumn optional types", () => {
   it("z.string().optional() -> text|varchar + nullable", () => {
     const col = derivePgColumn(z.string().optional());
     expectTypeOf<typeof col>().toEqualTypeOf<
-      | ColumnType<"text", { nullable: true }>
-      | ColumnType<"varchar", { maxLength: number; nullable: true }>
+      ColumnType<"text", { nullable: true }>
     >();
     expect(col.type).toBe("text");
     expect(col.nullable).toBe(true);
@@ -421,11 +415,7 @@ describe("derivePgColumn optional types", () => {
   it("z.string().optional().default('fallback') -> text|varchar + nullable + default", () => {
     const col = derivePgColumn(z.string().optional().default("fallback"));
     expectTypeOf<typeof col>().toEqualTypeOf<
-      | ColumnType<"text", { default: string; nullable: true }>
-      | ColumnType<
-          "varchar",
-          { maxLength: number; default: string; nullable: true }
-        >
+      ColumnType<"text", { default: string; nullable: true }>
     >();
     expect(col.type).toBe("text");
     expect(col.nullable).toBe(true);
@@ -447,8 +437,7 @@ describe("derivePgColumn default types", () => {
   it("z.string().default('hello') -> text|varchar + default", () => {
     const col = derivePgColumn(z.string().default("hello"));
     expectTypeOf<typeof col>().toEqualTypeOf<
-      | ColumnType<"text", { default: string }>
-      | ColumnType<"varchar", { maxLength: number; default: string }>
+      ColumnType<"text", { default: string }>
     >();
     expect(col.type).toBe("text");
     expect(col.default).toBe("hello");
@@ -514,11 +503,7 @@ describe("derivePgColumn default types", () => {
   it("z.string().nullable().default('fallback') -> text|varchar + nullable + default", () => {
     const col = derivePgColumn(z.string().nullable().default("fallback"));
     expectTypeOf<typeof col>().toEqualTypeOf<
-      | ColumnType<"text", { default: string | null; nullable: true }>
-      | ColumnType<
-          "varchar",
-          { maxLength: number; default: string | null; nullable: true }
-        >
+      ColumnType<"text", { default: string | null; nullable: true }>
     >();
     expect(col.type).toBe("text");
     expect(col.nullable).toBe(true);
@@ -592,9 +577,7 @@ describe("test ordering doesn't break the behavior", () => {
 describe("derivePgColumn readonly wrapper", () => {
   it("z.string().readonly() → pg.text()", () => {
     const col = derivePgColumn(z.string().readonly());
-    expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
-    >();
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
     expect(col.type).toBe("text");
   });
 
@@ -622,8 +605,7 @@ describe("derivePgColumn readonly wrapper", () => {
   it("z.string().default('x').readonly() → pg.text({ default: 'x' })", () => {
     const col = derivePgColumn(z.string().default("x").readonly());
     expectTypeOf<typeof col>().toEqualTypeOf<
-      | ColumnType<"text", { default: string }>
-      | ColumnType<"varchar", { maxLength: number; default: string }>
+      ColumnType<"text", { default: string }>
     >();
     expect(col.type).toBe("text");
     expect(col.default).toBe("x");
@@ -644,8 +626,7 @@ describe("derivePgColumn prefault wrapper", () => {
   it("z.string().prefault('hello') → pg.text({ default: 'hello' })", () => {
     const col = derivePgColumn(z.string().prefault("hello"));
     expectTypeOf<typeof col>().toEqualTypeOf<
-      | ColumnType<"text", { default: string }>
-      | ColumnType<"varchar", { maxLength: number; default: string }>
+      ColumnType<"text", { default: string }>
     >();
     expect(col.type).toBe("text");
     expect(col.default).toBe("hello");
@@ -672,11 +653,7 @@ describe("derivePgColumn prefault wrapper", () => {
   it("z.string().prefault('x').nullable() → pg.text({ default: 'x', nullable: true })", () => {
     const col = derivePgColumn(z.string().prefault("x").nullable());
     expectTypeOf<typeof col>().toEqualTypeOf<
-      | ColumnType<"text", { default: string | null; nullable: true }>
-      | ColumnType<
-          "varchar",
-          { maxLength: number; default: string | null; nullable: true }
-        >
+      ColumnType<"text", { default: string | null; nullable: true }>
     >();
     expect(col.type).toBe("text");
     expect(col.default).toBe("x");
@@ -705,8 +682,7 @@ describe("derivePgColumn prefault wrapper", () => {
         .readonly(),
     );
     expectTypeOf<typeof col>().toEqualTypeOf<
-      | ColumnType<"text", { default: string }>
-      | ColumnType<"varchar", { maxLength: number; default: string }>
+      ColumnType<"text", { default: string }>
     >();
     expect(col.type).toBe("text");
     expect(col.default).toBe("lazy");
@@ -717,8 +693,7 @@ describe("derivePgColumn other wrappers (pure unwrap and catch)", () => {
   it("z.string().exactOptional() → pg.text({ nullable: true })", () => {
     const col = derivePgColumn(z.string().exactOptional());
     expectTypeOf<typeof col>().toEqualTypeOf<
-      | ColumnType<"text", { nullable: true }>
-      | ColumnType<"varchar", { maxLength: number; nullable: true }>
+      ColumnType<"text", { nullable: true }>
     >();
     expect(col.type).toBe("text");
     expect(col.nullable).toBe(true);
@@ -726,9 +701,7 @@ describe("derivePgColumn other wrappers (pure unwrap and catch)", () => {
 
   it("z.string().optional().nonoptional() → pg.text() is not nullable", () => {
     const col = derivePgColumn(z.string().optional().nonoptional());
-    expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
-    >();
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
     expect(col.type).toBe("text");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((col as any).nullable).toBeUndefined();
@@ -737,8 +710,7 @@ describe("derivePgColumn other wrappers (pure unwrap and catch)", () => {
   it("z.string().nullable().optional().nonoptional() → pg.text() is nullable", () => {
     const col = derivePgColumn(z.string().nullable().optional().nonoptional());
     expectTypeOf<typeof col>().toEqualTypeOf<
-      | ColumnType<"text", { nullable: true }>
-      | ColumnType<"varchar", { maxLength: number; nullable: true }>
+      ColumnType<"text", { nullable: true }>
     >();
     expect(col.type).toBe("text");
     expect((col as any).nullable).toBe(true);
@@ -747,8 +719,7 @@ describe("derivePgColumn other wrappers (pure unwrap and catch)", () => {
   it("z.string().catch('fallback') → pg.text({ default: 'fallback' })", () => {
     const col = derivePgColumn(z.string().catch("fallback"));
     expectTypeOf<typeof col>().toEqualTypeOf<
-      | ColumnType<"text", { default: string }>
-      | ColumnType<"varchar", { maxLength: number; default: string }>
+      ColumnType<"text", { default: string }>
     >();
     expect(col.type).toBe("text");
     // Zod wraps catchValue in a function at runtime
@@ -761,9 +732,7 @@ describe("derivePgColumn other wrappers (pure unwrap and catch)", () => {
     // ZodPipe unwraps to the IN type (ZodString → text/varchar),
     // NOT the OUT type (ZodNumber → float8).
     const col = derivePgColumn(z.string().pipe(z.coerce.number()));
-    expectTypeOf<typeof col>().toEqualTypeOf<
-      ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
-    >();
+    expectTypeOf<typeof col>().toEqualTypeOf<ColumnTypeSingualr<"text">>();
     expect(col.type).toBe("text");
   });
 });
@@ -937,7 +906,7 @@ describe("derivePgTable types", () => {
       ColumnType<"int4", { primaryKey: true; autoIncrement: true }>
     >();
     expectTypeOf<(typeof tbl.columns)["title"]>().toEqualTypeOf<
-      ColumnTypeSingualr<"text"> | ColumnType<"varchar", { maxLength: number }>
+      ColumnTypeSingualr<"text">
     >();
   });
 

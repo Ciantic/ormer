@@ -149,6 +149,14 @@ declare module "zod" {
     dbPg: typeof dbPg;
   }
 
+  interface _ZodString {
+    // Retain max length at type-level to allow narrowing to varchar(N) in PG derivation
+    max<T extends number>(
+      maxLength: T,
+      params?: string | z.core.$ZodCheckMaxLengthParams,
+    ): this & { maxLength: T };
+  }
+
   namespace z {
     // Patch Zod ZodNumberFormat's https://github.com/colinhacks/zod/issues/6045
     export function int(
