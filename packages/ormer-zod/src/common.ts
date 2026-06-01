@@ -66,7 +66,7 @@ export type IsOptional<T extends ZodType> =
     | z.ZodExactOptional<any>
     | z.ZodNonOptional<any>
   > extends true
-      // In case top-most is non-optional, then it's not nullable, 
+      // In case top-most is non-optional, then it's not optional, 
       // otherwise it is.
     ? T extends z.ZodNonOptional<any> ? false : true
     : false;
