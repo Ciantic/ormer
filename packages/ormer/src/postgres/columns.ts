@@ -17,6 +17,34 @@ type R<T, B> = {
 };
 
 // ----------------------------------------------------------------------------
+// Array type wrapper
+// ----------------------------------------------------------------------------
+
+/**
+ * Wraps any column definition to produce a PostgreSQL array type.
+ *
+ * @example
+ *   arrayOf(text())           // text[]
+ *   arrayOf(int4(), 5)        // int4[5]
+ *   arrayOf(arrayOf(int4()))  // int4[][]
+ */
+export function arrayOf<T extends string, C extends { type: T }>(
+  col: C,
+): Omit<C, "type"> & { type: `${T}[]` };
+export function arrayOf<
+  T extends string,
+  C extends { type: T },
+  N extends number,
+>(col: C, length: N): Omit<C, "type"> & { type: `${T}[${N}]` };
+export function arrayOf<T extends string, C extends { type: T }>(
+  col: C,
+  length?: number,
+) {
+  const suffix = length !== undefined ? `[${length}]` : "[]";
+  return { ...col, type: `${col.type}${suffix}` } as any;
+}
+
+// ----------------------------------------------------------------------------
 // Numeric types
 // ----------------------------------------------------------------------------
 

@@ -48,17 +48,28 @@ export function createTableSql<
         continue;
       }
 
-      const typeFn = mapping[col.type as keyof ColumnMapping] as
+      const colType: string = col.type;
+      let baseTypeStr = colType;
+      let arraySuffix = "";
+      while (true) {
+        const match = baseTypeStr.match(/\[(\d*)\]$/);
+        if (!match) break;
+        const bracket = match[1] ? `[${match[1]}]` : "[]";
+        arraySuffix = bracket + arraySuffix;
+        baseTypeStr = baseTypeStr.slice(0, -bracket.length);
+      }
+
+      const typeFn = mapping[baseTypeStr as keyof ColumnMapping] as
         | ((params: any) => string)
         | undefined;
 
       if (!typeFn) {
         throw new Error(
-          `No SQL type mapping found for column type "${col.type}" on ${tableDef.table}.${colName}`,
+          `No SQL type mapping found for column type "${baseTypeStr}" on ${tableDef.table}.${colName}`,
         );
       }
 
-      const sqlType = typeFn(col);
+      const sqlType = typeFn(col) + arraySuffix;
 
       const parts: string[] = [`${colNameFn(colName)} ${sqlType}`];
 

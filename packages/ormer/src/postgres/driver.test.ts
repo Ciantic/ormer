@@ -79,6 +79,15 @@ const allTypesTable = table("all_types", {
   pg_snapshot_col: pg.pg_snapshot(),
   // unique
   unique_col: pg.text({ unique: true }),
+  // array types
+  int4_arr_col: pg.arrayOf(pg.int4()),
+  text_arr_col: pg.arrayOf(pg.text()),
+  bool_arr_col: pg.arrayOf(pg.boolean()),
+  varchar_arr_col: pg.arrayOf(pg.varchar({ maxLength: 100 })),
+  int4_nullable_arr_col: pg.arrayOf(pg.int4({ nullable: true })),
+  // multi-dimensional arrays
+  int4_2d_col: pg.arrayOf(pg.arrayOf(pg.int4())),
+  int4_3x3_col: pg.arrayOf(pg.arrayOf(pg.int4(), 3), 3),
 });
 
 const referencedTable = table("referenced", {
@@ -155,7 +164,14 @@ describe("postgres createTableSql", () => {
         "circle_col" circle NOT NULL,
         "pg_lsn_col" pg_lsn NOT NULL,
         "pg_snapshot_col" pg_snapshot NOT NULL,
-        "unique_col" text NOT NULL UNIQUE
+        "unique_col" text NOT NULL UNIQUE,
+        "int4_arr_col" int4[] NOT NULL,
+        "text_arr_col" text[] NOT NULL,
+        "bool_arr_col" boolean[] NOT NULL,
+        "varchar_arr_col" varchar(100)[] NOT NULL,
+        "int4_nullable_arr_col" int4[],
+        "int4_2d_col" int4[][] NOT NULL,
+        "int4_3x3_col" int4[3][3] NOT NULL
       );
 
       CREATE TABLE "referenced" (
@@ -253,6 +269,20 @@ describe("postgres createTableSql", () => {
       pg_lsn_col: "0/16B3740",
       pg_snapshot_col: "10:20:",
       unique_col: "unique_value",
+      int4_arr_col: [1, 2, 3],
+      text_arr_col: ["hello", "world"],
+      bool_arr_col: [true, false, true],
+      varchar_arr_col: ["foo", "bar"],
+      int4_nullable_arr_col: null,
+      int4_2d_col: [
+        [1, 2],
+        [3, 4],
+      ],
+      int4_3x3_col: [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+      ],
     } satisfies k.InsertObject<KyselyTypes, "all_types">;
 
     await kyselyDb.insertInto("all_types").values(insertRow).execute();
