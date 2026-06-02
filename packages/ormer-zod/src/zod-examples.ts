@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { pg } from "ormer";
+import type { DerivePgColumn } from "./zod-derive.ts";
 
 // prettier-ignore
 export const ZOD_EXAMPLES = [
@@ -51,4 +52,4 @@ export const ZOD_EXAMPLES = [
     ),
     pg.text({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
   ] as const,
-] as const ;
+] as const

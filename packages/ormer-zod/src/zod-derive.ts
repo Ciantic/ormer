@@ -76,7 +76,7 @@ type DeriveBaseColumn<T extends ZodType> =
   : never;
 
 // prettier-ignore
-type DerivePgColumn<T extends ZodType> =
+export type DerivePgColumn<T extends ZodType> =
   // Explicit .dbPg() override — skip derivation entirely
   T extends ZodDbPgColumnType<any> ? T["def"]["db"]["pgColumnType"]
 
