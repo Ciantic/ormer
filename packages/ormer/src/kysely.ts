@@ -19,17 +19,30 @@ type KeysWithColumnType<T> = {
   [K in keyof T]: T[K] extends { type: string } ? K : never;
 }[keyof T];
 
+type ApplyArrays<Col, T> = Col extends { type: infer TypeStr extends string }
+  ? TypeStr extends `${infer Rest}[]`
+    ? ApplyArrays<{ type: Rest }, T[]>
+    : TypeStr extends `${infer Rest2}[${number}]`
+      ? ApplyArrays<{ type: Rest2 }, T[]>
+      : T
+  : T;
+
+// Infer to first `[` char
+type GetBaseType<T extends string> = T extends `${infer Base}[${string}`
+  ? Base
+  : T;
+
 // Look up the column's entry in the unified type map
 type ColIO<Col, UnifiedMap extends UnifiedMapping> = Col extends {
-  type: infer T extends keyof UnifiedMap;
+  type: infer T extends string;
 }
-  ? UnifiedMap[T]
+  ? UnifiedMap[GetBaseType<T>]
   : never;
 
 // Infer the SELECT type for a column
 type SelectCol<Col, UnifiedMap extends UnifiedMapping> =
   ColIO<Col, UnifiedMap> extends { __select__: infer O }
-    ? O | (Col extends { nullable: true } ? null : never)
+    ? ApplyArrays<Col, O> | (Col extends { nullable: true } ? null : never)
     : never;
 
 // Infer the INSERT type for a column
@@ -39,7 +52,7 @@ type InsertCol<Col, UnifiedMap extends UnifiedMapping> = Col extends {
   ? never
   : ColIO<Col, UnifiedMap> extends { __insert__: infer I }
     ?
-        | I
+        | ApplyArrays<Col, I>
         | (Col extends { nullable: true } ? null | undefined : never)
         | (Col extends { default: infer _ } ? undefined : never)
         | (Col extends { autoIncrement: true } ? undefined : never)
@@ -51,7 +64,7 @@ type UpdateCol<Col, UnifiedMap extends UnifiedMapping> = Col extends {
 }
   ? never
   : ColIO<Col, UnifiedMap> extends { __update__: infer I }
-    ? I | (Col extends { nullable: true } ? null : never)
+    ? ApplyArrays<Col, I> | (Col extends { nullable: true } ? null : never)
     : never;
 
 /**

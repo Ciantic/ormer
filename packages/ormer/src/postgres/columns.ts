@@ -28,13 +28,13 @@ type R<T, B> = {
  *   arrayOf(int4(), 5)        // int4[5]
  *   arrayOf(arrayOf(int4()))  // int4[][]
  */
-export function arrayOf<C extends { type: string }>(
+export function arrayOf<const C extends Record<string, any>>(
   col: C,
-): Omit<C, "type"> & { type: `${C["type"]}[]` };
-export function arrayOf<C extends { type: string }, N extends number>(
+): FinalType<Omit<C, "type"> & { type: `${C["type"]}[]` }>;
+export function arrayOf<const C extends Record<string, any>, N extends number>(
   col: C,
   length: N,
-): Omit<C, "type"> & { type: `${C["type"]}[${N}]` };
+): FinalType<Omit<C, "type"> & { type: `${C["type"]}[${N}]` }>;
 export function arrayOf<C extends { type: string }>(col: C, length?: number) {
   const suffix = length !== undefined ? `[${length}]` : "[]";
   return { ...col, type: `${col.type}${suffix}` } as any;
@@ -130,7 +130,7 @@ export function money(params?: any) {
 // ----------------------------------------------------------------------------
 
 export function text(): ColumnTypeSingualr<"text">;
-export function text<T extends Params>(
+export function text<const T extends Params>(
   params: R<T, Params>,
 ): ColumnType<"text", T>;
 export function text(params?: any) {
