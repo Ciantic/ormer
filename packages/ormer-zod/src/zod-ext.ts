@@ -71,7 +71,7 @@ function dbNavigate<
 >(this: T, refSchema: R, refKey: K): T & ZodDbNavigate<R, K> {
   this.def.db = {
     ...this.def.db,
-    navigation: { schema: refSchema, key: refKey as any },
+    navigation: { schema: refSchema, key: refKey as string },
   };
   return this as T & ZodDbNavigate<R, K>;
 }
@@ -82,7 +82,7 @@ function dbNavigateSelf<
 >(this: T, refKey: K): T & ZodDbNavigate<T, K> {
   this.def.db = {
     ...this.def.db,
-    navigation: { schema: this, key: refKey as any },
+    navigation: { schema: this, key: refKey as string },
   };
   return this as T & ZodDbNavigate<T, K>;
 }
@@ -99,7 +99,7 @@ function dbFk<
   this.def.db = {
     ...this.def.db,
     foreignKeyTable: refSchema.def.db.tableName,
-    foreignKeyColumn: refKey as any,
+    foreignKeyColumn: refKey as string,
   };
   return this as T & ZodDbFk<R["def"]["db"]["tableName"], K>;
 }
