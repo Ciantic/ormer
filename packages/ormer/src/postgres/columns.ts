@@ -28,18 +28,14 @@ type R<T, B> = {
  *   arrayOf(int4(), 5)        // int4[5]
  *   arrayOf(arrayOf(int4()))  // int4[][]
  */
-export function arrayOf<T extends string, C extends { type: T }>(
+export function arrayOf<C extends { type: string }>(
   col: C,
-): Omit<C, "type"> & { type: `${T}[]` };
-export function arrayOf<
-  T extends string,
-  C extends { type: T },
-  N extends number,
->(col: C, length: N): Omit<C, "type"> & { type: `${T}[${N}]` };
-export function arrayOf<T extends string, C extends { type: T }>(
+): Omit<C, "type"> & { type: `${C["type"]}[]` };
+export function arrayOf<C extends { type: string }, N extends number>(
   col: C,
-  length?: number,
-) {
+  length: N,
+): Omit<C, "type"> & { type: `${C["type"]}[${N}]` };
+export function arrayOf<C extends { type: string }>(col: C, length?: number) {
   const suffix = length !== undefined ? `[${length}]` : "[]";
   return { ...col, type: `${col.type}${suffix}` } as any;
 }
