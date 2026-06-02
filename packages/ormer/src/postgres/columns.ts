@@ -130,7 +130,7 @@ export function money(params?: any) {
 // ----------------------------------------------------------------------------
 
 export function text(): ColumnTypeSingualr<"text">;
-export function text<const T extends Params>(
+export function text<T extends Params>(
   params: R<T, Params>,
 ): ColumnType<"text", T>;
 export function text(params?: any) {

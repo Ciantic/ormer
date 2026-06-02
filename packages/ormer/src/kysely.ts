@@ -20,11 +20,15 @@ type KeysWithColumnType<T> = {
 }[keyof T];
 
 type ApplyArrays<Col, T> = Col extends { type: infer TypeStr extends string }
-  ? TypeStr extends `${infer Rest}[]`
-    ? ApplyArrays<{ type: Rest }, T[]>
-    : TypeStr extends `${infer Rest2}[${number}]`
+  ? TypeStr extends `${infer Rest2}[0]`
+    ? ApplyArrays<{ type: Rest2 }, T[]>
+    : TypeStr extends `${infer Rest2}[1]`
       ? ApplyArrays<{ type: Rest2 }, T[]>
-      : T
+      : TypeStr extends `${infer Rest2}[3]`
+        ? ApplyArrays<{ type: Rest2 }, T[]>
+        : TypeStr extends `${infer Rest}[]`
+          ? ApplyArrays<{ type: Rest }, T[]>
+          : T
   : T;
 
 // Infer to first `[` char
