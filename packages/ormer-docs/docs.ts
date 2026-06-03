@@ -20,6 +20,7 @@ function makeZodTestCaseTableHtml() {
       .asKindOrThrow(SyntaxKind.AsExpression)
       .getExpression();
   }
+
   const arrayLiteral = initializer.asKindOrThrow(
     SyntaxKind.ArrayLiteralExpression,
   );
@@ -28,17 +29,23 @@ function makeZodTestCaseTableHtml() {
     .getElements()
     .map((element, index) => {
       // Each element is an arrow function: () => [zodExpr, pgExpr] as const
+      //
+      // For example: () => [z.string(), pg.text()] as const
       if (!element.isKind(SyntaxKind.ArrowFunction)) return "";
       let body = element.asKindOrThrow(SyntaxKind.ArrowFunction).getBody();
       if (!body) return "";
+
       // Unwrap `as const` if present
       if (body.isKind(SyntaxKind.AsExpression)) {
         body = body.asKindOrThrow(SyntaxKind.AsExpression).getExpression();
       }
+
       if (!body.isKind(SyntaxKind.ArrayLiteralExpression)) return "";
+
       const [zodExpr, pgExpr] = body
         .asKindOrThrow(SyntaxKind.ArrayLiteralExpression)
         .getElements();
+
       if (!zodExpr || !pgExpr) return "";
       const zodSrc = compact(zodExpr.getText());
       const pgSrc = compact(pgExpr.getText());
