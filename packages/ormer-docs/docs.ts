@@ -37,7 +37,7 @@ function pgColumnToSqlDisplay(pgSrc: string): string {
 function zodSrcToDisplay(zodSrc: string): string {
   zodSrc = zodSrc.replace(
     `z.object({ id: z.int64().dbPk() }).dbTable("users")`,
-    "...",
+    "UserSchema",
   );
   // For now just collapse whitespace, but we could do more formatting here if needed
   return compact(zodSrc);

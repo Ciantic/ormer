@@ -350,7 +350,7 @@ To use these extension one must import the `zod-ext.ts` file. (To be determined 
 
 
   <tr>
-    <td><code>z.int64().dbFk(..., "id")</code></td>
+    <td><code>z.int64().dbFk(UserSchema, "id")</code></td>
     <td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
     <td><code></code></td>
     <td><code></code></td>
