@@ -47,7 +47,8 @@ export const ZOD_EXAMPLES = [
   () => [z.string().dbPk(), pg.text({ primaryKey: true })] as const,
   () => [
     z.string().dbFk(
-      z.object({ id: z.string() }).dbTable("users"),
+      z.object({ id: z.string() })
+        .dbTable("users"),
       "id",
     ),
     pg.text({ foreignKeyTable: "users", foreignKeyColumn: "id" }),

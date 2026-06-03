@@ -28,6 +28,7 @@ const allTypesTable = table("all_types", {
   float4_col: pg.float4(),
   float8_col: pg.float8(),
   decimal_col: pg.decimal({ precision: 10, scale: 2 }),
+  decimal_col_no_params: pg.decimal(),
   money_col: pg.money(),
   // string types
   text_col: pg.text(),
@@ -128,6 +129,7 @@ describe("postgres createTableSql", () => {
         "float4_col" float4 NOT NULL,
         "float8_col" float8 NOT NULL,
         "decimal_col" decimal(10,2) NOT NULL,
+        "decimal_col_no_params" decimal NOT NULL,
         "money_col" money NOT NULL,
         "text_col" text NOT NULL,
         "varchar_col" varchar(255) NOT NULL,
@@ -235,6 +237,7 @@ describe("postgres createTableSql", () => {
       float4_col: 1.5,
       float8_col: 2.5,
       decimal_col: "10.99",
+      decimal_col_no_params: "5.00",
       money_col: "$10.99",
       text_col: "hello",
       varchar_col: "world",

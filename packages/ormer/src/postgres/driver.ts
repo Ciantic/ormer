@@ -24,7 +24,10 @@ export const PGCOLUMN_TO_SQLTYPE = {
   float4: () => "float4",
   float8: () => "float8",
   money: () => "money",
-  decimal: ({ precision, scale }) => `decimal(${precision},${scale})`,
+  decimal: ({ precision, scale }) =>
+    precision !== undefined && scale !== undefined
+      ? `decimal(${precision},${scale})`
+      : "decimal",
 
   // Character types
   text: () => "text",

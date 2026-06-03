@@ -1,10 +1,34 @@
 import { Project, SyntaxKind } from "ts-morph";
+import { pg, PGCOLUMN_TO_SQLTYPE } from "ormer";
 import { md } from "./md.ts";
 import { writeFileSync } from "fs";
 
 /** Collapse multiline expressions into single-line for clean table display */
 function compact(expr: string): string {
   return expr.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Eval a pg expression (e.g. `pg.int8({ primaryKey: true, autoIncrement: true })`)
+ * and return the SQL column type name (e.g. `SERIAL8`).
+ */
+function pgColumnToSqlDisplay(pgSrc: string): string {
+  let col: any;
+  try {
+    col = new Function("pg", `return (${pgSrc})`)(pg);
+  } catch {
+    return pgSrc; // fallback to source text
+  }
+  if (!col || typeof col.type !== "string") return pgSrc;
+
+  const { type, ...params } = col;
+  const fn = PGCOLUMN_TO_SQLTYPE[type as keyof typeof PGCOLUMN_TO_SQLTYPE];
+
+  const isPk = col.primaryKey ? " PRIMARY KEY" : "";
+  const isNullable = col.nullable ? " NULL" : "";
+  const arraySuffix = typeof col.array === "string" ? col.array : "";
+
+  return fn(params).toUpperCase() + arraySuffix + isPk + isNullable;
 }
 
 function makeZodTestCaseTableHtml() {
@@ -47,13 +71,16 @@ function makeZodTestCaseTableHtml() {
         .getElements();
 
       if (!zodExpr || !pgExpr) return "";
-      const zodSrc = compact(zodExpr.getText());
-      const pgSrc = compact(pgExpr.getText());
+      const zodSrc = compact(
+        zodExpr.getText().replaceAll(" ", "&nbsp;").replaceAll("\n", "<br>"),
+      );
+      const pgDisplay = pgColumnToSqlDisplay(compact(pgExpr.getText()));
       return `
         <tr>
-          <td>${index}</td>
           <td><code>${zodSrc}</code></td>
-          <td><code>${pgSrc}</code></td>
+          <td><code>${pgDisplay}</code></td>
+          <td><code></code></td>
+          <td><code></code></td>
         </tr>
       `;
     })
@@ -63,9 +90,10 @@ function makeZodTestCaseTableHtml() {
       <table>
         <thead>
           <tr>
-            <th>Index</th>
             <th>Zod Schema</th>
-            <th>Expected Column</th>
+            <th>Postgres</th>
+            <th>DuckDB</th>
+            <th>SQLite</th>
           </tr>
         </thead>
         <tbody>
