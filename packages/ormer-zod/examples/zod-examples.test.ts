@@ -1,8 +1,8 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
 import { z } from "zod";
-import { derivePgColumn, type DerivePgColumn } from "./zod-derive.ts";
+import { derivePgColumn, type DerivePgColumn } from "../src/zod-derive.ts";
 import { ZOD_EXAMPLES } from "./zod-examples.ts";
-import "./zod-ext.ts";
+import "../src/zod-ext.ts";
 
 function getTestName<T extends () => readonly [z.ZodTypeAny, any]>(
   testCase: T,

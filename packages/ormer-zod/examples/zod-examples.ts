@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { pg } from "ormer";
-import type { DerivePgColumn } from "./zod-derive.ts";
+import type { DerivePgColumn } from "../src/zod-derive.ts";
 
 // prettier-ignore
 export const ZOD_EXAMPLES = [
