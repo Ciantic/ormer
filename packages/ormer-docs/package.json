@@ -1,0 +1,20 @@
+{
+  "name": "ormer-docs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "docs.ts",
+  "scripts": {
+    "build": "node docs.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "ormer": "workspace:*",
+    "ts-morph": "^26.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1"
+  }
+}
