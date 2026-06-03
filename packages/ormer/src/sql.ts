@@ -48,16 +48,12 @@ export function createTableSql<
         continue;
       }
 
-      const colType: string = col.type;
-      let baseTypeStr = colType;
-      let arraySuffix = "";
-      while (true) {
-        const match = baseTypeStr.match(/\[(\d*)\]$/);
-        if (!match) break;
-        const bracket = match[1] ? `[${match[1]}]` : "[]";
-        arraySuffix = bracket + arraySuffix;
-        baseTypeStr = baseTypeStr.slice(0, -bracket.length);
-      }
+      const baseTypeStr: string = col.type;
+
+      // Build array suffix from the `array` property if present.
+      // The string literal is already the SQL suffix, e.g. "[][]" or "[3][3]"
+      const arraySuffix: string =
+        typeof col.array === "string" ? col.array : "";
 
       const typeFn = mapping[baseTypeStr as keyof ColumnMapping] as
         | ((params: any) => string)

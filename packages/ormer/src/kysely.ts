@@ -19,23 +19,19 @@ type KeysWithColumnType<T> = {
   [K in keyof T]: T[K] extends { type: string } ? K : never;
 }[keyof T];
 
-// Recurse strings like int[], int[3][3], int[3][], int[][], ... and apply arrays to the base type
-type ApplyArrays<Col, T> = Col extends { type: infer TypeStr extends string }
+// Recurse array dimensions from the `array` string literal,
+// e.g. "[]" or "[][3]", applying them to the base type T.
+type ApplyArrays<Col, T> = Col extends { array: infer TypeStr extends string }
   ? TypeStr extends `${infer Prefix}[${infer _}]${infer Suffix}`
-    ? ApplyArrays<{ type: `${Prefix}${Suffix}` }, T[]>
+    ? ApplyArrays<{ array: `${Prefix}${Suffix}` }, T[]>
     : T
-  : T;
-
-// Infer to first `[` char
-type GetBaseType<T extends string> = T extends `${infer Base}[${string}`
-  ? Base
   : T;
 
 // Look up the column's entry in the unified type map
 type ColIO<Col, UnifiedMap extends UnifiedMapping> = Col extends {
   type: infer T extends string;
 }
-  ? UnifiedMap[GetBaseType<T>]
+  ? UnifiedMap[T]
   : never;
 
 // Infer the SELECT type for a column

@@ -80,14 +80,14 @@ const allTypesTable = table("all_types", {
   // unique
   unique_col: pg.text({ unique: true }),
   // array types
-  int4_arr_col: pg.arrayOf(pg.int4()),
-  text_arr_col: pg.arrayOf(pg.text()),
-  bool_arr_col: pg.arrayOf(pg.boolean()),
-  varchar_arr_col: pg.arrayOf(pg.varchar({ maxLength: 100 })),
-  int4_nullable_arr_col: pg.arrayOf(pg.int4({ nullable: true })),
+  int4_arr_col: pg.int4({ array: "[]" }),
+  text_arr_col: pg.text({ array: "[]" }),
+  bool_arr_col: pg.boolean({ array: "[]" }),
+  varchar_arr_col: pg.varchar({ maxLength: 100, array: "[]" }),
+  int4_nullable_arr_col: pg.int4({ nullable: true, array: "[]" }),
   // multi-dimensional arrays
-  int4_2d_col: pg.arrayOf(pg.arrayOf(pg.int4())),
-  int4_3x3_col: pg.arrayOf(pg.arrayOf(pg.int4(), 3), 3),
+  int4_2d_col: pg.int4({ array: "[][]" }),
+  int4_3x3_col: pg.int4({ array: "[3][3]" }),
 });
 
 const referencedTable = table("referenced", {

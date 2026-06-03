@@ -75,13 +75,13 @@ describe("postgres columns", () => {
       col_pg_snapshot: o.pg_snapshot(),
 
       // Array types
-      col_int4_arr: o.arrayOf(o.int4()),
-      col_text_arr: o.arrayOf(o.text()),
-      col_bool_arr: o.arrayOf(o.boolean()),
-      col_varchar_arr: o.arrayOf(o.varchar({ maxLength: 100 })),
-      col_int4_fixed: o.arrayOf(o.int4(), 3),
+      col_int4_arr: o.int4({ array: "[]" }),
+      col_text_arr: o.text({ array: "[]" }),
+      col_bool_arr: o.boolean({ array: "[]" }),
+      col_varchar_arr: o.varchar({ maxLength: 100, array: "[]" }),
+      col_int4_fixed: o.int4({ array: "[3]" }),
       // Multi-dimensional array
-      col_int4_2d: o.arrayOf(o.arrayOf(o.int4())),
+      col_int4_2d: o.int4({ array: "[][]" }),
     });
 
     expect(allColumns.table).toBe("all_columns");
@@ -147,12 +147,18 @@ describe("postgres columns", () => {
     expect(allColumns.columns.col_pg_lsn.type).toBe("pg_lsn");
     expect(allColumns.columns.col_pg_snapshot.type).toBe("pg_snapshot");
 
-    expect(allColumns.columns.col_int4_arr.type).toBe("int4[]");
-    expect(allColumns.columns.col_text_arr.type).toBe("text[]");
-    expect(allColumns.columns.col_bool_arr.type).toBe("boolean[]");
-    expect(allColumns.columns.col_varchar_arr.type).toBe("varchar[]");
+    expect(allColumns.columns.col_int4_arr.type).toBe("int4");
+    expect(allColumns.columns.col_int4_arr.array).toBe("[]");
+    expect(allColumns.columns.col_text_arr.type).toBe("text");
+    expect(allColumns.columns.col_text_arr.array).toBe("[]");
+    expect(allColumns.columns.col_bool_arr.type).toBe("boolean");
+    expect(allColumns.columns.col_bool_arr.array).toBe("[]");
+    expect(allColumns.columns.col_varchar_arr.type).toBe("varchar");
+    expect(allColumns.columns.col_varchar_arr.array).toBe("[]");
     expect(allColumns.columns.col_varchar_arr.maxLength).toBe(100);
-    expect(allColumns.columns.col_int4_fixed.type).toBe("int4[3]");
-    expect(allColumns.columns.col_int4_2d.type).toBe("int4[][]");
+    expect(allColumns.columns.col_int4_fixed.type).toBe("int4");
+    expect(allColumns.columns.col_int4_fixed.array).toBe("[3]");
+    expect(allColumns.columns.col_int4_2d.type).toBe("int4");
+    expect(allColumns.columns.col_int4_2d.array).toBe("[][]");
   });
 });
