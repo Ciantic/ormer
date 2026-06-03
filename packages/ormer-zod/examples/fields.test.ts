@@ -4,11 +4,11 @@ import { derivePgColumn, type DerivePgColumn } from "../src/zod-derive.ts";
 import { ALL_ZOD_FIELDS } from "./fields.ts";
 import "../src/zod-ext.ts";
 
-function runtimeTest<T extends z.ZodTypeAny, U extends { type: string }>(
+function runtimeTest<T extends z.ZodTypeAny, U>(
   zodSchema: T,
   expectedColumn: U,
 ) {
-  if (expectedColumn.type === "ERROR") {
+  if (expectedColumn === "ERROR") {
     expect(() => derivePgColumn(zodSchema as any)).toThrow();
     return;
   } else {
@@ -35,7 +35,9 @@ describe("ALL_ZOD_FIELDS derivePgColumn types", () => {
     type TestAll = {
       [K in keyof typeof ALL_ZOD_FIELDS]: Equal<
         DerivePgColumn<(typeof ALL_ZOD_FIELDS)[K]["zod"]>,
-        (typeof ALL_ZOD_FIELDS)[K]["pg"]
+        (typeof ALL_ZOD_FIELDS)[K]["pg"] extends "ERROR"
+          ? { type: "ERROR" }
+          : (typeof ALL_ZOD_FIELDS)[K]["pg"]
       >;
     };
 

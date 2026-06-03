@@ -15,13 +15,13 @@ export const ALL_ZOD_FIELDS = {
   c_int:              { zod: z.int(),              pg: pg.int4() },
   c_int_pk:           { zod: z.int().dbPk(),       pg: pg.int4({ primaryKey: true, autoIncrement: true }) },
   c_int32:            { zod: z.int32(),            pg: pg.int4() },
-  c_uint32_error:     { zod: z.uint32(),           pg: { type: "ERROR" } as { type: "ERROR"} },
+  c_uint32_error:     { zod: z.uint32(),           pg: "ERROR" },
 
   // Bigint 
   c_bigint:           { zod: z.bigint(),           pg: pg.int8() },
   c_int64:            { zod: z.int64(),            pg: pg.int8() },
   c_int64_pk:         { zod: z.int64().dbPk(),     pg: pg.int8({ primaryKey: true, autoIncrement: true }) },
-  c_uint64_error:     { zod: z.uint64(),           pg: { type: "ERROR" } as { type: "ERROR" } },
+  c_uint64_error:     { zod: z.uint64(),           pg: "ERROR" },
 
   c_bool:             { zod: z.boolean(),          pg: pg.boolean() },
   c_date:             { zod: z.date(),             pg: pg.timestamptz() },
