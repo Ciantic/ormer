@@ -13,6 +13,7 @@ function compact(expr: string): string {
  * and return the SQL column type name (e.g. `SERIAL8`).
  */
 function pgColumnToSqlDisplay(pgSrc: string): string {
+  if (pgSrc.includes("ERROR")) return "<em>Not Available</em>";
   let col: any;
   try {
     col = new Function("pg", `return (${pgSrc})`)(pg);
@@ -31,7 +32,7 @@ function pgColumnToSqlDisplay(pgSrc: string): string {
     ? ` FOREIGN KEY REFERENCES ${col.foreignKeyTable}(${col.foreignKeyColumn})`
     : "";
 
-  return fn(params).toUpperCase() + arraySuffix + isPk + isNullable + isFk;
+  return `<code>${fn(params).toUpperCase() + arraySuffix + isPk + isNullable + isFk}</code>`;
 }
 
 function zodSrcToDisplay(zodSrc: string): string {
@@ -40,7 +41,7 @@ function zodSrcToDisplay(zodSrc: string): string {
     "UserSchema",
   );
   // For now just collapse whitespace, but we could do more formatting here if needed
-  return compact(zodSrc);
+  return `<code>${compact(zodSrc)}</code>`;
 }
 
 function makeZodTestCaseTableHtml() {
@@ -83,12 +84,12 @@ function makeZodTestCaseTableHtml() {
         .getElements();
 
       if (!zodExpr || !pgExpr) return "";
-      const zodSrc = zodSrcToDisplay(zodExpr.getText());
+      const zodDisplay = zodSrcToDisplay(zodExpr.getText());
       const pgDisplay = pgColumnToSqlDisplay(compact(pgExpr.getText()));
-      return `
+      return md`
         <tr>
-          <td><code>${zodSrc}</code></td>
-          <td><code>${pgDisplay}</code></td>
+          <td>${zodDisplay}</td>
+          <td>${pgDisplay}</td>
           <td><code></code></td>
           <td><code></code></td>
         </tr>

@@ -56,13 +56,13 @@ type DeriveBaseColumn<T extends ZodType> =
 
   // Bigints
   : T extends ZodBigIntFormatVal<"int64"> ? ColumnTypeSingualr<"int8">
-  : T extends ZodBigIntFormatVal<"uint64"> ? ColumnType<"decimal", { precision: 20; scale: 0 }>
+  : T extends ZodBigIntFormatVal<"uint64"> ? { type: "ERROR" } // No symmetric PG mapping
   
   : T extends z.ZodNumberFormat ? { type: "ERROR" } // This should not happen, above list exhaustive
   : T extends z.ZodBigIntFormat ? { type: "ERROR" } // This should not happen, above list exhaustive
   
   : T extends z.ZodNumber ? ColumnTypeSingualr<"float8">
-  : T extends z.ZodBigInt ? ColumnTypeSingualr<"decimal">
+  : T extends z.ZodBigInt ? ColumnTypeSingualr<"int8">
   : T extends z.ZodString & { maxLength: infer Max extends number } ? ColumnType<"varchar", { maxLength: Max }>
   : T extends z.ZodString ? ColumnTypeSingualr<"text">
   : T extends z.ZodBoolean ? ColumnTypeSingualr<"boolean">
@@ -299,11 +299,7 @@ export function derivePgColumn<
     if (format === "int64") {
       return pg.int8(pgParamsBase) as ColumnType<any, any>;
     } else if (format === "uint64") {
-      return pg.decimal({
-        ...pgParamsBase,
-        precision: 20,
-        scale: 0,
-      }) as ColumnType<any, any>;
+      throw new Error(`PG has no mapping for ZodBigIntFormat: ${format}`);
     }
 
     // List is exhaustive, so this should not happen:
@@ -311,7 +307,7 @@ export function derivePgColumn<
   }
 
   if (node instanceof z.ZodBigInt) {
-    return pg.decimal() as ColumnType<any, any>;
+    return pg.int8() as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodNumberFormat) {
