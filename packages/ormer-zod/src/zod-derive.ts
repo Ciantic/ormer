@@ -20,6 +20,7 @@ import type {
   RewrapToColumnType,
   RewrapDeriveTable,
   IsOptional,
+  ArrayDimensions,
 } from "./common.ts";
 
 // prettier-ignore
@@ -99,6 +100,7 @@ export type DerivePgColumn<T extends ZodType> =
             : never;
           foreignKeyTable: T extends ZodDbFk<infer N extends string, infer _> ? N : never;
           foreignKeyColumn: T extends ZodDbFk<infer _, infer C extends string> ? C : never;
+          array: ArrayDimensions<T>;
         }>
     >;
 

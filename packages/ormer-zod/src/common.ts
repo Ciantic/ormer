@@ -23,7 +23,7 @@ export type NonEmptyObject<T> = keyof T extends never ? never : T;
 
 // prettier-ignore
 export type UnwrapUntilReturnTrue<T, Check> = T extends Check
-  ? true
+  ? [true, T]
   : T extends z.ZodNullable<infer Inner extends ZodType>      ? UnwrapUntilReturnTrue<Inner, Check>
   : T extends z.ZodOptional<infer Inner extends ZodType>      ? UnwrapUntilReturnTrue<Inner, Check>
   : T extends z.ZodExactOptional<infer Inner extends ZodType> ? UnwrapUntilReturnTrue<Inner, Check>
@@ -35,6 +35,7 @@ export type UnwrapUntilReturnTrue<T, Check> = T extends Check
   : T extends z.ZodExactOptional<infer Inner extends ZodType> ? UnwrapUntilReturnTrue<Inner, Check>
   : T extends z.ZodReadonly<infer Inner extends ZodType>      ? UnwrapUntilReturnTrue<Inner, Check>
   : T extends z.ZodPipe<infer Inner extends ZodType, infer _> ? UnwrapUntilReturnTrue<Inner, Check>
+  : T extends z.ZodArray<infer Inner extends ZodType>         ? UnwrapUntilReturnTrue<Inner, Check>
   : false;
 
 //   Inner extends z.ZodOptional<infer Inner2 extends ZodType>      ? UnwrapUntilReturnTrue<Inner2, Check>
@@ -54,10 +55,13 @@ export type UnwrapModifiers<T extends ZodType> =
   : T extends z.ZodExactOptional<infer Inner extends ZodType> ? UnwrapModifiers<Inner>
   : T extends z.ZodReadonly<infer Inner extends ZodType>      ? UnwrapModifiers<Inner>
   : T extends z.ZodPipe<infer Inner extends ZodType, infer _> ? UnwrapModifiers<Inner>
+  : T extends z.ZodArray<infer Inner extends ZodType>         ? UnwrapModifiers<Inner>
   : T;
 
 export type IsNullable<T extends ZodType> =
-  UnwrapUntilReturnTrue<T, z.ZodNullable<any>> extends true ? true : false;
+  UnwrapUntilReturnTrue<T, z.ZodNullable<any>> extends [true, infer _]
+    ? true
+    : false;
 
 // prettier-ignore
 export type IsOptional<T extends ZodType> =
@@ -65,22 +69,37 @@ export type IsOptional<T extends ZodType> =
     | z.ZodOptional<any> 
     | z.ZodExactOptional<any>
     | z.ZodNonOptional<any>
-  > extends true
+  > extends [true, infer _]
       // In case top-most is non-optional, then it's not optional, 
       // otherwise it is.
     ? T extends z.ZodNonOptional<any> ? false : true
     : false;
 
+// Build array dimensions, e.g. z.string() => never, z.string().array() => "[]", z.string().array().array() => "[][]", etc.
+export type ArrayDimensions<T extends ZodType, Acc extends string = ""> =
+  UnwrapUntilReturnTrue<T, z.ZodArray<any>> extends [
+    true,
+    infer Inner extends ZodType,
+  ]
+    ? Inner extends z.ZodArray<infer Inner2 extends ZodType>
+      ? ArrayDimensions<Inner2, `${Acc}[]`>
+      : `${Acc}[]`
+    : Acc extends ""
+      ? never
+      : Acc;
+
 export type HasDefaultValue<T extends ZodType> =
   UnwrapUntilReturnTrue<
     T,
     z.ZodDefault<any> | z.ZodPrefault<any> | z.ZodCatch<any>
-  > extends true
+  > extends [true, infer _]
     ? true
     : false;
 
 export type HasDbPk<T extends ZodType> =
-  UnwrapUntilReturnTrue<T, ZodDbPrimaryKey> extends true ? true : false;
+  UnwrapUntilReturnTrue<T, ZodDbPrimaryKey> extends [true, infer _]
+    ? true
+    : false;
 
 // This utility only cleans up the hover-type, it doesn't change it
 export type RewrapToColumnType<T> = T extends {

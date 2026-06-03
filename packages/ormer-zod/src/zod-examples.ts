@@ -52,4 +52,10 @@ export const ZOD_EXAMPLES = [
     ),
     pg.text({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
   ] as const,
+
+  // Array types
+  () => [z.int().array(), pg.int4({ array: "[]" })] as const,
+  () => [z.string().array(), pg.text({ array: "[]" })] as const,
+  () => [z.int().array().array(), pg.int4({ array: "[][]" })] as const,
+  () => [z.string().array().nullable(), pg.text({ array: "[]", nullable: true })] as const,
 ] as const
