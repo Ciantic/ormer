@@ -19,16 +19,11 @@ type KeysWithColumnType<T> = {
   [K in keyof T]: T[K] extends { type: string } ? K : never;
 }[keyof T];
 
+// Recurse strings like int[], int[3][3], int[3][], int[][], ... and apply arrays to the base type
 type ApplyArrays<Col, T> = Col extends { type: infer TypeStr extends string }
-  ? TypeStr extends `${infer Rest2}[0]`
-    ? ApplyArrays<{ type: Rest2 }, T[]>
-    : TypeStr extends `${infer Rest2}[1]`
-      ? ApplyArrays<{ type: Rest2 }, T[]>
-      : TypeStr extends `${infer Rest2}[3]`
-        ? ApplyArrays<{ type: Rest2 }, T[]>
-        : TypeStr extends `${infer Rest}[]`
-          ? ApplyArrays<{ type: Rest }, T[]>
-          : T
+  ? TypeStr extends `${infer Prefix}[${infer _}]${infer Suffix}`
+    ? ApplyArrays<{ type: `${Prefix}${Suffix}` }, T[]>
+    : T
   : T;
 
 // Infer to first `[` char
