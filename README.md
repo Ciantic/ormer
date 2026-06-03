@@ -2,6 +2,8 @@
 
 # Ormer
 
+This is Work In Progress!
+
 Made of two packages `packages/ormer` and `packages/ormer-zod`. There is also old `packages/ormer-experiments` which is not used for other than ideas.
 
 ## Ormer package
@@ -11,7 +13,11 @@ This is pure dependency free package that allows to define database schemas.
 Supported are SQLite, Postgres (pg, pglite) and DuckDB.
 ## Ormer-Zod package
 
-The table below is generated from the test cases in `packages/ormer-zod/src/zod-examples.ts`, which are used for testing the `derivePgColumn` function. Each row corresponds to a test case, showing the Zod schema and the expected Ormer column definition.
+The table below is generated from the test cases in `packages/ormer-zod/src/zod-examples.ts`.
+
+I have patched the Zod namespace to add first `dbPk()` and `dbFk()`, etc modifiers, and make `ZodNumberFormat` and `ZodBigIntFormat` retain the format at type-level, see this [feature request](https://github.com/colinhacks/zod/issues/6045).
+
+To use these extension one must import the `zod-ext.ts` file. (To be determined how this work in practice)
 <table>
   <thead>
     <tr>
