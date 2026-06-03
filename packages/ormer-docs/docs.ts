@@ -31,6 +31,15 @@ function pgColumnToSqlDisplay(pgSrc: string): string {
   return fn(params).toUpperCase() + arraySuffix + isPk + isNullable;
 }
 
+function zodSrcToDisplay(zodSrc: string): string {
+  zodSrc = zodSrc.replace(
+    `z.object({ id: z.int64().dbPk() }).dbTable("users")`,
+    "...",
+  );
+  // For now just collapse whitespace, but we could do more formatting here if needed
+  return compact(zodSrc);
+}
+
 function makeZodTestCaseTableHtml() {
   const project = new Project();
   const sf = project.addSourceFileAtPath("../ormer-zod/src/zod-examples.ts");
@@ -71,9 +80,7 @@ function makeZodTestCaseTableHtml() {
         .getElements();
 
       if (!zodExpr || !pgExpr) return "";
-      const zodSrc = compact(
-        zodExpr.getText().replaceAll(" ", "&nbsp;").replaceAll("\n", "<br>"),
-      );
+      const zodSrc = zodSrcToDisplay(zodExpr.getText());
       const pgDisplay = pgColumnToSqlDisplay(compact(pgExpr.getText()));
       return `
         <tr>

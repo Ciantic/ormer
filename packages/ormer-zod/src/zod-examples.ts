@@ -46,12 +46,8 @@ export const ZOD_EXAMPLES = [
   () => [z.string().prefault("hello"), pg.text({ default: "hello" })] as const,
   () => [z.string().dbPk(), pg.text({ primaryKey: true })] as const,
   () => [
-    z.string().dbFk(
-      z.object({ id: z.string() })
-        .dbTable("users"),
-      "id",
-    ),
-    pg.text({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
+    z.int64().dbFk(z.object({ id: z.int64().dbPk() }).dbTable("users"), "id"),
+    pg.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
   ] as const,
 
   // Array types

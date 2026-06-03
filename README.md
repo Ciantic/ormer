@@ -350,8 +350,8 @@ To use these extension one must import the `zod-ext.ts` file. (To be determined 
 
 
   <tr>
-    <td><code>z.string().dbFk(<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;z.object({&nbsp;id:&nbsp;z.string()&nbsp;})<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.dbTable("users"),<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"id",<br>&nbsp;&nbsp;&nbsp;&nbsp;)</code></td>
-    <td><code>TEXT</code></td>
+    <td><code>z.int64().dbFk(..., "id")</code></td>
+    <td><code>INT8</code></td>
     <td><code></code></td>
     <td><code></code></td>
   </tr>
