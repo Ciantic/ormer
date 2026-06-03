@@ -187,6 +187,7 @@ export function derivePgColumn<
   let primaryKey = false;
   let foreignKeyTable: string | undefined = undefined;
   let foreignKeyColumn: string | undefined = undefined;
+  let arrayDimensions = "";
 
   // Unwrap modifiers (.nullable, .optional, .default) to get to the base type
   //
@@ -219,6 +220,10 @@ export function derivePgColumn<
       // pipe chains transformations — unwrap to the input schema
       node = node.def.in as typeof node;
       continue;
+    } else if (node instanceof z.ZodArray) {
+      arrayDimensions += "[]";
+      node = node.def.element as typeof node;
+      continue;
     }
     if ("innerType" in node.def) {
       // z.ZodNullable, z.ZodOptional, z.ZodDefault, z.ZodPrefault, ZodExactOptional, ZodCatch, ZodNonOptional all have innerType
@@ -242,6 +247,9 @@ export function derivePgColumn<
   if (foreignKeyTable && foreignKeyColumn) {
     pgParamsBase.foreignKeyTable = foreignKeyTable;
     pgParamsBase.foreignKeyColumn = foreignKeyColumn;
+  }
+  if (arrayDimensions) {
+    pgParamsBase.array = arrayDimensions;
   }
 
   if (node instanceof z.ZodUUID) {

@@ -479,14 +479,6 @@ describe("derivePgColumn other wrappers (pure unwrap and catch)", () => {
   });
 });
 
-describe("unsupported type throws", () => {
-  it("z.array(z.string()) throws", () => {
-    expect(() => derivePgColumn(z.array(z.string()) as any)).toThrow(
-      "ZodArray",
-    );
-  });
-});
-
 // ---------------------------------------------------------------------------
 // derivePgTable tests
 // ---------------------------------------------------------------------------
