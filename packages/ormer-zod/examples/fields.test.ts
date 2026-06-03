@@ -1,7 +1,7 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
 import { z } from "zod";
 import { derivePgColumn, type DerivePgColumn } from "../src/zod-derive.ts";
-import { ZOD_EXAMPLES } from "./fields.ts";
+import { ALL_ZOD_FIELDS } from "./fields.ts";
 import "../src/zod-ext.ts";
 
 function getTestName<T extends () => readonly [z.ZodTypeAny, any]>(
@@ -26,24 +26,24 @@ function runtimeTest<T extends z.ZodTypeAny, U extends { type: string }>(
   }
 }
 
-describe("ZOD_EXAMPLES derivePgColumn types", () => {
-  for (const [index, testCase] of ZOD_EXAMPLES.entries()) {
+describe("ALL_ZOD_FIELDS derivePgColumn types", () => {
+  for (const [index, testCase] of ALL_ZOD_FIELDS.entries()) {
     it(`${index}: ${getTestName(testCase)}`, () => {
       const [zodSchema, expectedColumn] = testCase();
       runtimeTest(zodSchema, expectedColumn);
     });
   }
 
-  it("ZOD_EXAMPLES type-level tests", () => {
+  it("ALL_ZOD_FIELDS type-level tests", () => {
     type Equal<X, Y> =
       (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
         ? true
         : false;
 
     type TestAll = {
-      [K in keyof typeof ZOD_EXAMPLES & `${number}`]: Equal<
-        DerivePgColumn<ReturnType<(typeof ZOD_EXAMPLES)[K]>[0]>,
-        ReturnType<(typeof ZOD_EXAMPLES)[K]>[1]
+      [K in keyof typeof ALL_ZOD_FIELDS & `${number}`]: Equal<
+        DerivePgColumn<ReturnType<(typeof ALL_ZOD_FIELDS)[K]>[0]>,
+        ReturnType<(typeof ALL_ZOD_FIELDS)[K]>[1]
       >;
     };
 
@@ -55,9 +55,9 @@ describe("ZOD_EXAMPLES derivePgColumn types", () => {
         : {
             index: K;
             derived: DerivePgColumn<
-              ReturnType<(typeof ZOD_EXAMPLES)[K & `${number}`]>[0]
+              ReturnType<(typeof ALL_ZOD_FIELDS)[K & `${number}`]>[0]
             >;
-            expected: ReturnType<(typeof ZOD_EXAMPLES)[K & `${number}`]>[1];
+            expected: ReturnType<(typeof ALL_ZOD_FIELDS)[K & `${number}`]>[1];
           };
     }[keyof TestAll];
 

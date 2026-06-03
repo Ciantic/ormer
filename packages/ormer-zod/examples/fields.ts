@@ -3,7 +3,7 @@ import { pg } from "ormer";
 import type { DerivePgColumn } from "../src/zod-derive.ts";
 
 // prettier-ignore
-export const ZOD_EXAMPLES = [
+export const ALL_ZOD_FIELDS = [
   () => [z.string(), pg.text()] as const,
   () => [z.string().max(255), pg.varchar({ maxLength: 255 })] as const,
   () => [z.uuid(), pg.uuid()] as const,

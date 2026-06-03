@@ -45,10 +45,10 @@ function zodSrcToDisplay(zodSrc: string): string {
 
 function makeZodTestCaseTableHtml() {
   const project = new Project();
-  const sf = project.addSourceFileAtPath("../ormer-zod/src/zod-examples.ts");
-  if (!sf) throw new Error("Could not load zod-examples.ts");
+  const sf = project.addSourceFileAtPath("../ormer-zod/examples/fields.ts");
+  if (!sf) throw new Error("Could not load fields.ts");
 
-  const decl = sf.getVariableDeclarationOrThrow("ZOD_EXAMPLES");
+  const decl = sf.getVariableDeclarationOrThrow("ALL_ZOD_FIELDS");
   let initializer = decl.getInitializerOrThrow();
   // Unwrap `as const` if present
   if (initializer.isKind(SyntaxKind.AsExpression)) {
