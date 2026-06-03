@@ -58,32 +58,39 @@ function makeZodTestCaseTableHtml() {
       .getExpression();
   }
 
-  const arrayLiteral = initializer.asKindOrThrow(
-    SyntaxKind.ArrayLiteralExpression,
+  const objectLiteral = initializer.asKindOrThrow(
+    SyntaxKind.ObjectLiteralExpression,
   );
 
-  const rows = arrayLiteral
-    .getElements()
-    .map((element, index) => {
-      // Each element is an arrow function: () => [zodExpr, pgExpr] as const
-      //
-      // For example: () => [z.string(), pg.text()] as const
-      if (!element.isKind(SyntaxKind.ArrowFunction)) return "";
-      let body = element.asKindOrThrow(SyntaxKind.ArrowFunction).getBody();
-      if (!body) return "";
+  const rows = objectLiteral
+    .getProperties()
+    .map((prop) => {
+      if (!prop.isKind(SyntaxKind.PropertyAssignment)) return "";
+      const assignment = prop.asKindOrThrow(SyntaxKind.PropertyAssignment);
+      const value = assignment.getInitializerOrThrow();
 
-      // Unwrap `as const` if present
-      if (body.isKind(SyntaxKind.AsExpression)) {
-        body = body.asKindOrThrow(SyntaxKind.AsExpression).getExpression();
-      }
+      if (!value.isKind(SyntaxKind.ObjectLiteralExpression)) return "";
+      const inner = value.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
-      if (!body.isKind(SyntaxKind.ArrayLiteralExpression)) return "";
+      // Find the "zod" and "pg" properties
+      const zodProp = inner.getProperty("zod");
+      const pgProp = inner.getProperty("pg");
 
-      const [zodExpr, pgExpr] = body
-        .asKindOrThrow(SyntaxKind.ArrayLiteralExpression)
-        .getElements();
+      if (
+        !zodProp ||
+        !pgProp ||
+        !zodProp.isKind(SyntaxKind.PropertyAssignment) ||
+        !pgProp.isKind(SyntaxKind.PropertyAssignment)
+      )
+        return "";
 
-      if (!zodExpr || !pgExpr) return "";
+      const zodExpr = zodProp
+        .asKindOrThrow(SyntaxKind.PropertyAssignment)
+        .getInitializerOrThrow();
+      const pgExpr = pgProp
+        .asKindOrThrow(SyntaxKind.PropertyAssignment)
+        .getInitializerOrThrow();
+
       const zodDisplay = zodSrcToDisplay(zodExpr.getText());
       const pgDisplay = pgColumnToSqlDisplay(compact(pgExpr.getText()));
       return md`

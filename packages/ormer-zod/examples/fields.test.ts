@@ -4,15 +4,6 @@ import { derivePgColumn, type DerivePgColumn } from "../src/zod-derive.ts";
 import { ALL_ZOD_FIELDS } from "./fields.ts";
 import "../src/zod-ext.ts";
 
-function getTestName<T extends () => readonly [z.ZodTypeAny, any]>(
-  testCase: T,
-): string {
-  return testCase
-    .toString()
-    .replaceAll(/__vite_ssr_import_\d+__\./g, "")
-    .replace("() => ", "");
-}
-
 function runtimeTest<T extends z.ZodTypeAny, U extends { type: string }>(
   zodSchema: T,
   expectedColumn: U,
@@ -27,9 +18,10 @@ function runtimeTest<T extends z.ZodTypeAny, U extends { type: string }>(
 }
 
 describe("ALL_ZOD_FIELDS derivePgColumn types", () => {
-  for (const [index, testCase] of ALL_ZOD_FIELDS.entries()) {
-    it(`${index}: ${getTestName(testCase)}`, () => {
-      const [zodSchema, expectedColumn] = testCase();
+  for (const [key, { zod: zodSchema, pg: expectedColumn }] of Object.entries(
+    ALL_ZOD_FIELDS,
+  )) {
+    it(`${key}`, () => {
       runtimeTest(zodSchema, expectedColumn);
     });
   }
@@ -41,9 +33,9 @@ describe("ALL_ZOD_FIELDS derivePgColumn types", () => {
         : false;
 
     type TestAll = {
-      [K in keyof typeof ALL_ZOD_FIELDS & `${number}`]: Equal<
-        DerivePgColumn<ReturnType<(typeof ALL_ZOD_FIELDS)[K]>[0]>,
-        ReturnType<(typeof ALL_ZOD_FIELDS)[K]>[1]
+      [K in keyof typeof ALL_ZOD_FIELDS]: Equal<
+        DerivePgColumn<(typeof ALL_ZOD_FIELDS)[K]["zod"]>,
+        (typeof ALL_ZOD_FIELDS)[K]["pg"]
       >;
     };
 
@@ -53,11 +45,9 @@ describe("ALL_ZOD_FIELDS derivePgColumn types", () => {
       [K in keyof TestAll]: TestAll[K] extends true
         ? never
         : {
-            index: K;
-            derived: DerivePgColumn<
-              ReturnType<(typeof ALL_ZOD_FIELDS)[K & `${number}`]>[0]
-            >;
-            expected: ReturnType<(typeof ALL_ZOD_FIELDS)[K & `${number}`]>[1];
+            key: K;
+            derived: DerivePgColumn<(typeof ALL_ZOD_FIELDS)[K]["zod"]>;
+            expected: (typeof ALL_ZOD_FIELDS)[K]["pg"];
           };
     }[keyof TestAll];
 

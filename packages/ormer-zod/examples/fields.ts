@@ -1,67 +1,68 @@
 import { z } from "zod";
 import { pg } from "ormer";
-import type { DerivePgColumn } from "../src/zod-derive.ts";
+import "../src/zod-ext.ts";
 
 // prettier-ignore
-export const ALL_ZOD_FIELDS = [
-  () => [z.string(), pg.text()] as const,
-  () => [z.string().max(255), pg.varchar({ maxLength: 255 })] as const,
+export const ALL_ZOD_FIELDS = {
+  c_str:              { zod: z.string(),           pg: pg.text() },
+  c_str_max255:       { zod: z.string().max(255),  pg: pg.varchar({ maxLength: 255 }) },
 
   // Number types
-  () => [z.number(), pg.float8()] as const,
-  () => [z.number().int(), pg.float8()] as const,
-  () => [z.float32(), pg.float4()] as const,
-  () => [z.float64(), pg.float8()] as const,
-  () => [z.int(), pg.int4()] as const,
-  () => [z.int().dbPk(), pg.int4({ primaryKey: true, autoIncrement: true })] as const,
-  () => [z.int32(), pg.int4()] as const,
-  () => [z.uint32(), { type: "ERROR" } as { type: "ERROR" }] as const,
+  c_num:              { zod: z.number(),           pg: pg.float8() },
+  c_num_int:          { zod: z.number().int(),     pg: pg.float8() },
+  c_f32:              { zod: z.float32(),          pg: pg.float4() },
+  c_f64:              { zod: z.float64(),          pg: pg.float8() },
+  c_int:              { zod: z.int(),              pg: pg.int4() },
+  c_int_pk:           { zod: z.int().dbPk(),       pg: pg.int4({ primaryKey: true, autoIncrement: true }) },
+  c_int32:            { zod: z.int32(),            pg: pg.int4() },
+  c_uint32_error:     { zod: z.uint32(),           pg: { type: "ERROR" } as { type: "ERROR"} },
 
-  // Bigint number types
-  () => [z.bigint(), pg.int8()] as const,
-  () => [z.int64(), pg.int8()] as const,
-  () => [z.int64().dbPk(), pg.int8({ primaryKey: true, autoIncrement: true })] as const,
-  () => [z.uint64(), { type: "ERROR" } as { type: "ERROR" }] as const,
-  
-  () => [z.boolean(), pg.boolean()] as const,
-  () => [z.date(), pg.timestamptz()] as const,
-  () => [z.uuid(), pg.uuid()] as const,
-  () => [z.guid(), pg.uuid()] as const,
+  // Bigint 
+  c_bigint:           { zod: z.bigint(),           pg: pg.int8() },
+  c_int64:            { zod: z.int64(),            pg: pg.int8() },
+  c_int64_pk:         { zod: z.int64().dbPk(),     pg: pg.int8({ primaryKey: true, autoIncrement: true }) },
+  c_uint64_error:     { zod: z.uint64(),           pg: { type: "ERROR" } as { type: "ERROR" } },
 
-  () => [z.url(), pg.text()] as const,
-  () => [z.email(), pg.text()] as const,
-  () => [z.emoji(), pg.text()] as const,
-  () => [z.nanoid(), pg.varchar({ maxLength: 21 })] as const,
-  () => [z.cuid2(), pg.text()] as const,
-  () => [z.ulid(), pg.varchar({ maxLength: 26 })] as const,
-  () => [z.xid(), pg.varchar({ maxLength: 20 })] as const,
-  () => [z.ksuid(), pg.varchar({ maxLength: 27 })] as const,
-  () => [z.base64(), pg.text()] as const,
-  () => [z.base64url(), pg.text()] as const,
-  () => [z.e164(), pg.text()] as const,
-  () => [z.jwt(), pg.text()] as const,
-  () => [z.ipv4(), pg.inet()] as const,
-  () => [z.ipv6(), pg.inet()] as const,
-  () => [z.mac(), pg.macaddr()] as const,
-  () => [z.cidrv4(), pg.cidr()] as const,
-  () => [z.cidrv6(), pg.cidr()] as const,
+  c_bool:             { zod: z.boolean(),          pg: pg.boolean() },
+  c_date:             { zod: z.date(),             pg: pg.timestamptz() },
+  c_uuid:             { zod: z.uuid(),             pg: pg.uuid() },
+  c_guid:             { zod: z.guid(),             pg: pg.uuid() },
 
-  () => [z.string().nullable(), pg.text({ nullable: true })] as const,
-  () => [z.string().optional(), pg.text({ nullable: true })] as const,
-  () => [z.string().default("hello"), pg.text({ default: "hello" })] as const,
-  () => [z.string().prefault("hello"), pg.text({ default: "hello" })] as const,
-  () => [z.string().dbPk(), pg.text({ primaryKey: true })] as const,
-  () => [
-    z.int64().dbFk(z.object({ id: z.int64().dbPk() }).dbTable("users"), "id"),
-    pg.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
-  ] as const,
+  c_url:              { zod: z.url(),              pg: pg.text() },
+  c_email:            { zod: z.email(),            pg: pg.text() },
+  c_emoji:            { zod: z.emoji(),            pg: pg.text() },
+  c_nanoid:           { zod: z.nanoid(),           pg: pg.varchar({ maxLength: 21 }) },
+  c_cuid2:            { zod: z.cuid2(),            pg: pg.text() },
+  c_ulid:             { zod: z.ulid(),             pg: pg.varchar({ maxLength: 26 }) },
+  c_xid:              { zod: z.xid(),              pg: pg.varchar({ maxLength: 20 }) },
+  c_ksuid:            { zod: z.ksuid(),            pg: pg.varchar({ maxLength: 27 }) },
+  c_base64:           { zod: z.base64(),           pg: pg.text() },
+  c_base64url:        { zod: z.base64url(),        pg: pg.text() },
+  c_e164:             { zod: z.e164(),             pg: pg.text() },
+  c_jwt:              { zod: z.jwt(),              pg: pg.text() },
+  c_ipv4:             { zod: z.ipv4(),             pg: pg.inet() },
+  c_ipv6:             { zod: z.ipv6(),             pg: pg.inet() },
+  c_mac:              { zod: z.mac(),              pg: pg.macaddr() },
+  c_cidrv4:           { zod: z.cidrv4(),           pg: pg.cidr() },
+  c_cidrv6:           { zod: z.cidrv6(),           pg: pg.cidr() },
 
   // Array types
-  () => [z.int().array(), pg.int4({ array: "[]" })] as const,
-  () => [z.string().array(), pg.text({ array: "[]" })] as const,
-  () => [z.int().array().array(), pg.int4({ array: "[][]" })] as const,
-  () => [z.string().array().nullable(), pg.text({ array: "[]", nullable: true })] as const,
-] as const
+  c_int_arr:          { zod: z.int().array(),                pg: pg.int4({ array: "[]" }) },
+  c_str_arr:          { zod: z.string().array(),             pg: pg.text({ array: "[]" }) },
+  c_int_arr2:         { zod: z.int().array().array(),        pg: pg.int4({ array: "[][]" }) },
+  c_str_arr_nullable: { zod: z.string().array().nullable(),  pg: pg.text({ array: "[]", nullable: true }) },
+
+  // Container types
+  c_str_nullable:     { zod: z.string().nullable(),          pg: pg.text({ nullable: true }) },
+  c_str_optional:     { zod: z.string().optional(),          pg: pg.text({ nullable: true }) },
+  c_str_default:      { zod: z.string().default("hello"),    pg: pg.text({ default: "hello" }) },
+  c_str_prefault:     { zod: z.string().prefault("hello"),   pg: pg.text({ default: "hello" }) },
+  c_str_pk:           { zod: z.string().dbPk(),              pg: pg.text({ primaryKey: true }) },
+  c_int64_fk:         { 
+    zod: z.int64().dbFk(z.object({ id: z.int64().dbPk() }).dbTable("users"), "id"),                          
+    pg: pg.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }) 
+  },
+} as const
 
 /*
 Other types for future consideration:

@@ -239,6 +239,30 @@ To use these extension one must import the `zod-ext.ts` file. (To be determined 
 <td><code></code></td>
 </tr>
 <tr>
+<td><code>z.int().array()</code></td>
+<td><code>INT4[]</code></td>
+<td><code></code></td>
+<td><code></code></td>
+</tr>
+<tr>
+<td><code>z.string().array()</code></td>
+<td><code>TEXT[]</code></td>
+<td><code></code></td>
+<td><code></code></td>
+</tr>
+<tr>
+<td><code>z.int().array().array()</code></td>
+<td><code>INT4[][]</code></td>
+<td><code></code></td>
+<td><code></code></td>
+</tr>
+<tr>
+<td><code>z.string().array().nullable()</code></td>
+<td><code>TEXT[] NULL</code></td>
+<td><code></code></td>
+<td><code></code></td>
+</tr>
+<tr>
 <td><code>z.string().nullable()</code></td>
 <td><code>TEXT NULL</code></td>
 <td><code></code></td>
@@ -271,30 +295,6 @@ To use these extension one must import the `zod-ext.ts` file. (To be determined 
 <tr>
 <td><code>z.int64().dbFk(UserSchema, "id")</code></td>
 <td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
-<td><code></code></td>
-<td><code></code></td>
-</tr>
-<tr>
-<td><code>z.int().array()</code></td>
-<td><code>INT4[]</code></td>
-<td><code></code></td>
-<td><code></code></td>
-</tr>
-<tr>
-<td><code>z.string().array()</code></td>
-<td><code>TEXT[]</code></td>
-<td><code></code></td>
-<td><code></code></td>
-</tr>
-<tr>
-<td><code>z.int().array().array()</code></td>
-<td><code>INT4[][]</code></td>
-<td><code></code></td>
-<td><code></code></td>
-</tr>
-<tr>
-<td><code>z.string().array().nullable()</code></td>
-<td><code>TEXT[] NULL</code></td>
 <td><code></code></td>
 <td><code></code></td>
 </tr>
