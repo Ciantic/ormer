@@ -27,8 +27,11 @@ function pgColumnToSqlDisplay(pgSrc: string): string {
   const isPk = col.primaryKey ? " PRIMARY KEY" : "";
   const isNullable = col.nullable ? " NULL" : "";
   const arraySuffix = typeof col.array === "string" ? col.array : "";
+  const isFk = col.foreignKeyTable
+    ? ` FOREIGN KEY REFERENCES ${col.foreignKeyTable}(${col.foreignKeyColumn})`
+    : "";
 
-  return fn(params).toUpperCase() + arraySuffix + isPk + isNullable;
+  return fn(params).toUpperCase() + arraySuffix + isPk + isNullable + isFk;
 }
 
 function zodSrcToDisplay(zodSrc: string): string {
