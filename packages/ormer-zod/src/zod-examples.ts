@@ -56,3 +56,14 @@ export const ZOD_EXAMPLES = [
   () => [z.int().array().array(), pg.int4({ array: "[][]" })] as const,
   () => [z.string().array().nullable(), pg.text({ array: "[]", nullable: true })] as const,
 ] as const
+
+/*
+Other types for future consideration:
+
+- z.enum([...])                          → pg.text()   (or check constraint)
+- z.nativeEnum({...})                    → pg.text()
+- z.symbol()                             → pg.text()   (stored as string)
+- z.nan()                                → pg.float4()
+- z.object() / z.record() / z.array()    → pg.jsonb()
+- z.undefined / z.null / z.void          → → (unlikely column types)
+ */
