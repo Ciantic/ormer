@@ -47,6 +47,8 @@ describe("ZOD_EXAMPLES derivePgColumn types", () => {
       >;
     };
 
+    // Hover over FailedTests to see any failed test cases, if it is `never`
+    // then all test cases passed
     type FailedTests = {
       [K in keyof TestAll]: TestAll[K] extends true
         ? never
