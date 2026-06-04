@@ -35,13 +35,16 @@ type ColIO<Col, UnifiedMap extends UnifiedMapping> = Col extends {
   : never;
 
 // Infer the SELECT type for a column
-type SelectCol<Col, UnifiedMap extends UnifiedMapping> =
+export type InferKyselySelectCol<Col, UnifiedMap extends UnifiedMapping> =
   ColIO<Col, UnifiedMap> extends { __select__: infer O }
     ? ApplyArrays<Col, O> | (Col extends { nullable: true } ? null : never)
     : never;
 
 // Infer the INSERT type for a column
-type InsertCol<Col, UnifiedMap extends UnifiedMapping> = Col extends {
+export type InferKyselyInsertCol<
+  Col,
+  UnifiedMap extends UnifiedMapping,
+> = Col extends {
   notInsertable: true;
 }
   ? never
@@ -54,7 +57,10 @@ type InsertCol<Col, UnifiedMap extends UnifiedMapping> = Col extends {
     : never;
 
 // Infer the UPDATE type for a column
-type UpdateCol<Col, UnifiedMap extends UnifiedMapping> = Col extends {
+export type InferKyselyUpdateCol<
+  Col,
+  UnifiedMap extends UnifiedMapping,
+> = Col extends {
   notUpdatable: true;
 }
   ? never
@@ -73,9 +79,9 @@ export type InferKyselyTypes<
 > = {
   [K in keyof D]: {
     [C in KeysWithColumnType<D[K]["columns"]>]: ColumnTypeKysely<
-      SelectCol<D[K]["columns"][C], UnifiedMap>,
-      InsertCol<D[K]["columns"][C], UnifiedMap>,
-      UpdateCol<D[K]["columns"][C], UnifiedMap>
+      InferKyselySelectCol<D[K]["columns"][C], UnifiedMap>,
+      InferKyselyInsertCol<D[K]["columns"][C], UnifiedMap>,
+      InferKyselyUpdateCol<D[K]["columns"][C], UnifiedMap>
     >;
   };
 };
