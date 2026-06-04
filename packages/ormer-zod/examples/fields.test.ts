@@ -16,7 +16,7 @@ import {
 } from "ormer";
 import { PGlite } from "@electric-sql/pglite";
 import * as k from "kysely";
-import { ALL_ZOD_FIELDS } from "./fields.ts";
+import { ALL_ZOD_FIELDS, ALL_PG_FIELDS } from "./fields.ts";
 import "../src/zod-ext.ts";
 
 function runtimeTest<T extends z.ZodTypeAny, U>(
@@ -33,9 +33,8 @@ function runtimeTest<T extends z.ZodTypeAny, U>(
 }
 
 describe("ALL_ZOD_FIELDS derivePgColumn types", () => {
-  for (const [key, { zod: zodSchema, pg: expectedColumn }] of Object.entries(
-    ALL_ZOD_FIELDS,
-  )) {
+  for (const [key, { zod: zodSchema }] of Object.entries(ALL_ZOD_FIELDS)) {
+    const expectedColumn = ALL_PG_FIELDS[key as keyof typeof ALL_PG_FIELDS];
     it(`${key}`, () => {
       runtimeTest(zodSchema, expectedColumn);
     });
@@ -50,9 +49,9 @@ describe("ALL_ZOD_FIELDS derivePgColumn types", () => {
     type TestAll = {
       [K in keyof typeof ALL_ZOD_FIELDS]: Equal<
         DerivePgColumn<(typeof ALL_ZOD_FIELDS)[K]["zod"]>,
-        (typeof ALL_ZOD_FIELDS)[K]["pg"] extends "ERROR"
+        (typeof ALL_PG_FIELDS)[K] extends "ERROR"
           ? { type: "ERROR" }
-          : (typeof ALL_ZOD_FIELDS)[K]["pg"]
+          : (typeof ALL_PG_FIELDS)[K]
       >;
     };
 
@@ -64,7 +63,7 @@ describe("ALL_ZOD_FIELDS derivePgColumn types", () => {
         : {
             key: K;
             derived: DerivePgColumn<(typeof ALL_ZOD_FIELDS)[K]["zod"]>;
-            expected: (typeof ALL_ZOD_FIELDS)[K]["pg"];
+            expected: (typeof ALL_PG_FIELDS)[K];
           };
     }[keyof TestAll];
 
@@ -119,7 +118,7 @@ describe("ALL_ZOD_FIELDS derivePgColumn types", () => {
     };
 
     type TestAll = {
-      [K in keyof typeof ALL_ZOD_FIELDS]: (typeof ALL_ZOD_FIELDS)[K]["pg"] extends "ERROR"
+      [K in keyof typeof ALL_ZOD_FIELDS]: (typeof ALL_PG_FIELDS)[K] extends "ERROR"
         ? { selectCompat: true; insertCompat: true; updateCompat: true }
         : CompatTest<(typeof ALL_ZOD_FIELDS)[K]["zod"]>;
     };
@@ -155,9 +154,10 @@ describe("ALL_ZOD_FIELDS pglite round-trip", () => {
     "c_int64_fk",
   ]);
 
-  const roundTripEntries = Object.entries(ALL_ZOD_FIELDS).filter(
-    ([key, { pg }]) => !ROUND_TRIP_OMIT.has(key) && pg !== "ERROR",
-  );
+  const roundTripEntries = Object.entries(ALL_ZOD_FIELDS).filter(([key]) => {
+    const pg = ALL_PG_FIELDS[key as keyof typeof ALL_PG_FIELDS];
+    return !ROUND_TRIP_OMIT.has(key) && pg !== "ERROR";
+  });
 
   // Build a zod object schema from all non-problematic fields
   const RoundTripSchema = z.object(
@@ -167,7 +167,12 @@ describe("ALL_ZOD_FIELDS pglite round-trip", () => {
   // Build the table from pg column definitions
   const roundTripTable = table(
     "round_trip_test",
-    Object.fromEntries(roundTripEntries.map(([key, { pg }]) => [key, pg])),
+    Object.fromEntries(
+      roundTripEntries.map(([key]) => [
+        key,
+        ALL_PG_FIELDS[key as keyof typeof ALL_PG_FIELDS],
+      ]),
+    ),
   );
 
   const roundTripDb = database({}, roundTripTable);

@@ -1,8 +1,8 @@
 import { Project, SyntaxKind } from "ts-morph";
-import { pg, PGCOLUMN_TO_SQLTYPE } from "ormer";
+import { PGCOLUMN_TO_SQLTYPE } from "ormer";
 import { md } from "./md.ts";
 import { writeFileSync } from "fs";
-import { ALL_ZOD_FIELDS } from "../ormer-zod/examples/fields.ts";
+import { ALL_PG_FIELDS } from "../ormer-zod/examples/fields.ts";
 
 /** Collapse multiline expressions into single-line for clean table display */
 function compact(expr: string): string {
@@ -81,28 +81,19 @@ function makeZodTestCaseTableHtml() {
       if (!value.isKind(SyntaxKind.ObjectLiteralExpression)) return result;
       const inner = value.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
-      // Find the "zod" and "pg" properties
+      // Find the "zod" property
       const zodProp = inner.getProperty("zod");
-      const pgProp = inner.getProperty("pg");
 
-      if (
-        !zodProp ||
-        !pgProp ||
-        !zodProp.isKind(SyntaxKind.PropertyAssignment) ||
-        !pgProp.isKind(SyntaxKind.PropertyAssignment)
-      )
+      if (!zodProp || !zodProp.isKind(SyntaxKind.PropertyAssignment))
         return result;
 
       const zodExpr = zodProp
         .asKindOrThrow(SyntaxKind.PropertyAssignment)
         .getInitializerOrThrow();
-      const pgExpr = pgProp
-        .asKindOrThrow(SyntaxKind.PropertyAssignment)
-        .getInitializerOrThrow();
 
       const propName = assignment.getName();
       const zodDisplay = zodSrcToDisplay(zodExpr.getText());
-      const pgCol = (ALL_ZOD_FIELDS as any)[propName]?.pg;
+      const pgCol = ALL_PG_FIELDS[propName as keyof typeof ALL_PG_FIELDS];
       const pgDisplay = pgColumnToSqlDisplay(pgCol);
       result.push(md`
         <tr>
