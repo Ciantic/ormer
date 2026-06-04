@@ -6,7 +6,16 @@ import {
   type InferKyselyInsertCol,
   type InferKyselyUpdateCol,
   type PgUnifiedTypeMapping,
+  database,
+  createTableSql,
+  PGCOLUMN_TO_SQLTYPE,
+  POSTGRES_OPTS,
+  type InferKyselyTypes,
+  table,
+  createPgliteParsers,
 } from "ormer";
+import { PGlite } from "@electric-sql/pglite";
+import * as k from "kysely";
 import { ALL_ZOD_FIELDS } from "./fields.ts";
 import "../src/zod-ext.ts";
 
@@ -130,5 +139,84 @@ describe("ALL_ZOD_FIELDS derivePgColumn types", () => {
     }[keyof TestAll];
 
     expectTypeOf<never>().toEqualTypeOf<FailedTests>();
+  });
+});
+
+describe("ALL_ZOD_FIELDS pglite round-trip", () => {
+  // Fields omitted from the round-trip test:
+  // - ERROR fields (uint32/uint64 have no PG mapping)
+  // - Extra auto-increment PKs (can't have multiple auto-increment PKs in one table)
+  // - FK field referencing a table that doesn't exist in the test
+  const ROUND_TRIP_OMIT = new Set([
+    "c_uint32_error",
+    "c_uint64_error",
+    "c_int_pk",
+    "c_int64_pk",
+    "c_int64_fk",
+  ]);
+
+  const roundTripEntries = Object.entries(ALL_ZOD_FIELDS).filter(
+    ([key, { pg }]) => !ROUND_TRIP_OMIT.has(key) && pg !== "ERROR",
+  );
+
+  // Build a zod object schema from all non-problematic fields
+  const RoundTripSchema = z.object(
+    Object.fromEntries(roundTripEntries.map(([key, { zod }]) => [key, zod])),
+  );
+
+  // Build the table from pg column definitions
+  const roundTripTable = table(
+    "round_trip_test",
+    Object.fromEntries(roundTripEntries.map(([key, { pg }]) => [key, pg])),
+  );
+
+  const roundTripDb = database({}, roundTripTable);
+
+  // The example row built from each field's example value
+  const exampleRow = Object.fromEntries(
+    roundTripEntries.map(([key, { example }]) => [key, example]),
+  );
+
+  it("validates example inputs via zod, inserts into pglite, selects back, and compares", async () => {
+    // 1. Validate the example row via zod
+    const parsed = RoundTripSchema.parse(exampleRow);
+    expect(parsed).toEqual(exampleRow);
+
+    // 2. Create PGlite instance and execute schema
+    const pglite = new PGlite({
+      parsers: createPgliteParsers(),
+    });
+
+    const sql = createTableSql(PGCOLUMN_TO_SQLTYPE, roundTripDb, POSTGRES_OPTS);
+    await pglite.exec(sql);
+
+    // 3. Create typed Kysely instance
+    type KyselyTypes = InferKyselyTypes<
+      typeof roundTripDb,
+      PgUnifiedTypeMapping
+    >;
+
+    const kyselyDb = new k.Kysely<KyselyTypes>({
+      dialect: new k.PGliteDialect({
+        pglite,
+      }),
+    });
+
+    // 4. Insert the example row
+    await kyselyDb
+      .insertInto("round_trip_test")
+      .values(exampleRow as any)
+      .execute();
+
+    // 5. Select back and compare
+    const results = await kyselyDb
+      .selectFrom("round_trip_test")
+      .selectAll()
+      .execute();
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toEqual(exampleRow);
+
+    await pglite.close();
   });
 });

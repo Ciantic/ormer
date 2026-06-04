@@ -127,6 +127,20 @@ export type ZodBigIntFormatVal<F extends "int64" | "uint64"> = {
   _zod: { def: { format: F } };
 };
 
+export type NaiveDatetime = {
+  def: { isNaiveDatetime: true };
+};
+
+function naiveDatetime<T extends z.ZodString>(this: T): T & NaiveDatetime {
+  // YYYY-MM-DD HH:MM:SS[.SSS] no time zone, separated by space
+  const res = this.regex(
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{3})?$/,
+    "Invalid datetime format, expected YYYY-MM-DD HH:MM:SS[.SSS]",
+  );
+  (res as unknown as NaiveDatetime).def.isNaiveDatetime = true;
+  return res as T & NaiveDatetime;
+}
+
 declare module "zod" {
   interface ZodType {
     dbTable: typeof dbTable;
@@ -143,6 +157,8 @@ declare module "zod" {
       maxLength: T,
       params?: string | z.core.$ZodCheckMaxLengthParams,
     ): this & { maxLength: T };
+
+    naiveDatetime: typeof naiveDatetime;
   }
 
   namespace z {
@@ -184,3 +200,4 @@ z.ZodObject.prototype.dbNavigateSelf = dbNavigateSelf;
 z.ZodType.prototype.dbFk = dbFk;
 z.ZodType.prototype.dbPk = dbPk;
 z.ZodType.prototype.dbPg = dbPg;
+z.ZodString.prototype.naiveDatetime = naiveDatetime;

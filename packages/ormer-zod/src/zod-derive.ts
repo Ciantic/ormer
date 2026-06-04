@@ -9,6 +9,7 @@ import type {
   ZodDbPgColumnType,
   ZodBigIntFormatVal,
   ZodNumberFormatVal,
+  NaiveDatetime,
 } from "./zod-ext.ts";
 import type {
   ZodType,
@@ -21,7 +22,6 @@ import type {
   RewrapDeriveTable,
   IsOptional,
   ArrayDimensions,
-  UnwrapUntilReturnTrue,
 } from "./common.ts";
 
 // prettier-ignore
@@ -48,7 +48,7 @@ type DeriveBaseColumn<T extends ZodType> =
   : T extends z.ZodCIDRv6 ? ColumnTypeSingualr<"cidr">
   : T extends z.ZodISOTime ? ColumnTypeSingualr<"time">
   : T extends z.ZodISODate ? ColumnTypeSingualr<"date">
-  : T extends z.ZodISODateTime ? ColumnTypeSingualr<"timestamp">
+  : T extends NaiveDatetime ? ColumnTypeSingualr<"timestamp">
 
   // Custom workarounds because of this: https://github.com/colinhacks/zod/issues/6045
   // Number formats
@@ -289,6 +289,12 @@ export function derivePgColumn<
   }
 
   if (node instanceof z.ZodISODateTime) {
+    throw new Error(
+      `ZodISODateTime is not supported by derivePgColumn. Use z.string().naiveDatetime() instead.`,
+    );
+  }
+
+  if ("isNaiveDatetime" in node.def && node.def.isNaiveDatetime) {
     return pg.timestamp(pgParamsBase) as ColumnType<any, any>;
   }
 

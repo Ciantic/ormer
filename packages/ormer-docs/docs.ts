@@ -2,6 +2,7 @@ import { Project, SyntaxKind } from "ts-morph";
 import { pg, PGCOLUMN_TO_SQLTYPE } from "ormer";
 import { md } from "./md.ts";
 import { writeFileSync } from "fs";
+import { ALL_ZOD_FIELDS } from "../ormer-zod/examples/fields.ts";
 
 /** Collapse multiline expressions into single-line for clean table display */
 function compact(expr: string): string {
@@ -9,18 +10,15 @@ function compact(expr: string): string {
 }
 
 /**
- * Eval a pg expression (e.g. `pg.int8({ primaryKey: true, autoIncrement: true })`)
- * and return the SQL column type name (e.g. `SERIAL8`).
+ * Given a pg column object (e.g. `pg.int8({ primaryKey: true })`),
+ * return the SQL column type name (e.g. `SERIAL8`).
  */
-function pgColumnToSqlDisplay(pgSrc: string): string {
-  if (pgSrc.includes("ERROR")) return "<em>Not Available</em>";
-  let col: any;
-  try {
-    col = new Function("pg", `return (${pgSrc})`)(pg);
-  } catch {
-    return pgSrc; // fallback to source text
+function pgColumnToSqlDisplay(col: any): string {
+  if (typeof col === "string") {
+    if (col === "ERROR") return "<em>Not Available</em>";
+    return col;
   }
-  if (!col || typeof col.type !== "string") return pgSrc;
+  if (!col || typeof col.type !== "string") return String(col);
 
   const { type, ...params } = col;
   const fn = PGCOLUMN_TO_SQLTYPE[type as keyof typeof PGCOLUMN_TO_SQLTYPE];
@@ -102,8 +100,10 @@ function makeZodTestCaseTableHtml() {
         .asKindOrThrow(SyntaxKind.PropertyAssignment)
         .getInitializerOrThrow();
 
+      const propName = assignment.getName();
       const zodDisplay = zodSrcToDisplay(zodExpr.getText());
-      const pgDisplay = pgColumnToSqlDisplay(compact(pgExpr.getText()));
+      const pgCol = (ALL_ZOD_FIELDS as any)[propName]?.pg;
+      const pgDisplay = pgColumnToSqlDisplay(pgCol);
       result.push(md`
         <tr>
           <td>${zodDisplay}</td>
