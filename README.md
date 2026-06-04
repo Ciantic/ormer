@@ -13,7 +13,7 @@ This is pure dependency free package that allows to define database schemas.
 Supported are SQLite, Postgres (pg, pglite) and DuckDB.
 ## Ormer-Zod package
 
-The table below is generated from the test cases in `packages/ormer-zod/src/zod-examples.ts`.
+The table below is generated from the test cases in `packages/ormer-zod/examples/fields.ts`.
 
 I have patched the Zod namespace to add first `dbPk()` and `dbFk()`, etc modifiers, and make `ZodNumberFormat` and `ZodBigIntFormat` retain the format at type-level, see this [feature request](https://github.com/colinhacks/zod/issues/6045).
 
