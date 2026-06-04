@@ -146,13 +146,7 @@ describe("ALL_ZOD_FIELDS pglite round-trip", () => {
   // - ERROR fields (uint32/uint64 have no PG mapping)
   // - Extra auto-increment PKs (can't have multiple auto-increment PKs in one table)
   // - FK field referencing a table that doesn't exist in the test
-  const ROUND_TRIP_OMIT = new Set([
-    "c_uint32_error",
-    "c_uint64_error",
-    "c_int_pk",
-    "c_int64_pk",
-    "c_int64_fk",
-  ]);
+  const ROUND_TRIP_OMIT = new Set(["c_int_pk", "c_int64_pk", "c_int64_fk"]);
 
   const roundTripEntries = Object.entries(ALL_ZOD_FIELDS).filter(([key]) => {
     const pg = ALL_PG_FIELDS[key as keyof typeof ALL_PG_FIELDS];

@@ -19,13 +19,13 @@ export const ALL_ZOD_FIELDS = {
   c_int:              { zod: z.int(),              example: 100 },
   c_int_pk:           { zod: z.int().dbPk(),       example: 1 },
   c_int32:            { zod: z.int32(),            example: 200 },
-  c_uint32_error:     { zod: z.uint32(),           example: 300 },
+  c_uint32:           { zod: z.uint32(),           example: 300 },
 
   // Bigint 
   c_bigint:           { zod: z.bigint(),           example: 9007199254740991n },
   c_int64:            { zod: z.int64(),            example: 123456789n },
   c_int64_pk:         { zod: z.int64().dbPk(),     example: 1n },
-  c_uint64_error:     { zod: z.uint64(),           example: 18446744073709551615n },
+  c_uint64:           { zod: z.uint64(),           example: 18446744073709551615n },
 
   // Boolean
   c_bool:             { zod: z.boolean(),          example: true },
@@ -96,13 +96,13 @@ export const ALL_PG_FIELDS = {
   c_int: pg.int4(),
   c_int_pk: pg.int4(pkAutoInc),
   c_int32: pg.int4(),
-  c_uint32_error: "ERROR" as const,
+  c_uint32: "ERROR" as const,
 
   // Bigint
   c_bigint: pg.int8(),
   c_int64: pg.int8(),
   c_int64_pk: pg.int8(pkAutoInc),
-  c_uint64_error: "ERROR" as const,
+  c_uint64: "ERROR" as const,
 
   // Boolean
   c_bool: pg.boolean(),
