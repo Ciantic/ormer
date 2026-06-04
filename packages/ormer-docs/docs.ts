@@ -152,6 +152,9 @@ function generateReadmeMd() {
     Notes:
 
     - Optional Zod schemas, e.g. \`z.string().optional()\`, are not supported for now. Suppose I mapped it to be nullable column, then INSERT and UPDATE would work correctly, because PG/PGLite and DuckDB converts the undefined to null on INSERT and UPDATE. Problem is when you SELECT a field with null values. They are not then assignable to Zod schema, because null doesn't validate against optional schema.
+    - \`z.uint64()\` and \`z.uint32()\` have no good mapping corresponding mapping in the Postgres.
+    - \`z.bigint()\` is mapped to be INT8 in postgres, this might be incorrect for arbitrary sized bigints. If you need that use custom mapping.
+    - \`z.int()\` is mapped to be INT4 in postgres, and thus not all of the IEEE 754 safe integers are valid values.
   `);
 
   readme.push(makeZodTestCaseTableHtml());
