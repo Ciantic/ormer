@@ -134,6 +134,10 @@ function generateReadmeMd() {
     This is pure dependency free package that allows to define database schemas.
 
     Supported are SQLite, Postgres (pg, pglite) and DuckDB.
+
+    To make schemas useful with databases, the input and output types should match with the schema. For example Zod schema input should match with Postgres SELECT (output) value. Likewise Zod schema output value should be usable in Postgres UPDATE and INSERT (input) value:
+
+    Database SELECT -> Zod input -> Zod output -> Database INSERT or UPDATE.
   `);
 
   readme.push(md`

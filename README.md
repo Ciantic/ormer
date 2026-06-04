@@ -11,6 +11,10 @@ Made of two packages `packages/ormer` and `packages/ormer-zod`. There is also ol
 This is pure dependency free package that allows to define database schemas.
 
 Supported are SQLite, Postgres (pg, pglite) and DuckDB.
+
+To make schemas useful with databases, the input and output types should match with the schema. For example Zod schema input should match with Postgres SELECT (output) value. Likewise Zod schema output value should be usable in Postgres UPDATE and INSERT (input) value:
+
+Database SELECT -> Zod input -> Zod output -> Database INSERT or UPDATE.
 ## Ormer-Zod package
 
 The table below is generated from the test cases in `packages/ormer-zod/examples/fields.ts`.
