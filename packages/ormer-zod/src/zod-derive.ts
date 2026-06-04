@@ -49,6 +49,7 @@ type DeriveBaseColumn<T extends ZodType> =
   : T extends z.ZodISOTime ? ColumnTypeSingualr<"time">
   : T extends z.ZodISODate ? ColumnTypeSingualr<"date">
   : T extends NaiveDatetime ? ColumnTypeSingualr<"timestamp">
+  : T extends z.ZodISODateTime ? { type: "ERROR" } // Not supported, see test cases
 
   // Custom workarounds because of this: https://github.com/colinhacks/zod/issues/6045
   // Number formats

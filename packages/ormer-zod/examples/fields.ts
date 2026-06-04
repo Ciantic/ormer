@@ -34,6 +34,7 @@ export const ALL_ZOD_FIELDS = {
   c_date:             { zod: z.date(),             pg: pg.timestamptz(),         example: new Date("2024-01-15T10:30:00Z") },
   c_time:             { zod: z.iso.time(),         pg: pg.time(),                example: "14:30:00" },
   c_date_only:        { zod: z.iso.date(),         pg: pg.date(),                example: "2024-01-15" },
+  c_datetime:         { zod: z.iso.datetime(),     pg: "ERROR",                  example: "2024-01-15T10:00Z" },
   c_timestamp:        { zod: z.string().naiveDatetime(),      pg: pg.timestamp(),           example: "2024-01-15 10:30:00" },
 
   // GUID / UUID
