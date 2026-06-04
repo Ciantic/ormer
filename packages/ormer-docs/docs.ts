@@ -148,6 +148,10 @@ function generateReadmeMd() {
     I have patched the Zod namespace to add first \`dbPk()\` and \`dbFk()\`, etc modifiers, and make \`ZodNumberFormat\` and \`ZodBigIntFormat\` retain the format at type-level, see this [feature request](https://github.com/colinhacks/zod/issues/6045).
 
     To use these extension one must import the \`zod-ext.ts\` file. (To be determined how this work in practice)
+
+    Notes:
+
+    - Optional Zod schemas, e.g. \`z.string().optional()\`, are not supported for now. Suppose I mapped it to be nullable column, then INSERT and UPDATE would work correctly, because PG/PGLite and DuckDB converts the undefined to null on INSERT and UPDATE. Problem is when you SELECT a field with null values. They are not then assignable to Zod schema, because null doesn't validate against optional schema.
   `);
 
   readme.push(makeZodTestCaseTableHtml());
