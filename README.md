@@ -29,6 +29,7 @@ Notes:
 - `z.uint64()` and `z.uint32()` have no good mapping in the Postgres.
 - `z.bigint()` is mapped to be INT8 in postgres, this might be incorrect for arbitrary sized bigints. If you need that use custom mapping.
 - `z.int()` is mapped to be INT4 in postgres, and thus not all of the IEEE 754 safe integers are valid values.
+- `z.iso.datetime()` can't be used, it does not allow timestamp format without a T divider. Postgres returns TIMESTAMP values as YYYY-MM-DD HH:MM:SS without the T.
 <table>
   <thead>
     <tr>
