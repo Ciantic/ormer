@@ -40,6 +40,9 @@ Notes:
   </thead>
   <tbody>
     <tr>
+<td colspan="4"><strong>String values</strong></td>
+</tr>
+<tr>
 <td><code>z.string()</code></td>
 <td><code>TEXT</code></td>
 <td><code></code></td>
@@ -50,6 +53,9 @@ Notes:
 <td><code>VARCHAR(255)</code></td>
 <td><code></code></td>
 <td><code></code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Number types</strong></td>
 </tr>
 <tr>
 <td><code>z.number()</code></td>
@@ -100,6 +106,9 @@ Notes:
 <td><code></code></td>
 </tr>
 <tr>
+<td colspan="4"><strong>Bigint</strong></td>
+</tr>
+<tr>
 <td><code>z.bigint()</code></td>
 <td><code>INT8</code></td>
 <td><code></code></td>
@@ -124,16 +133,25 @@ Notes:
 <td><code></code></td>
 </tr>
 <tr>
+<td colspan="4"><strong>Boolean</strong></td>
+</tr>
+<tr>
 <td><code>z.boolean()</code></td>
 <td><code>BOOLEAN</code></td>
 <td><code></code></td>
 <td><code></code></td>
 </tr>
 <tr>
+<td colspan="4"><strong>Date/time types</strong></td>
+</tr>
+<tr>
 <td><code>z.date()</code></td>
 <td><code>TIMESTAMPTZ</code></td>
 <td><code></code></td>
 <td><code></code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>GUID / UUID</strong></td>
 </tr>
 <tr>
 <td><code>z.uuid()</code></td>
@@ -146,6 +164,9 @@ Notes:
 <td><code>UUID</code></td>
 <td><code></code></td>
 <td><code></code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Various string formats</strong></td>
 </tr>
 <tr>
 <td><code>z.url()</code></td>
@@ -220,6 +241,9 @@ Notes:
 <td><code></code></td>
 </tr>
 <tr>
+<td colspan="4"><strong>Network types</strong></td>
+</tr>
+<tr>
 <td><code>z.ipv4()</code></td>
 <td><code>INET</code></td>
 <td><code></code></td>
@@ -250,6 +274,9 @@ Notes:
 <td><code></code></td>
 </tr>
 <tr>
+<td colspan="4"><strong>Array types</strong></td>
+</tr>
+<tr>
 <td><code>z.int().array()</code></td>
 <td><code>INT4[]</code></td>
 <td><code></code></td>
@@ -272,6 +299,9 @@ Notes:
 <td><code>TEXT[] NULL</code></td>
 <td><code></code></td>
 <td><code></code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Container types</strong></td>
 </tr>
 <tr>
 <td><code>z.string().nullable()</code></td>

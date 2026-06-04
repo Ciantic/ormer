@@ -60,12 +60,27 @@ function makeZodTestCaseTableHtml() {
 
   const rows = objectLiteral
     .getProperties()
-    .map((prop) => {
-      if (!prop.isKind(SyntaxKind.PropertyAssignment)) return "";
+    .flatMap((prop) => {
+      // Extract leading comments (e.g. "// String values") from the property's leading trivia
+      const fullText = prop.getFullText();
+      const text = prop.getText();
+      const leadingTrivia = fullText.substring(0, fullText.indexOf(text));
+      const commentMatch = leadingTrivia.match(/\/\/\s*(.+?)\s*$/m);
+
+      const result: string[] = [];
+      if (commentMatch) {
+        result.push(md`
+          <tr>
+            <td colspan="4"><strong>${commentMatch[1]}</strong></td>
+          </tr>
+        `);
+      }
+
+      if (!prop.isKind(SyntaxKind.PropertyAssignment)) return result;
       const assignment = prop.asKindOrThrow(SyntaxKind.PropertyAssignment);
       const value = assignment.getInitializerOrThrow();
 
-      if (!value.isKind(SyntaxKind.ObjectLiteralExpression)) return "";
+      if (!value.isKind(SyntaxKind.ObjectLiteralExpression)) return result;
       const inner = value.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
 
       // Find the "zod" and "pg" properties
@@ -78,7 +93,7 @@ function makeZodTestCaseTableHtml() {
         !zodProp.isKind(SyntaxKind.PropertyAssignment) ||
         !pgProp.isKind(SyntaxKind.PropertyAssignment)
       )
-        return "";
+        return result;
 
       const zodExpr = zodProp
         .asKindOrThrow(SyntaxKind.PropertyAssignment)
@@ -89,14 +104,15 @@ function makeZodTestCaseTableHtml() {
 
       const zodDisplay = zodSrcToDisplay(zodExpr.getText());
       const pgDisplay = pgColumnToSqlDisplay(compact(pgExpr.getText()));
-      return md`
+      result.push(md`
         <tr>
           <td>${zodDisplay}</td>
           <td>${pgDisplay}</td>
           <td><code></code></td>
           <td><code></code></td>
         </tr>
-      `;
+      `);
+      return result;
     })
     .join("\n");
 

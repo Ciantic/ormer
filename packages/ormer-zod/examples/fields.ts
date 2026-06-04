@@ -6,6 +6,7 @@ export const UserSchema = z.object({ id: z.int64().dbPk() }).dbTable("users");
 
 // prettier-ignore
 export const ALL_ZOD_FIELDS = {
+  // String values
   c_str:              { zod: z.string(),           pg: pg.text() },
   c_str_max255:       { zod: z.string().max(255),  pg: pg.varchar({ maxLength: 255 }) },
 
@@ -25,11 +26,17 @@ export const ALL_ZOD_FIELDS = {
   c_int64_pk:         { zod: z.int64().dbPk(),     pg: pg.int8({ primaryKey: true, autoIncrement: true }) },
   c_uint64_error:     { zod: z.uint64(),           pg: "ERROR" },
 
+  // Boolean
   c_bool:             { zod: z.boolean(),          pg: pg.boolean() },
+
+  // Date/time types
   c_date:             { zod: z.date(),             pg: pg.timestamptz() },
+
+  // GUID / UUID
   c_uuid:             { zod: z.uuid(),             pg: pg.uuid() },
   c_guid:             { zod: z.guid(),             pg: pg.uuid() },
 
+  // Various string formats
   c_url:              { zod: z.url(),              pg: pg.text() },
   c_email:            { zod: z.email(),            pg: pg.text() },
   c_emoji:            { zod: z.emoji(),            pg: pg.text() },
@@ -42,6 +49,8 @@ export const ALL_ZOD_FIELDS = {
   c_base64url:        { zod: z.base64url(),        pg: pg.text() },
   c_e164:             { zod: z.e164(),             pg: pg.text() },
   c_jwt:              { zod: z.jwt(),              pg: pg.text() },
+
+  // Network types
   c_ipv4:             { zod: z.ipv4(),             pg: pg.inet() },
   c_ipv6:             { zod: z.ipv6(),             pg: pg.inet() },
   c_mac:              { zod: z.mac(),              pg: pg.macaddr() },
