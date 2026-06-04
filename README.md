@@ -151,6 +151,24 @@ Notes:
 <td><code></code></td>
 </tr>
 <tr>
+<td><code>z.iso.time()</code></td>
+<td><code>TIME</code></td>
+<td><code></code></td>
+<td><code></code></td>
+</tr>
+<tr>
+<td><code>z.iso.datetime()</code></td>
+<td><code>TIMESTAMP</code></td>
+<td><code></code></td>
+<td><code></code></td>
+</tr>
+<tr>
+<td><code>z.iso.date()</code></td>
+<td><code>DATE</code></td>
+<td><code></code></td>
+<td><code></code></td>
+</tr>
+<tr>
 <td colspan="4"><strong>GUID / UUID</strong></td>
 </tr>
 <tr>

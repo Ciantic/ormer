@@ -46,6 +46,9 @@ type DeriveBaseColumn<T extends ZodType> =
   : T extends z.ZodMAC ? ColumnTypeSingualr<"macaddr">
   : T extends z.ZodCIDRv4 ? ColumnTypeSingualr<"cidr">
   : T extends z.ZodCIDRv6 ? ColumnTypeSingualr<"cidr">
+  : T extends z.ZodISOTime ? ColumnTypeSingualr<"time">
+  : T extends z.ZodISODate ? ColumnTypeSingualr<"date">
+  : T extends z.ZodISODateTime ? ColumnTypeSingualr<"timestamp">
 
   // Custom workarounds because of this: https://github.com/colinhacks/zod/issues/6045
   // Number formats
@@ -275,6 +278,18 @@ export function derivePgColumn<
 
   if (node instanceof z.ZodCIDRv6) {
     return pg.cidr(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodISOTime) {
+    return pg.time(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodISODate) {
+    return pg.date(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodISODateTime) {
+    return pg.timestamp(pgParamsBase) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodString) {

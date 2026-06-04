@@ -31,6 +31,9 @@ export const ALL_ZOD_FIELDS = {
 
   // Date/time types
   c_date:             { zod: z.date(),             pg: pg.timestamptz() },
+  c_time:             { zod: z.iso.time(),         pg: pg.time() },
+  c_timestamp:        { zod: z.iso.datetime(),     pg: pg.timestamp() },
+  c_date_only:        { zod: z.iso.date(),         pg: pg.date() },
 
   // GUID / UUID
   c_uuid:             { zod: z.uuid(),             pg: pg.uuid() },
