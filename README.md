@@ -269,7 +269,7 @@ To use these extension one must import the `zod-ext.ts` file. (To be determined 
 <td><code></code></td>
 </tr>
 <tr>
-<td><code>z.string().optional()</code></td>
+<td><code>z.string().nullish()</code></td>
 <td><code>TEXT NULL</code></td>
 <td><code></code></td>
 <td><code></code></td>

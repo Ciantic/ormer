@@ -102,7 +102,7 @@ describe("kysely", () => {
       ColumnType<
         number | null,
         string | number | bigint | null | undefined,
-        string | number | bigint | null
+        string | number | bigint | null | undefined
       >
     >();
     expectTypeOf<KyselyTypes["all_types"]["int4_col"]>().toEqualTypeOf<
@@ -271,7 +271,7 @@ describe("kysely", () => {
       ColumnType<
         number[] | null,
         (string | number | bigint)[] | null | undefined,
-        (string | number | bigint)[] | null
+        (string | number | bigint)[] | null | undefined
       >
     >();
     expectTypeOf<KyselyTypes["all_types"]["int4_2d_col"]>().toEqualTypeOf<

@@ -70,45 +70,43 @@ describe("ALL_ZOD_FIELDS derivePgColumn types", () => {
 
     // For each non-ERROR field, check the three InferKysely* types
     // are compatible with the zod schema's output/input types.
+    // Returns true on success, or { zod, pg } showing the mismatched types.
+    // Use [X] extends [Y] to prevent distributive conditional types.
+
+    type SelectPG<Z extends z.ZodTypeAny> = InferKyselySelectCol<
+      DerivePgColumn<Z>,
+      PgUnifiedTypeMapping
+    >;
+    type InsertPG<Z extends z.ZodTypeAny> = InferKyselyInsertCol<
+      DerivePgColumn<Z>,
+      PgUnifiedTypeMapping
+    >;
+    type UpdatePG<Z extends z.ZodTypeAny> = InferKyselyUpdateCol<
+      DerivePgColumn<Z>,
+      PgUnifiedTypeMapping
+    >;
+
     type CompatTest<Z extends z.ZodTypeAny> = {
-      // PG output (SELECT) should be usable as zod input
-      selectCompat: Equal<
-        InferKyselySelectCol<DerivePgColumn<Z>, PgUnifiedTypeMapping>,
-        never
-      > extends true
+      // PG SELECT output should be parseable by zod input
+      selectCompat: SelectPG<Z> extends never
         ? false
-        : z.input<Z> extends InferKyselySelectCol<
-              DerivePgColumn<Z>,
-              PgUnifiedTypeMapping
-            >
+        : SelectPG<Z> extends z.input<Z> // Select output -> Zod input
           ? true
-          : false;
+          : { zod: z.input<Z>; pg: SelectPG<Z> };
 
       // Zod output should be insertable into PG
-      insertCompat: Equal<
-        InferKyselyInsertCol<DerivePgColumn<Z>, PgUnifiedTypeMapping>,
-        never
-      > extends true
+      insertCompat: InsertPG<Z> extends never
         ? false
-        : z.output<Z> extends InferKyselyInsertCol<
-              DerivePgColumn<Z>,
-              PgUnifiedTypeMapping
-            >
+        : z.output<Z> extends InsertPG<Z> // Zod output -> PG INSERT input
           ? true
-          : false;
+          : { zod: z.output<Z>; pg: InsertPG<Z> };
 
       // Zod output should be usable for PG updates
-      updateCompat: Equal<
-        InferKyselyUpdateCol<DerivePgColumn<Z>, PgUnifiedTypeMapping>,
-        never
-      > extends true
+      updateCompat: UpdatePG<Z> extends never
         ? false
-        : z.output<Z> extends InferKyselyUpdateCol<
-              DerivePgColumn<Z>,
-              PgUnifiedTypeMapping
-            >
+        : z.output<Z> extends UpdatePG<Z> // Zod output -> PG UPDATE input
           ? true
-          : false;
+          : { zod: z.output<Z>; pg: UpdatePG<Z> };
     };
 
     type TestAll = {
@@ -117,21 +115,20 @@ describe("ALL_ZOD_FIELDS derivePgColumn types", () => {
         : CompatTest<(typeof ALL_ZOD_FIELDS)[K]["zod"]>;
     };
 
-    type AllPassed = {
-      [K in keyof TestAll]: TestAll[K] extends {
-        selectCompat: true;
-        insertCompat: true;
-        updateCompat: true;
-      }
-        ? never
-        : {
-            key: K;
-            failures: {
-              [P in keyof TestAll[K]]: TestAll[K][P] extends true ? never : P;
-            }[keyof TestAll[K]];
-          };
+    // Each union member is one failed check: { key, checkName: { zod, pg } }
+    type FailedTests = {
+      [K in keyof TestAll]:
+        | (TestAll[K]["selectCompat"] extends true
+            ? never
+            : { key: K; selectCompat: TestAll[K]["selectCompat"] })
+        | (TestAll[K]["insertCompat"] extends true
+            ? never
+            : { key: K; insertCompat: TestAll[K]["insertCompat"] })
+        | (TestAll[K]["updateCompat"] extends true
+            ? never
+            : { key: K; updateCompat: TestAll[K]["updateCompat"] });
     }[keyof TestAll];
 
-    expectTypeOf<never>().toEqualTypeOf<AllPassed>();
+    expectTypeOf<never>().toEqualTypeOf<FailedTests>();
   });
 });

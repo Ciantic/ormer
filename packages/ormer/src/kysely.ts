@@ -65,7 +65,9 @@ export type InferKyselyUpdateCol<
 }
   ? never
   : ColIO<Col, UnifiedMap> extends { __update__: infer I }
-    ? ApplyArrays<Col, I> | (Col extends { nullable: true } ? null : never)
+    ?
+        | ApplyArrays<Col, I>
+        | (Col extends { nullable: true } ? null | undefined : never)
     : never;
 
 /**

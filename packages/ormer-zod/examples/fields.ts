@@ -54,7 +54,7 @@ export const ALL_ZOD_FIELDS = {
 
   // Container types
   c_str_nullable:     { zod: z.string().nullable(),          pg: pg.text({ nullable: true }) },
-  c_str_optional:     { zod: z.string().optional(),          pg: pg.text({ nullable: true }) },
+  c_str_nullish:      { zod: z.string().nullish(),           pg: pg.text({ nullable: true }) },
   c_str_default:      { zod: z.string().default("hello"),    pg: pg.text({ default: "hello" }) },
   c_str_prefault:     { zod: z.string().prefault("hello"),   pg: pg.text({ default: "hello" }) },
   c_str_pk:           { zod: z.string().dbPk(),              pg: pg.text({ primaryKey: true }) },
