@@ -2,6 +2,8 @@ import { z } from "zod";
 import { pg } from "ormer";
 import "../src/zod-ext.ts";
 
+export const UserSchema = z.object({ id: z.int64().dbPk() }).dbTable("users");
+
 // prettier-ignore
 export const ALL_ZOD_FIELDS = {
   c_str:              { zod: z.string(),           pg: pg.text() },
@@ -59,7 +61,7 @@ export const ALL_ZOD_FIELDS = {
   c_str_prefault:     { zod: z.string().prefault("hello"),   pg: pg.text({ default: "hello" }) },
   c_str_pk:           { zod: z.string().dbPk(),              pg: pg.text({ primaryKey: true }) },
   c_int64_fk:         { 
-    zod: z.int64().dbFk(z.object({ id: z.int64().dbPk() }).dbTable("users"), "id"),                          
+    zod: z.int64().dbFk(UserSchema, "id"),                          
     pg: pg.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }) 
   },
 } as const
