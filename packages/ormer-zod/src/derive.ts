@@ -2,56 +2,60 @@ import { z, type ZodType } from "zod";
 import type { ZodDbParams } from "./zod-ext.ts";
 import type { ColumnType, Params } from "ormer";
 
+type DeriveParams<T = {}> = {
+  nullable?: boolean;
+  //   optional?: boolean;
+  default?: unknown;
+  primaryKey?: boolean;
+  autoIncrement?: boolean;
+  foreignKeyTable?: string;
+  foreignKeyColumn?: string;
+  array?: string;
+  //   maxLength?: number;
+  //   schema?: ZodType;
+} & T;
+
 type ZodSchemas =
-  | "uuid"
-  | "guid"
-  | "url"
-  | "emoji"
-  | "nanoid"
-  | "cuid2"
-  | "ulid"
-  | "xid"
-  | "ksuid"
-  | "base64"
-  | "base64url"
-  | "e164"
-  | "jwt"
-  | "ipv4"
-  | "ipv6"
-  | "mac"
-  | "cidrv4"
-  | "cidrv6"
-  | "isoTime"
-  | "isoDate"
-  | "isoDatetime"
-  | "naiveDatetime"
-  | "email"
-  | "string"
-  | "int64"
-  | "int32"
-  | "uint32"
-  | "uint64"
-  | "bigint"
-  | "float32"
-  | "float64"
-  | "boolean"
-  | "date"
-  | "json"
-  | "object";
+  | ["uuid", DeriveParams<{ default?: "generate" }>]
+  | ["guid", DeriveParams<{ default?: "generate" }>]
+  | ["url", DeriveParams]
+  | ["emoji", DeriveParams]
+  | ["nanoid", DeriveParams<{ maxLength: 21 }>]
+  | ["cuid2", DeriveParams]
+  | ["ulid", DeriveParams<{ maxLength: 26 }>]
+  | ["xid", DeriveParams<{ maxLength: 20 }>]
+  | ["ksuid", DeriveParams<{ maxLength: 27 }>]
+  | ["base64", DeriveParams]
+  | ["base64url", DeriveParams]
+  | ["e164", DeriveParams]
+  | ["jwt", DeriveParams]
+  | ["ipv4", DeriveParams]
+  | ["ipv6", DeriveParams]
+  | ["mac", DeriveParams]
+  | ["cidrv4", DeriveParams]
+  | ["cidrv6", DeriveParams]
+  | ["isoTime", DeriveParams]
+  | ["isoDate", DeriveParams]
+  | ["isoDatetime", DeriveParams]
+  | ["naiveDatetime", DeriveParams]
+  | ["email", DeriveParams]
+  | ["string", DeriveParams<{ maxLength: number }> | DeriveParams]
+  | ["int64", DeriveParams]
+  | ["int32", DeriveParams]
+  | ["uint32", DeriveParams]
+  | ["uint64", DeriveParams]
+  | ["bigint", DeriveParams]
+  | ["float32", DeriveParams]
+  | ["float64", DeriveParams]
+  | ["boolean", DeriveParams]
+  | ["date", DeriveParams]
+  | ["json", DeriveParams<{ schema: ZodType }>]
+  | ["object", DeriveParams<{ schema: ZodType }>];
 
 export function deriveColumn<
   T extends ZodType & { def?: { db?: Partial<ZodDbParams> } },
-  F extends (
-    t: ZodSchemas,
-    params?: Partial<Params & { maxLength?: number }>,
-  ) => ColumnType<string, typeof params>,
+  F extends (t: ZodSchemas) => ColumnType<string, (typeof t)[1]>,
 >(schema: T, chooser: F) {
-  // Explicit .dbPg() override — skip derivation entirely
-  const dbMeta = schema.def?.db;
-  if (dbMeta?.pgColumnType) {
-    return dbMeta?.pgColumnType as ColumnType<any, any>;
-  }
-
   let node = schema;
   let nullable: boolean | undefined = undefined;
   let optional: boolean | undefined = undefined;
@@ -106,7 +110,7 @@ export function deriveColumn<
   }
 
   // Create params for the pg.X(params) call
-  let pgParamsBase: Partial<Params> = {};
+  let pgParamsBase: Partial<DeriveParams> = {};
   if (nullable) pgParamsBase.nullable = true;
   if (optional) pgParamsBase.nullable = true;
   if (typeof defaultValue !== "undefined") pgParamsBase.default = defaultValue;
@@ -125,118 +129,139 @@ export function deriveColumn<
   }
 
   if (node instanceof z.ZodUUID) {
-    return chooser("uuid", pgParamsBase) as ColumnType<any, any>;
+    return chooser([
+      "uuid",
+      pgParamsBase as DeriveParams<{ default?: "generate" }>,
+    ]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodGUID) {
-    return chooser("guid", pgParamsBase) as ColumnType<any, any>;
+    return chooser([
+      "guid",
+      pgParamsBase as DeriveParams<{ default?: "generate" }>,
+    ]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodURL) {
-    return chooser("url", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["url", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodEmoji) {
-    return chooser("emoji", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["emoji", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodNanoID) {
-    return chooser("nanoid", {
-      ...pgParamsBase,
-      maxLength: 21,
-    }) as ColumnType<any, any>;
+    return chooser([
+      "nanoid",
+      {
+        ...pgParamsBase,
+        maxLength: 21,
+      },
+    ]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodCUID2) {
-    return chooser("cuid2", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["cuid2", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodULID) {
-    return chooser("ulid", {
-      ...pgParamsBase,
-      maxLength: 26,
-    }) as ColumnType<any, any>;
+    return chooser([
+      "ulid",
+      {
+        ...pgParamsBase,
+        maxLength: 26,
+      },
+    ]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodXID) {
-    return chooser("xid", {
-      ...pgParamsBase,
-      maxLength: 20,
-    }) as ColumnType<any, any>;
+    return chooser([
+      "xid",
+      {
+        ...pgParamsBase,
+        maxLength: 20,
+      },
+    ]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodKSUID) {
-    return chooser("ksuid", {
-      ...pgParamsBase,
-      maxLength: 27,
-    }) as ColumnType<any, any>;
+    return chooser([
+      "ksuid",
+      {
+        ...pgParamsBase,
+        maxLength: 27,
+      },
+    ]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodBase64) {
-    return chooser("base64", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["base64", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodBase64URL) {
-    return chooser("base64url", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["base64url", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodE164) {
-    return chooser("e164", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["e164", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodJWT) {
-    return chooser("jwt", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["jwt", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodIPv4) {
-    return chooser("ipv4", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["ipv4", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodIPv6) {
-    return chooser("ipv6", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["ipv6", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodMAC) {
-    return chooser("mac", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["mac", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodCIDRv4) {
-    return chooser("cidrv4", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["cidrv4", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodCIDRv6) {
-    return chooser("cidrv6", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["cidrv6", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodISOTime) {
-    return chooser("isoTime", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["isoTime", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodISODate) {
-    return chooser("isoDate", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["isoDate", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodISODateTime) {
-    return chooser("isoDatetime", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["isoDatetime", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if ("isNaiveDatetime" in node.def && node.def.isNaiveDatetime) {
-    return chooser("naiveDatetime", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["naiveDatetime", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodString) {
     if (node.maxLength != null) {
-      return chooser("string", {
-        ...pgParamsBase,
-        maxLength: node.maxLength,
-      }) as ColumnType<any, any>;
+      return chooser([
+        "string",
+        {
+          ...pgParamsBase,
+          maxLength: node.maxLength,
+        },
+      ]) as ColumnType<any, any>;
     } else {
-      return chooser("string", pgParamsBase) as ColumnType<any, any>;
+      return chooser(["string", pgParamsBase]) as ColumnType<any, any>;
     }
   }
 
   if (node instanceof z.ZodEmail) {
-    return chooser("email", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["email", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodBigIntFormat) {
@@ -245,9 +270,9 @@ export function deriveColumn<
     // Distinguish by the format string on the definition.
     const format = node._zod.def.format;
     if (format === "int64") {
-      return chooser("int64", pgParamsBase) as ColumnType<any, any>;
+      return chooser(["int64", pgParamsBase]) as ColumnType<any, any>;
     } else if (format === "uint64") {
-      return chooser("uint64", pgParamsBase) as ColumnType<any, any>;
+      return chooser(["uint64", pgParamsBase]) as ColumnType<any, any>;
     }
 
     // List is exhaustive, so this should not happen:
@@ -255,7 +280,7 @@ export function deriveColumn<
   }
 
   if (node instanceof z.ZodBigInt) {
-    return chooser("bigint", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["bigint", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodNumberFormat) {
@@ -267,13 +292,13 @@ export function deriveColumn<
     // This is not possible at the type-level: https://github.com/colinhacks/zod/issues/6045
     const format = node._zod.def.format;
     if (format === "float32") {
-      return chooser("float32", pgParamsBase) as ColumnType<any, any>;
+      return chooser(["float32", pgParamsBase]) as ColumnType<any, any>;
     } else if (format === "float64") {
-      return chooser("float64", pgParamsBase) as ColumnType<any, any>;
+      return chooser(["float64", pgParamsBase]) as ColumnType<any, any>;
     } else if (format === "safeint" || format === "int32") {
-      return chooser("int32", pgParamsBase) as ColumnType<any, any>;
+      return chooser(["int32", pgParamsBase]) as ColumnType<any, any>;
     } else if (format === "uint32") {
-      return chooser("uint32", pgParamsBase) as ColumnType<any, any>;
+      return chooser(["uint32", pgParamsBase]) as ColumnType<any, any>;
     }
 
     // List is exhaustive, so this should not happen:
@@ -281,30 +306,36 @@ export function deriveColumn<
   }
 
   if (node instanceof z.ZodNumber) {
-    return chooser("float64", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["float64", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodBoolean) {
-    return chooser("boolean", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["boolean", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodDate) {
-    return chooser("date", pgParamsBase) as ColumnType<any, any>;
+    return chooser(["date", pgParamsBase]) as ColumnType<any, any>;
   }
 
   if (node instanceof z.ZodObject) {
-    return chooser("object", {
-      ...pgParamsBase,
-      schema: node,
-    }) as ColumnType<any, any>;
+    return chooser([
+      "object",
+      {
+        ...pgParamsBase,
+        schema: node,
+      },
+    ]) as ColumnType<any, any>;
   }
 
   // z.json() -> z.ZodLazy, TODO: this is a bit sketchy perhaps?
   if (node instanceof z.ZodLazy) {
-    return chooser("json", {
-      ...pgParamsBase,
-      schema: node,
-    }) as ColumnType<any, any>;
+    return chooser([
+      "json",
+      {
+        ...pgParamsBase,
+        schema: node,
+      },
+    ]) as ColumnType<any, any>;
   }
 
   // Are these needed?

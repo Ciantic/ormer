@@ -1,6 +1,6 @@
 import { duckdb, table } from "ormer";
 import type { ColumnType, ColumnTypeSingualr, Params, Table } from "ormer";
-import { z, ZodOptional } from "zod";
+import { z } from "zod";
 import type {
   ZodDbTableName,
   ZodDbNavigate,
@@ -24,6 +24,7 @@ import type {
   IsOptional,
   ArrayDimensions,
 } from "./common.ts";
+import { deriveColumn } from "./derive.ts";
 
 // prettier-ignore
 type DeriveBaseDuckDbColumn<T extends ZodType> = 
@@ -123,269 +124,68 @@ export function deriveDuckDbColumn<
   if (dbMeta?.duckDbColumnType) {
     return dbMeta?.duckDbColumnType as ColumnType<any, any>;
   }
-
-  let node = schema;
-  let nullable: boolean | undefined = undefined;
-  let optional: boolean | undefined = undefined;
-  let defaultValue: unknown = undefined;
-  let primaryKey = false;
-  let foreignKeyTable: string | undefined = undefined;
-  let foreignKeyColumn: string | undefined = undefined;
-  let arrayDimensions = "";
-
-  // Unwrap modifiers (.nullable, .optional, .default) to get to the base type
-  //
-  // For optionality, the first encountered is the right value
-  while (true) {
-    const ndb = node.def?.db;
-    if (ndb?.primaryKey === true) primaryKey = true;
-    if (ndb?.foreignKeyTable && ndb?.foreignKeyColumn) {
-      foreignKeyTable = ndb.foreignKeyTable;
-      foreignKeyColumn = ndb.foreignKeyColumn;
+  return deriveColumn(schema, ([t, params]) => {
+    switch (t) {
+      case "uuid":
+      case "guid":
+        return duckdb.uuid(params);
+      case "url":
+      case "emoji":
+      case "cuid2":
+      case "base64":
+      case "base64url":
+      case "e164":
+      case "jwt":
+      case "email":
+      case "ipv4":
+      case "ipv6":
+      case "mac":
+      case "cidrv4":
+      case "cidrv6":
+        return duckdb.text(params);
+      case "nanoid":
+      case "ulid":
+      case "xid":
+      case "ksuid":
+      case "string":
+        return "maxLength" in params ? duckdb.varchar(params) : duckdb.text(params);
+      case "isoTime":
+        return duckdb.time(params);
+      case "isoDate":
+        return duckdb.date(params);
+      case "isoDatetime":
+        throw new Error(
+          `ZodISODateTime is not supported by deriveDuckDbColumn. Use z.string().naiveDatetime() instead.`,
+        );
+      case "naiveDatetime":
+        return duckdb.timestamp(params as Params);
+      case "int64":
+      case "bigint":
+        return duckdb.int8(params);
+      case "uint64":
+        return duckdb.ubigint(params);
+      case "int32":
+        return duckdb.int4(params);
+      case "uint32":
+        return duckdb.uinteger(params);
+      case "float32":
+        return duckdb.float4(params);
+      case "float64":
+        return duckdb.float8(params);
+      case "boolean":
+        return duckdb.boolean(params);
+      case "date":
+        return duckdb.timestamptz(params as Params);
+      case "json":
+      case "object":
+        if (!("schema" in params)) {
+          throw new Error(
+            `ZodObject and ZodJSONSchema types must have a "schema" property in their db params for deriveColumn to work.`,
+          );
+        }
+        return duckdb.json(params);
     }
-
-    if (node instanceof z.ZodNullable) {
-      nullable = true;
-    } else if (node instanceof z.ZodOptional) {
-      if (optional === undefined) optional = true;
-    } else if (node instanceof z.ZodExactOptional) {
-      if (optional === undefined) optional = true;
-    } else if (node instanceof z.ZodDefault) {
-      defaultValue = node.def.defaultValue;
-    } else if (node instanceof z.ZodPrefault) {
-      defaultValue = node.def.defaultValue;
-    } else if (node instanceof z.ZodCatch) {
-      defaultValue = node.def.catchValue;
-    } else if (node instanceof z.ZodNonOptional) {
-      if (optional === undefined) optional = false;
-    } else if (node instanceof z.ZodReadonly) {
-      // readonly is a pure wrapper — no modifier to set, just unwrap
-    } else if (node instanceof z.ZodPipe) {
-      // pipe chains transformations — unwrap to the input schema
-      node = node.def.in as typeof node;
-      continue;
-    } else if (node instanceof z.ZodArray) {
-      arrayDimensions += "[]";
-      node = node.def.element as typeof node;
-      continue;
-    }
-    if ("innerType" in node.def) {
-      // z.ZodNullable, z.ZodOptional, z.ZodDefault, z.ZodPrefault, ZodExactOptional, ZodCatch, ZodNonOptional all have innerType
-      node = node.def.innerType as typeof node;
-    } else {
-      break;
-    }
-  }
-
-  // Create params for the duckdb.X(params) call
-  let paramsBase: Partial<Params> = {};
-  if (nullable) paramsBase.nullable = true;
-  if (optional) paramsBase.nullable = true;
-  if (typeof defaultValue !== "undefined") paramsBase.default = defaultValue;
-  if (primaryKey) {
-    paramsBase.primaryKey = true;
-    if (node instanceof z.ZodNumberFormat || node instanceof z.ZodBigInt) {
-      paramsBase.autoIncrement = true;
-    }
-  }
-  if (foreignKeyTable && foreignKeyColumn) {
-    paramsBase.foreignKeyTable = foreignKeyTable;
-    paramsBase.foreignKeyColumn = foreignKeyColumn;
-  }
-  if (arrayDimensions) {
-    paramsBase.array = arrayDimensions;
-  }
-
-  if (node instanceof z.ZodUUID) {
-    return duckdb.uuid(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodGUID) {
-    return duckdb.uuid(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodURL) {
-    return duckdb.text(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodEmoji) {
-    return duckdb.text(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodNanoID) {
-    return duckdb.varchar({
-      ...paramsBase,
-      maxLength: 21,
-    }) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodCUID2) {
-    return duckdb.text(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodULID) {
-    return duckdb.varchar({
-      ...paramsBase,
-      maxLength: 26,
-    }) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodXID) {
-    return duckdb.varchar({
-      ...paramsBase,
-      maxLength: 20,
-    }) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodKSUID) {
-    return duckdb.varchar({
-      ...paramsBase,
-      maxLength: 27,
-    }) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodBase64) {
-    return duckdb.text(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodBase64URL) {
-    return duckdb.text(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodE164) {
-    return duckdb.text(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodJWT) {
-    return duckdb.text(paramsBase) as ColumnType<any, any>;
-  }
-
-  // DuckDB: no inet type → fall back to text
-  if (node instanceof z.ZodIPv4) {
-    return duckdb.text(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodIPv6) {
-    return duckdb.text(paramsBase) as ColumnType<any, any>;
-  }
-
-  // DuckDB: no macaddr type → fall back to text
-  if (node instanceof z.ZodMAC) {
-    return duckdb.text(paramsBase) as ColumnType<any, any>;
-  }
-
-  // DuckDB: no cidr type → fall back to text
-  if (node instanceof z.ZodCIDRv4) {
-    return duckdb.text(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodCIDRv6) {
-    return duckdb.text(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodISOTime) {
-    return duckdb.time(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodISODate) {
-    return duckdb.date(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodISODateTime) {
-    throw new Error(
-      `ZodISODateTime is not supported by deriveDuckDbColumn. Use z.string().naiveDatetime() instead.`,
-    );
-  }
-
-  if ("isNaiveDatetime" in node.def && node.def.isNaiveDatetime) {
-    return duckdb.timestamp(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodString) {
-    if (node.maxLength != null) {
-      return duckdb.varchar({
-        ...paramsBase,
-        maxLength: node.maxLength,
-      }) as ColumnType<any, any>;
-    } else {
-      return duckdb.text(paramsBase) as ColumnType<any, any>;
-    }
-  }
-
-  if (node instanceof z.ZodEmail) {
-    return duckdb.text(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodBigIntFormat) {
-    // z.int64() / z.uint64()
-    //
-    // Distinguish by the format string on the definition.
-    const format = node._zod.def.format;
-    if (format === "int64") {
-      return duckdb.int8(paramsBase) as ColumnType<any, any>;
-    } else if (format === "uint64") {
-      return duckdb.ubigint(paramsBase) as ColumnType<any, any>;
-    }
-
-    // List is exhaustive, so this should not happen:
-    throw new Error(`Unsupported ZodBigIntFormat format: ${format}`);
-  }
-
-  if (node instanceof z.ZodBigInt) {
-    return duckdb.int8() as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodNumberFormat) {
-    // z.int() / z.float32() / z.float64() / z.int32() / z.uint32()
-    //
-    // Distinguish by the format string on the definition, only available at
-    // runtime.
-    //
-    // This is not possible at the type-level: https://github.com/colinhacks/zod/issues/6045
-    const format = node._zod.def.format;
-    if (format === "float32") {
-      return duckdb.float4(paramsBase) as ColumnType<any, any>;
-    } else if (format === "float64") {
-      return duckdb.float8(paramsBase) as ColumnType<any, any>;
-    } else if (format === "safeint" || format === "int32") {
-      return duckdb.int4(paramsBase) as ColumnType<any, any>;
-    } else if (format === "uint32") {
-      return duckdb.uinteger(paramsBase) as ColumnType<any, any>;
-    }
-
-    // List is exhaustive, so this should not happen:
-    throw new Error(`Unsupported ZodNumberFormat format: ${format}`);
-  }
-
-  if (node instanceof z.ZodNumber) {
-    return duckdb.float8(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodBoolean) {
-    return duckdb.boolean(paramsBase) as ColumnType<any, any>;
-  }
-
-  if (node instanceof z.ZodDate) {
-    return duckdb.timestamptz(paramsBase) as ColumnType<any, any>;
-  }
-
-  // DuckDB: json, not jsonb
-  if (node instanceof z.ZodObject) {
-    return duckdb.json({
-      ...paramsBase,
-      schema: node,
-    }) as ColumnType<any, any>;
-  }
-
-  // z.json(), TODO: this is a bit sketchy perhaps?
-  if (node instanceof z.ZodLazy) {
-    return duckdb.json({
-      ...paramsBase,
-      schema: node,
-    }) as ColumnType<any, any>;
-  }
-
-  throw new Error(`Unsupported Zod type: ${node?.constructor?.name}`);
+  });
 }
 
 // ---------------------------------------------------------------------------
