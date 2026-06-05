@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pg, type ColumnType } from "ormer";
+import { pg, duckdb, type ColumnType } from "ormer";
 import "../src/zod-ext.ts";
 
 export const UserSchema = z.object({ id: z.int64().dbPk() }).dbTable("users");
@@ -160,6 +160,83 @@ export const ALL_PG_FIELDS = {
   c_str_prefault: pg.text({ default: "hello" }),
   c_str_pk: pg.text({ primaryKey: true }),
   c_int64_fk: pg.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
+} as const satisfies {
+  [K in keyof typeof ALL_ZOD_FIELDS]: ColumnType<string, any> | "ERROR";
+};
+
+export const ALL_DUCKDB_FIELDS = {
+  // String values
+  c_str: duckdb.text(),
+  c_str_max255: duckdb.varchar({ maxLength: 255 }),
+
+  // Number types
+  c_num: duckdb.float8(),
+  c_num_int: duckdb.float8(),
+  c_f32: duckdb.float4(),
+  c_f64: duckdb.float8(),
+  c_int: duckdb.int4(),
+  c_int_pk: duckdb.int4(pkAutoInc),
+  c_int32: duckdb.int4(),
+  c_uint32: duckdb.uinteger(),
+
+  // Bigint
+  c_bigint: duckdb.int8(),
+  c_int64: duckdb.int8(),
+  c_int64_pk: duckdb.int8(pkAutoInc),
+  c_uint64: duckdb.ubigint(),
+
+  // Boolean
+  c_bool: duckdb.boolean(),
+
+  // JSON — DuckDB uses json, not jsonb
+  c_json: duckdb.json({ schema: z.object({ v: z.string() }) }),
+  c_json2: duckdb.json({ schema: z.json() }),
+
+  // Date/time types
+  c_date: duckdb.timestamptz(),
+  c_time: duckdb.time(),
+  c_date_only: duckdb.date(),
+  c_datetime: "ERROR" as const,
+  c_timestamp: duckdb.timestamp(),
+
+  // GUID / UUID
+  c_uuid: duckdb.uuid(),
+  c_guid: duckdb.uuid(),
+
+  // Various string formats
+  c_url: duckdb.text(),
+  c_email: duckdb.text(),
+  c_emoji: duckdb.text(),
+  c_nanoid: duckdb.varchar({ maxLength: 21 }),
+  c_cuid2: duckdb.text(),
+  c_ulid: duckdb.varchar({ maxLength: 26 }),
+  c_xid: duckdb.varchar({ maxLength: 20 }),
+  c_ksuid: duckdb.varchar({ maxLength: 27 }),
+  c_base64: duckdb.text(),
+  c_base64url: duckdb.text(),
+  c_e164: duckdb.text(),
+  c_jwt: duckdb.text(),
+
+  // Network types — DuckDB has no inet/macaddr/cidr → fall back to text
+  c_ipv4: duckdb.text(),
+  c_ipv6: duckdb.text(),
+  c_mac: duckdb.text(),
+  c_cidrv4: duckdb.text(),
+  c_cidrv6: duckdb.text(),
+
+  // Array types
+  c_int_arr: duckdb.int4({ array: "[]" }),
+  c_str_arr: duckdb.text({ array: "[]" }),
+  c_int_arr2: duckdb.int4({ array: "[][]" }),
+  c_str_arr_nullable: duckdb.text({ array: "[]", nullable: true }),
+
+  // Container types
+  c_str_nullable: duckdb.text({ nullable: true }),
+  c_str_nullish: duckdb.text({ nullable: true }),
+  c_str_default: duckdb.text({ default: "hello" }),
+  c_str_prefault: duckdb.text({ default: "hello" }),
+  c_str_pk: duckdb.text({ primaryKey: true }),
+  c_int64_fk: duckdb.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
 } as const satisfies {
   [K in keyof typeof ALL_ZOD_FIELDS]: ColumnType<string, any> | "ERROR";
 };

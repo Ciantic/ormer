@@ -16,6 +16,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@duckdb/node-api": "1.5.2-r.1",
     "@electric-sql/pglite": "^0.4.4",
     "@types/node": "^25.7.0",
     "kysely": "^0.29.0",

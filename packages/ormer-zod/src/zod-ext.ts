@@ -24,7 +24,8 @@ export type ZodDbParams = FinalTypeDb<
     ZodDbNavigate<any, string> &
     ZodDbPrimaryKey &
     ZodDbTableName<string> &
-    ZodDbPgColumnType<any>
+    ZodDbPgColumnType<any> &
+    ZodDbDuckDbColumnType<any>
 >;
 
 // ---------------------------------------------------------------------------
@@ -51,6 +52,12 @@ export type ZodDbPgColumnType<
   C extends ColumnTypeSingualr<string> | ColumnType<string, any>,
 > = {
   def: { db: { pgColumnType: C } };
+};
+
+export type ZodDbDuckDbColumnType<
+  C extends ColumnTypeSingualr<string> | ColumnType<string, any>,
+> = {
+  def: { db: { duckDbColumnType: C } };
 };
 
 function dbTable<T extends ZodTypeLite, const N extends string>(
@@ -117,6 +124,14 @@ function dbPg<
   return this as T & ZodDbPgColumnType<C>;
 }
 
+function dbDuck<
+  T extends ZodTypeLite,
+  const C extends ColumnTypeSingualr<string> | ColumnType<string, any>,
+>(this: T, columnType: C): T & ZodDbDuckDbColumnType<C> {
+  this.def.db = { duckDbColumnType: columnType };
+  return this as T & ZodDbDuckDbColumnType<C>;
+}
+
 export type ZodNumberFormatVal<
   F extends "safeint" | "int32" | "uint32" | "float32" | "float64",
 > = {
@@ -153,6 +168,7 @@ declare module "zod" {
     dbFk: typeof dbFk;
     dbPk: typeof dbPk;
     dbPg: typeof dbPg;
+    dbDuck: typeof dbDuck;
   }
 
   interface _ZodString {
@@ -204,4 +220,5 @@ z.ZodObject.prototype.dbNavigateSelf = dbNavigateSelf;
 z.ZodType.prototype.dbFk = dbFk;
 z.ZodType.prototype.dbPk = dbPk;
 z.ZodType.prototype.dbPg = dbPg;
+z.ZodType.prototype.dbDuck = dbDuck;
 z.ZodString.prototype.naiveDatetime = naiveDatetime;

@@ -1,8 +1,11 @@
 import { Project, SyntaxKind } from "ts-morph";
-import { PGCOLUMN_TO_SQLTYPE } from "ormer";
+import { PGCOLUMN_TO_SQLTYPE, DUCKDBCOLUMN_TO_SQLTYPE } from "ormer";
 import { md } from "./md.ts";
 import { writeFileSync } from "fs";
-import { ALL_PG_FIELDS } from "../ormer-zod/examples/fields.ts";
+import {
+  ALL_PG_FIELDS,
+  ALL_DUCKDB_FIELDS,
+} from "../ormer-zod/examples/fields.ts";
 
 /** Collapse multiline expressions into single-line for clean table display */
 function compact(expr: string): string {
@@ -22,6 +25,32 @@ function pgColumnToSqlDisplay(col: any): string {
 
   const { type, ...params } = col;
   const fn = PGCOLUMN_TO_SQLTYPE[type as keyof typeof PGCOLUMN_TO_SQLTYPE];
+
+  const isPk = col.primaryKey ? " PRIMARY KEY" : "";
+  const isNullable = col.nullable ? " NULL" : "";
+  const defaultValue = col.default ? ` DEFAULT ${col.default}` : "";
+  const arraySuffix = typeof col.array === "string" ? col.array : "";
+  const isFk = col.foreignKeyTable
+    ? ` FOREIGN KEY REFERENCES ${col.foreignKeyTable}(${col.foreignKeyColumn})`
+    : "";
+
+  return `<code>${fn(params).toUpperCase() + arraySuffix + isPk + isNullable + defaultValue + isFk}</code>`;
+}
+
+/**
+ * Given a duckdb column object (e.g. `duckdb.int8({ primaryKey: true })`),
+ * return the SQL column type name (e.g. `BIGINT`).
+ */
+function duckdbColumnToSqlDisplay(col: any): string {
+  if (typeof col === "string") {
+    if (col === "ERROR") return "<em>Not Available</em>";
+    return col;
+  }
+  if (!col || typeof col.type !== "string") return String(col);
+
+  const { type, ...params } = col;
+  const fn =
+    DUCKDBCOLUMN_TO_SQLTYPE[type as keyof typeof DUCKDBCOLUMN_TO_SQLTYPE];
 
   const isPk = col.primaryKey ? " PRIMARY KEY" : "";
   const isNullable = col.nullable ? " NULL" : "";
@@ -95,11 +124,14 @@ function makeZodTestCaseTableHtml() {
       const zodDisplay = zodSrcToDisplay(zodExpr.getText());
       const pgCol = ALL_PG_FIELDS[propName as keyof typeof ALL_PG_FIELDS];
       const pgDisplay = pgColumnToSqlDisplay(pgCol);
+      const duckCol =
+        ALL_DUCKDB_FIELDS[propName as keyof typeof ALL_DUCKDB_FIELDS];
+      const duckDisplay = duckdbColumnToSqlDisplay(duckCol);
       result.push(md`
         <tr>
           <td>${zodDisplay}</td>
           <td>${pgDisplay}</td>
-          <td><code></code></td>
+          <td>${duckDisplay}</td>
           <td><code></code></td>
         </tr>
       `);
