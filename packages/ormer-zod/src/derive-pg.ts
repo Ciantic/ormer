@@ -10,6 +10,7 @@ import type {
   ZodBigIntFormatVal,
   ZodNumberFormatVal,
   NaiveDatetime,
+  ZodMaxLengthVal,
 } from "./zod-ext.ts";
 import type {
   ZodType,
@@ -62,13 +63,17 @@ type DeriveBaseColumn<T extends ZodType> =
   // Bigints
   : T extends ZodBigIntFormatVal<"int64"> ? ColumnTypeSingualr<"int8">
   : T extends ZodBigIntFormatVal<"uint64"> ? { type: "ERROR" } // No symmetric PG mapping
+
+  // JSON
+  : T extends z.ZodObject ? ColumnType<"jsonb", { schema: T }>
+  : T extends z.ZodJSONSchema ? ColumnType<"jsonb", { schema: T }>
   
   : T extends z.ZodNumberFormat ? { type: "ERROR" } // This should not happen, above list exhaustive
   : T extends z.ZodBigIntFormat ? { type: "ERROR" } // This should not happen, above list exhaustive
   
   : T extends z.ZodNumber ? ColumnTypeSingualr<"float8">
   : T extends z.ZodBigInt ? ColumnTypeSingualr<"int8">
-  : T extends z.ZodString & { maxLength: infer Max extends number } ? ColumnType<"varchar", { maxLength: Max }>
+  : T extends z.ZodString & ZodMaxLengthVal<infer Max> ? ColumnType<"varchar", { maxLength: Max }>
   : T extends z.ZodString ? ColumnTypeSingualr<"text">
   : T extends z.ZodBoolean ? ColumnTypeSingualr<"boolean">
   : T extends z.ZodDate ? ColumnTypeSingualr<"timestamptz">
@@ -365,6 +370,21 @@ export function derivePgColumn<
 
   if (node instanceof z.ZodDate) {
     return pg.timestamptz(pgParamsBase) as ColumnType<any, any>;
+  }
+
+  if (node instanceof z.ZodObject) {
+    return pg.jsonb({
+      ...pgParamsBase,
+      schema: node,
+    }) as ColumnType<any, any>;
+  }
+
+  // z.json(), TODO: this is a bit sketchy perhaps?
+  if (node instanceof z.ZodLazy) {
+    return pg.jsonb({
+      ...pgParamsBase,
+      schema: node,
+    }) as ColumnType<any, any>;
   }
 
   // Are these needed?

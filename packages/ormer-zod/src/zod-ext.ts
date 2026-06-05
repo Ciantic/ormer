@@ -127,6 +127,10 @@ export type ZodBigIntFormatVal<F extends "int64" | "uint64"> = {
   _zod: { def: { format: F } };
 };
 
+export type ZodMaxLengthVal<T extends number> = {
+  maxLength: T;
+};
+
 export type NaiveDatetime = {
   def: { isNaiveDatetime: true };
 };
@@ -156,7 +160,7 @@ declare module "zod" {
     max<T extends number>(
       maxLength: T,
       params?: string | z.core.$ZodCheckMaxLengthParams,
-    ): this & { maxLength: T };
+    ): this & ZodMaxLengthVal<T>;
 
     naiveDatetime: typeof naiveDatetime;
   }

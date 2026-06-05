@@ -8,6 +8,7 @@ import { PGCOLUMN_TO_SQLTYPE, POSTGRES_OPTS } from "./driver.ts";
 import { PGlite } from "@electric-sql/pglite";
 import { createPgliteParsers, type PgUnifiedTypeMapping } from "./mapping.ts";
 import type { InferKyselyTypes } from "../index.ts";
+import type { StandardSchemaV1 } from "../standardschema.ts";
 
 const allTypesTable = table("all_types", {
   // integer types
@@ -51,8 +52,10 @@ const allTypesTable = table("all_types", {
   timetz_col: pg.timetz(),
   interval_col: pg.interval(),
   // json types
-  jsonb_col: pg.jsonb({ schema: null as any }),
-  json_col: pg.json({ schema: null as any }),
+  jsonb_col: pg.jsonb({
+    schema: null as unknown as StandardSchemaV1<any, any>,
+  }),
+  json_col: pg.json({ schema: null as unknown as StandardSchemaV1<any, any> }),
   // network types
   inet_col: pg.inet(),
   cidr_col: pg.cidr(),

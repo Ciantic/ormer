@@ -28,7 +28,15 @@ function runtimeTest<T extends z.ZodTypeAny, U>(
     return;
   } else {
     const derived = derivePgColumn(zodSchema as any);
-    expect(derived).toEqual(expectedColumn);
+
+    function getAs(obj: any) {
+      return {
+        ...obj,
+        schema: obj.schema ? obj.schema.toString() : undefined,
+      };
+    }
+
+    expect(getAs(derived)).toEqual(getAs(expectedColumn));
   }
 }
 

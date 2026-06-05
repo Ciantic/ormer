@@ -1,3 +1,6 @@
+import type { PgUnifiedTypeMapping } from "./index.ts";
+import type { StandardSchemaV1 } from "./standardschema.ts";
+
 type ColumnTypeKysely<
   SelectType,
   InsertType = SelectType,
@@ -28,10 +31,14 @@ type ApplyArrays<Col, T> = Col extends { array: infer TypeStr extends string }
   : T;
 
 // Look up the column's entry in the unified type map
-type ColIO<Col, UnifiedMap extends UnifiedMapping> = Col extends {
-  type: infer T extends string;
-}
-  ? UnifiedMap[T]
+// prettier-ignore
+type ColIO<Col, UnifiedMap extends UnifiedMapping> = 
+    Col extends { schema: infer S extends StandardSchemaV1 } ? {
+      __insert__: StandardSchemaV1.InferOutput<S>;
+      __select__: StandardSchemaV1.InferInput<S>;
+      __update__: StandardSchemaV1.InferOutput<S>;
+    }
+  : Col extends { type: infer T extends string; } ? UnifiedMap[T]
   : never;
 
 // Infer the SELECT type for a column

@@ -5,6 +5,7 @@ import type { PgUnifiedTypeMapping } from "./postgres/mapping.ts";
 import type { InferKyselyTypes } from "./kysely.ts";
 import type { ColumnType, InsertObject } from "kysely";
 import { describe, it, expectTypeOf } from "vitest";
+import type { StandardSchemaV1 } from "./standardschema.ts";
 
 const allTypesTable = table("all_types", {
   // integer types
@@ -47,8 +48,12 @@ const allTypesTable = table("all_types", {
   timetz_col: pg.timetz(),
   interval_col: pg.interval(),
   // json types
-  jsonb_col: pg.jsonb({ schema: null }),
-  json_col: pg.json({ schema: null }),
+  jsonb_col: pg.jsonb({
+    schema: null as any as StandardSchemaV1<{ key: string }>,
+  }),
+  json_col: pg.json({
+    schema: null as any as StandardSchemaV1<{ key: string }>,
+  }),
   // network types
   inet_col: pg.inet(),
   cidr_col: pg.cidr(),
@@ -190,10 +195,10 @@ describe("kysely", () => {
       ColumnType<string, string, string>
     >();
     expectTypeOf<KyselyTypes["all_types"]["jsonb_col"]>().toEqualTypeOf<
-      ColumnType<Record<string, any>, Record<string, any>, Record<string, any>>
+      ColumnType<{ key: string }, { key: string }, { key: string }>
     >();
     expectTypeOf<KyselyTypes["all_types"]["json_col"]>().toEqualTypeOf<
-      ColumnType<Record<string, any>, Record<string, any>, Record<string, any>>
+      ColumnType<{ key: string }, { key: string }, { key: string }>
     >();
     expectTypeOf<KyselyTypes["all_types"]["inet_col"]>().toEqualTypeOf<
       ColumnType<string, string, string>

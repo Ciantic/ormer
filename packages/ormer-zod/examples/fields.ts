@@ -30,6 +30,10 @@ export const ALL_ZOD_FIELDS = {
   // Boolean
   c_bool:             { zod: z.boolean(),          example: true },
 
+  // JSON
+  c_json:            { zod: z.object({ v: z.string() }),  example: { v: "value" } },
+  c_json2:           { zod: z.json(),                     example: [1, 2, 3] },
+
   // Date/time types
   c_date:             { zod: z.date(),             example: new Date("2024-01-15T10:30:00Z") },
   c_time:             { zod: z.iso.time(),         example: "14:30:00" },
@@ -106,6 +110,10 @@ export const ALL_PG_FIELDS = {
 
   // Boolean
   c_bool: pg.boolean(),
+
+  // JSON
+  c_json: pg.jsonb({ schema: z.object({ v: z.string() }) }),
+  c_json2: pg.jsonb({ schema: z.json() }),
 
   // Date/time types
   c_date: pg.timestamptz(),
