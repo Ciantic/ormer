@@ -130,6 +130,8 @@ export function derivePgColumn<
     return dbMeta?.pgColumnType as ColumnType<any, any>;
   }
 
+  // TODO: From here down, use the deriveColumn
+
   let node = schema;
   let nullable: boolean | undefined = undefined;
   let optional: boolean | undefined = undefined;
