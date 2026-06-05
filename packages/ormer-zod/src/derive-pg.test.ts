@@ -1,7 +1,7 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
 import { z } from "zod";
 import { pg, type ColumnType, type ColumnTypeSingualr } from "ormer";
-import { derivePgColumn, derivePgTable } from "./zod-derive.ts";
+import { derivePgColumn, derivePgTable } from "./derive-pg.ts";
 import "./zod-ext.ts";
 
 describe("derivePgColumn dbPg override", () => {

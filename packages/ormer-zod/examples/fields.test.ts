@@ -1,6 +1,6 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
 import { z } from "zod";
-import { derivePgColumn, type DerivePgColumn } from "../src/zod-derive.ts";
+import { derivePgColumn, type DerivePgColumn } from "../src/derive-pg.ts";
 import {
   type InferKyselySelectCol,
   type InferKyselyInsertCol,
