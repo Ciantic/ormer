@@ -4,7 +4,6 @@ import { z } from "zod";
 import type {
   ZodDbTableName,
   ZodDbNavigate,
-  ZodDbFk,
   ZodDbParams,
   ZodDbDuckDbColumnType,
   ZodBigIntFormatVal,
@@ -15,14 +14,8 @@ import type {
 import type {
   ZodType,
   UnwrapModifiers,
-  IsNullable,
-  HasDefaultValue,
-  HasDbPk,
-  OmitNever,
   RewrapToColumnType,
   RewrapDeriveTable,
-  IsOptional,
-  ArrayDimensions,
   SafeParamDerivation,
 } from "./common.ts";
 import { deriveColumn } from "./derive.ts";
