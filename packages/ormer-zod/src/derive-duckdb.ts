@@ -23,6 +23,7 @@ import type {
   RewrapDeriveTable,
   IsOptional,
   ArrayDimensions,
+  SafeParamDerivation,
 } from "./common.ts";
 import { deriveColumn } from "./derive.ts";
 
@@ -88,25 +89,8 @@ export type DeriveDuckDbColumn<T extends ZodType> =
 
   // Otherwise, derive from the base type + modifiers
   : RewrapToColumnType<
-      DeriveBaseDuckDbColumn<UnwrapModifiers<T>> &
-        OmitNever<{
-          primaryKey: HasDbPk<T> extends true ? true : never;
-          nullable: IsNullable<T> extends true ? true 
-                  : IsOptional<T> extends true ? true 
-                  : never;
-          default: HasDefaultValue<T> extends true ? z.infer<T> : never;
-          autoIncrement: HasDbPk<T> extends true ? 
-              UnwrapModifiers<T> extends ZodNumberFormatVal<"safeint"> ? true 
-            : UnwrapModifiers<T> extends ZodNumberFormatVal<"int32"> ? true 
-            : UnwrapModifiers<T> extends ZodNumberFormatVal<"uint32"> ? true 
-            : UnwrapModifiers<T> extends ZodBigIntFormatVal<"int64"> ? true 
-            : UnwrapModifiers<T> extends ZodBigIntFormatVal<"uint64"> ? true 
-            : never
-            : never;
-          foreignKeyTable: T extends ZodDbFk<infer N extends string, infer _> ? N : never;
-          foreignKeyColumn: T extends ZodDbFk<infer _, infer C extends string> ? C : never;
-          array: ArrayDimensions<T>;
-        }>
+      DeriveBaseDuckDbColumn<UnwrapModifiers<T>> & SafeParamDerivation<T>
+        
     >;
 
 // ---------------------------------------------------------------------------
@@ -148,7 +132,9 @@ export function deriveDuckDbColumn<
       case "xid":
       case "ksuid":
       case "string":
-        return "maxLength" in params ? duckdb.varchar(params) : duckdb.text(params);
+        return "maxLength" in params
+          ? duckdb.varchar(params)
+          : duckdb.text(params);
       case "isoTime":
         return duckdb.time(params);
       case "isoDate":
@@ -185,7 +171,7 @@ export function deriveDuckDbColumn<
         }
         return duckdb.json(params);
     }
-  });
+  }) as DeriveDuckDbColumn<T>;
 }
 
 // ---------------------------------------------------------------------------

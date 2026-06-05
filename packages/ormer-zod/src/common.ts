@@ -1,5 +1,10 @@
 import { z } from "zod";
-import type { ZodDbPrimaryKey } from "./zod-ext.ts";
+import type {
+  ZodBigIntFormatVal,
+  ZodDbFk,
+  ZodDbPrimaryKey,
+  ZodNumberFormatVal,
+} from "./zod-ext.ts";
 import type { ColumnType, ColumnTypeSingualr, Table } from "ormer";
 
 // ---------------------------------------------------------------------------
@@ -114,3 +119,39 @@ export type RewrapToColumnType<T> = T extends {
 
 export type RewrapDeriveTable<T> =
   T extends Table<infer Name, infer Columns> ? Table<Name, Columns> : never;
+
+// Type-level representation of the params we derive from the Zod schema, used
+// as the return type of the deriveColumn() function
+// prettier-ignore
+export type SafeParamDerivation<T extends ZodType> = 
+  OmitNever<{
+    primaryKey: HasDbPk<T> extends true ? true : never;
+    nullable: IsNullable<T> extends true ? true 
+            : IsOptional<T> extends true ? true 
+            : never;
+    default: HasDefaultValue<T> extends true ? z.infer<T> : never;
+    autoIncrement: HasDbPk<T> extends true ? 
+        UnwrapModifiers<T> extends ZodNumberFormatVal<"safeint"> ? true 
+      : UnwrapModifiers<T> extends ZodNumberFormatVal<"int32"> ? true 
+      : UnwrapModifiers<T> extends ZodBigIntFormatVal<"uint64"> ? true 
+      : UnwrapModifiers<T> extends ZodBigIntFormatVal<"int64"> ? true 
+      : never
+      : never;
+    foreignKeyTable: T extends ZodDbFk<infer N extends string, infer _> ? N : never;
+    foreignKeyColumn: T extends ZodDbFk<infer _, infer C extends string> ? C : never;
+    array: ArrayDimensions<T>;
+  }>;
+
+// Runtime version of the above type, used in the deriveColumn() implementation
+export type ParamsDerived<T = {}> = {
+  nullable?: boolean;
+  //   optional?: boolean;
+  default?: unknown;
+  primaryKey?: boolean;
+  autoIncrement?: boolean;
+  foreignKeyTable?: string;
+  foreignKeyColumn?: string;
+  array?: string;
+  //   maxLength?: number;
+  //   schema?: ZodType;
+} & T;

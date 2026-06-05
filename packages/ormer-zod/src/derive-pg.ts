@@ -4,7 +4,6 @@ import { z } from "zod";
 import type {
   ZodDbTableName,
   ZodDbNavigate,
-  ZodDbFk,
   ZodDbParams,
   ZodDbPgColumnType,
   ZodBigIntFormatVal,
@@ -15,14 +14,9 @@ import type {
 import type {
   ZodType,
   UnwrapModifiers,
-  IsNullable,
-  HasDefaultValue,
-  HasDbPk,
-  OmitNever,
   RewrapToColumnType,
   RewrapDeriveTable,
-  IsOptional,
-  ArrayDimensions,
+  SafeParamDerivation,
 } from "./common.ts";
 import { deriveColumn } from "./derive.ts";
 
@@ -94,25 +88,7 @@ export type DerivePgColumn<T extends ZodType> =
 
   // Otherwise, derive from the base type + modifiers
   : RewrapToColumnType<
-      DeriveBaseColumn<UnwrapModifiers<T>> &
-        // DeriveOrExplicit<T> &
-        OmitNever<{
-          primaryKey: HasDbPk<T> extends true ? true : never;
-          nullable: IsNullable<T> extends true ? true 
-                  : IsOptional<T> extends true ? true 
-                  : never;
-          default: HasDefaultValue<T> extends true ? z.infer<T> : never;
-          autoIncrement: HasDbPk<T> extends true ? 
-              UnwrapModifiers<T> extends ZodNumberFormatVal<"safeint"> ? true 
-            : UnwrapModifiers<T> extends ZodNumberFormatVal<"int32"> ? true 
-            : UnwrapModifiers<T> extends ZodBigIntFormatVal<"uint64"> ? true 
-            : UnwrapModifiers<T> extends ZodBigIntFormatVal<"int64"> ? true 
-            : never
-            : never;
-          foreignKeyTable: T extends ZodDbFk<infer N extends string, infer _> ? N : never;
-          foreignKeyColumn: T extends ZodDbFk<infer _, infer C extends string> ? C : never;
-          array: ArrayDimensions<T>;
-        }>
+      DeriveBaseColumn<UnwrapModifiers<T>> & SafeParamDerivation<T>
     >;
 
 // ---------------------------------------------------------------------------
@@ -195,7 +171,7 @@ export function derivePgColumn<
         }
         return pg.jsonb(params);
     }
-  });
+  }) as DerivePgColumn<T>;
 }
 
 // ---------------------------------------------------------------------------
