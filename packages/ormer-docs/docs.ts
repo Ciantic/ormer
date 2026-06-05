@@ -2,10 +2,7 @@ import { Project, SyntaxKind } from "ts-morph";
 import { PGCOLUMN_TO_SQLTYPE, DUCKDBCOLUMN_TO_SQLTYPE } from "ormer";
 import { md } from "./md.ts";
 import { writeFileSync } from "fs";
-import {
-  ALL_PG_FIELDS,
-  ALL_DUCKDB_FIELDS,
-} from "../ormer-zod/examples/fields.ts";
+import { ALL_PG_FIELDS, ALL_DUCKDB_FIELDS } from "../ormer-zod/tests/fields.ts";
 
 /** Collapse multiline expressions into single-line for clean table display */
 function compact(expr: string): string {
