@@ -49,7 +49,6 @@ export function real(params?: any) {
 
 export type TextCol = Params<{
   default?: "now";
-  maxLength?: number;
 }>;
 export function text(): ColumnTypeSingualr<"text">;
 export function text<T extends TextCol>(

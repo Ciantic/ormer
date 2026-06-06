@@ -16,7 +16,9 @@ const allTypesTable = table("all_types", {
     notInsertable: true,
     notUpdatable: true,
   }),
-  int_col: sqlite.integer(),
+  positive_int: sqlite.integer({
+    check: "positive_int > 0",
+  }),
   int_nullable: sqlite.integer({ nullable: true }),
   integer_col: sqlite.integer(),
   real_col: sqlite.real(),
@@ -55,7 +57,7 @@ describe("sqlite createTableSql", () => {
     expect(sql).toMatchInlineSnapshot(`
       "CREATE TABLE "all_types" (
         "id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
-        "int_col" integer NOT NULL,
+        "positive_int" integer NOT NULL CHECK (positive_int > 0),
         "int_nullable" integer,
         "integer_col" integer NOT NULL,
         "real_col" real NOT NULL,
@@ -132,7 +134,7 @@ describe("sqlite createTableSql", () => {
     const blobValue = Buffer.from([1, 2, 3]);
 
     const insertRow = {
-      int_col: 1,
+      positive_int: 1,
       int_nullable: null,
       integer_col: 2,
       real_col: 3.5,
@@ -153,7 +155,7 @@ describe("sqlite createTableSql", () => {
     const row = results[0]!;
     expect(row.text_now).toEqual(expect.any(String));
     expect(row.id).toBe(1);
-    expect(row.int_col).toBe(1);
+    expect(row.positive_int).toBe(1);
     expect(row.int_nullable).toBe(null);
     expect(row.integer_col).toBe(2);
     expect(row.real_col).toBe(3.5);

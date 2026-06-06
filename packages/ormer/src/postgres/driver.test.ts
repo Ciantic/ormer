@@ -19,6 +19,7 @@ const allTypesTable = table("all_types", {
     notUpdatable: true,
   }),
   int2_col: pg.int2(),
+  positive_int: pg.int4({ check: "positive_int > 0" }),
   int2_nullable: pg.int2({ nullable: true }),
   int4_col: pg.int4(),
   int8_col: pg.int8(),
@@ -123,6 +124,7 @@ describe("postgres createTableSql", () => {
       "CREATE TABLE "all_types" (
         "id" serial8 NOT NULL PRIMARY KEY,
         "int2_col" int2 NOT NULL,
+        "positive_int" int4 NOT NULL CHECK (positive_int > 0),
         "int2_nullable" int2,
         "int4_col" int4 NOT NULL,
         "int8_col" int8 NOT NULL,
@@ -231,6 +233,7 @@ describe("postgres createTableSql", () => {
 
     const insertRow = {
       int2_col: 1,
+      positive_int: 1,
       int2_nullable: null,
       int4_col: 2,
       int8_col: 3n,

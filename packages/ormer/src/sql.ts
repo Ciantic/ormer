@@ -95,6 +95,10 @@ export function createTableSql<
         parts.push("UNIQUE");
       }
 
+      if (typeof col.check === "string" && col.check.length > 0) {
+        parts.push(`CHECK (${col.check})`);
+      }
+
       if (col.primaryKey) {
         parts.push(
           col.autoIncrement &&

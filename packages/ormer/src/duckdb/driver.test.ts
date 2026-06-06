@@ -19,6 +19,7 @@ const allTypesTable = table("all_types", {
     primaryKey: true,
   }),
   int1_col: duckdb.int1(),
+  positive_int: duckdb.int4({ check: "positive_int > 0" }),
   int1_nullable: duckdb.int1({ nullable: true }),
   int2_col: duckdb.int2(),
   int4_col: duckdb.int4(),
@@ -84,6 +85,7 @@ describe("duckdb createTableSql", () => {
       "CREATE TABLE "all_types" (
         "id" int8 NOT NULL PRIMARY KEY,
         "int1_col" int1 NOT NULL,
+        "positive_int" int4 NOT NULL CHECK (positive_int > 0),
         "int1_nullable" int1,
         "int2_col" int2 NOT NULL,
         "int4_col" int4 NOT NULL,
@@ -175,6 +177,7 @@ describe("duckdb createTableSql", () => {
     const insertRow = {
       id: 100n,
       int1_col: 1,
+      positive_int: 1,
       int1_nullable: null,
       int2_col: 2,
       int4_col: 3,
