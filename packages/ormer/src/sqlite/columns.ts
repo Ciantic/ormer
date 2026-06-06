@@ -47,12 +47,9 @@ export function real(params?: any) {
 // Text type
 // ----------------------------------------------------------------------------
 
-export type TextCol = Params<{
-  default?: "now";
-}>;
 export function text(): ColumnTypeSingualr<"text">;
-export function text<T extends TextCol>(
-  params: R<T, TextCol>,
+export function text<T extends Params>(
+  params: R<T, Params>,
 ): ColumnType<"text", T>;
 export function text(params?: any) {
   return { type: "text", ...params };

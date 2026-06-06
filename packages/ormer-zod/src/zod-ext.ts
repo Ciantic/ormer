@@ -25,7 +25,8 @@ export type ZodDbParams = FinalTypeDb<
     ZodDbPrimaryKey &
     ZodDbTableName<string> &
     ZodDbPgColumnType<any> &
-    ZodDbDuckDbColumnType<any>
+    ZodDbDuckDbColumnType<any> &
+    ZodDbSqliteColumnType<any>
 >;
 
 // ---------------------------------------------------------------------------
@@ -58,6 +59,12 @@ export type ZodDbDuckDbColumnType<
   C extends ColumnTypeSingualr<string> | ColumnType<string, any>,
 > = {
   def: { db: { duckDbColumnType: C } };
+};
+
+export type ZodDbSqliteColumnType<
+  C extends ColumnTypeSingualr<string> | ColumnType<string, any>,
+> = {
+  def: { db: { sqliteColumnType: C } };
 };
 
 function dbTable<T extends ZodTypeLite, const N extends string>(
@@ -132,6 +139,14 @@ function dbDuck<
   return this as T & ZodDbDuckDbColumnType<C>;
 }
 
+function dbSqlite<
+  T extends ZodTypeLite,
+  const C extends ColumnTypeSingualr<string> | ColumnType<string, any>,
+>(this: T, columnType: C): T & ZodDbSqliteColumnType<C> {
+  this.def.db = { sqliteColumnType: columnType };
+  return this as T & ZodDbSqliteColumnType<C>;
+}
+
 export type ZodNumberFormatVal<
   F extends "safeint" | "int32" | "uint32" | "float32" | "float64",
 > = {
@@ -169,6 +184,7 @@ declare module "zod" {
     dbPk: typeof dbPk;
     dbPg: typeof dbPg;
     dbDuck: typeof dbDuck;
+    dbSqlite: typeof dbSqlite;
   }
 
   interface _ZodString {
@@ -221,4 +237,5 @@ z.ZodType.prototype.dbFk = dbFk;
 z.ZodType.prototype.dbPk = dbPk;
 z.ZodType.prototype.dbPg = dbPg;
 z.ZodType.prototype.dbDuck = dbDuck;
+z.ZodType.prototype.dbSqlite = dbSqlite;
 z.ZodString.prototype.naiveDatetime = naiveDatetime;

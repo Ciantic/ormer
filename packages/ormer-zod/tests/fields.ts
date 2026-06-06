@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pg, duckdb, type ColumnType } from "ormer";
+import { pg, duckdb, sqlite, type ColumnType } from "ormer";
 import "../src/zod-ext.ts";
 
 export const UserSchema = z.object({ id: z.int64().dbPk() }).dbTable("users");
@@ -237,6 +237,96 @@ export const ALL_DUCKDB_FIELDS = {
   c_str_prefault: duckdb.text({ default: "hello" }),
   c_str_pk: duckdb.text({ primaryKey: true }),
   c_int64_fk: duckdb.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
+} as const satisfies {
+  [K in keyof typeof ALL_ZOD_FIELDS]: ColumnType<string, any> | "ERROR";
+};
+
+export const ALL_SQLITE_FIELDS = {
+  // String values
+  c_str: sqlite.text(),
+  c_str_max255: sqlite.text({
+    check: (c: string) => `length(${c}) <= 255`,
+  }),
+
+  // Number types
+  c_num: sqlite.real(),
+  c_num_int: sqlite.real(),
+  c_f32: sqlite.real(),
+  c_f64: sqlite.real(),
+  c_int: sqlite.integer(),
+  c_int_pk: sqlite.integer(pkAutoInc),
+  c_int32: sqlite.integer(),
+  c_uint32: sqlite.integer(),
+
+  // Bigint
+  c_bigint: sqlite.integer(),
+  c_int64: sqlite.integer(),
+  c_int64_pk: sqlite.integer(pkAutoInc),
+  c_uint64: sqlite.integer(),
+
+  // Boolean
+  c_bool: sqlite.integer(),
+
+  // JSON — SQLite stores as text
+  c_json: sqlite.text({ schema: z.object({ v: z.string() }) }),
+  c_json2: sqlite.text({ schema: z.json() }),
+
+  // Date/time types
+  c_date: sqlite.text(),
+  c_time: sqlite.text(),
+  c_date_only: sqlite.text(),
+  c_datetime: "ERROR" as const,
+  c_timestamp: sqlite.text(),
+
+  // GUID / UUID
+  c_uuid: sqlite.text(),
+  c_guid: sqlite.text(),
+
+  // Various string formats
+  c_url: sqlite.text(),
+  c_email: sqlite.text(),
+  c_emoji: sqlite.text(),
+  c_nanoid: sqlite.text({
+    check: (c: string) => `length(${c}) <= 21`,
+  }),
+  c_cuid2: sqlite.text(),
+  c_ulid: sqlite.text({
+    check: (c: string) => `length(${c}) <= 26`,
+  }),
+  c_xid: sqlite.text({
+    check: (c: string) => `length(${c}) <= 20`,
+  }),
+  c_ksuid: sqlite.text({
+    check: (c: string) => `length(${c}) <= 27`,
+  }),
+  c_base64: sqlite.text(),
+  c_base64url: sqlite.text(),
+  c_e164: sqlite.text(),
+  c_jwt: sqlite.text(),
+
+  // Network types — SQLite has no inet/macaddr/cidr → fall back to text
+  c_ipv4: sqlite.text(),
+  c_ipv6: sqlite.text(),
+  c_mac: sqlite.text(),
+  c_cidrv4: sqlite.text(),
+  c_cidrv6: sqlite.text(),
+
+  // Array types — SQLite has no arrays → stored as JSON text
+  c_int_arr: sqlite.text(),
+  c_str_arr: sqlite.text(),
+  c_int_arr2: sqlite.text(),
+  c_str_arr_nullable: sqlite.text({ nullable: true }),
+
+  // Container types
+  c_str_nullable: sqlite.text({ nullable: true }),
+  c_str_nullish: sqlite.text({ nullable: true }),
+  c_str_default: sqlite.text({ default: "hello" }),
+  c_str_prefault: sqlite.text({ default: "hello" }),
+  c_str_pk: sqlite.text({ primaryKey: true }),
+  c_int64_fk: sqlite.integer({
+    foreignKeyTable: "users",
+    foreignKeyColumn: "id",
+  }),
 } as const satisfies {
   [K in keyof typeof ALL_ZOD_FIELDS]: ColumnType<string, any> | "ERROR";
 };

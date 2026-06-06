@@ -20,6 +20,7 @@
     "@electric-sql/pglite": "^0.4.4",
     "@types/node": "^25.7.0",
     "kysely": "^0.29.0",
+    "libsql": "^0.6.0-pre.32",
     "vitest": "^4.1.6"
   }
 }
