@@ -19,7 +19,7 @@ const allTypesTable = table("all_types", {
     notUpdatable: true,
   }),
   int2_col: pg.int2(),
-  positive_int: pg.int4({ check: "positive_int > 0" }),
+  positive_int: pg.int4({ check: (c: string) => `${c} > 0` }),
   int2_nullable: pg.int2({ nullable: true }),
   int4_col: pg.int4(),
   int8_col: pg.int8(),

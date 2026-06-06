@@ -17,7 +17,7 @@ const allTypesTable = table("all_types", {
     notUpdatable: true,
   }),
   positive_int: sqlite.integer({
-    check: "positive_int > 0",
+    check: (c: string) => `${c} > 0`,
   }),
   int_nullable: sqlite.integer({ nullable: true }),
   integer_col: sqlite.integer(),

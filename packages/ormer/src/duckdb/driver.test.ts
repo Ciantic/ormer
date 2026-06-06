@@ -19,7 +19,7 @@ const allTypesTable = table("all_types", {
     primaryKey: true,
   }),
   int1_col: duckdb.int1(),
-  positive_int: duckdb.int4({ check: "positive_int > 0" }),
+  positive_int: duckdb.int4({ check: (c: string) => `${c} > 0` }),
   int1_nullable: duckdb.int1({ nullable: true }),
   int2_col: duckdb.int2(),
   int4_col: duckdb.int4(),

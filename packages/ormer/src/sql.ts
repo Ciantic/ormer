@@ -1,5 +1,5 @@
 import type { MapColumnsTo } from "./columnhelpers.ts";
-import type { ColumnType } from "./columns.ts";
+import type { ColumnType, Params } from "./columns.ts";
 import type { Database } from "./database.ts";
 import type { Table } from "./table.ts";
 
@@ -36,14 +36,17 @@ export function createTableSql<
 
   const statements: string[] = [];
 
-  for (const tableDef of Object.values(db) as Table<any, any>[]) {
+  for (const tableDef of Object.values(db) as Table<
+    string,
+    ColumnType<string, Params>
+  >[]) {
     const colDefs: string[] = [];
     const foreignKeyConstraints: string[] = [];
     const prependStatements: string[] = [];
 
     for (const [colName, col] of Object.entries(tableDef.columns) as [
       string,
-      any,
+      ColumnType<string, Params>,
     ][]) {
       // Allow relation/navigation fields on table definitions by skipping entries
       // that do not represent a concrete SQL column type.
@@ -95,8 +98,8 @@ export function createTableSql<
         parts.push("UNIQUE");
       }
 
-      if (typeof col.check === "string" && col.check.length > 0) {
-        parts.push(`CHECK (${col.check})`);
+      if (typeof col.check === "function") {
+        parts.push(`CHECK (${col.check(colName)})`);
       }
 
       if (col.primaryKey) {

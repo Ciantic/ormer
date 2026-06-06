@@ -27,7 +27,7 @@ export type Params<ExtraProps extends object = {}> = FinalType<
       foreignKeyColumn?: string;
       autoIncrement?: boolean;
       schema?: UnknownSchema;
-      check?: string;
+      check?: (colName: string) => string;
       // Array dimensions as a SQL suffix string, e.g. "[][]" or "[3][3]"
       array?: string;
 
