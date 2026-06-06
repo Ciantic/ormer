@@ -107,7 +107,7 @@ describe("sqlite createTableSql", () => {
       tableSuffixes: ["STRICT", "WITHOUT ROWID"],
     });
 
-    expect(sql).toContain(') STRICT WITHOUT ROWID;');
+    expect(sql).toContain(") STRICT WITHOUT ROWID;");
   });
 
   it("libsql: inserts a row with all columns via Kysely and reads it back", async () => {
