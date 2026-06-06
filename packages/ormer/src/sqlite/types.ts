@@ -1,7 +1,10 @@
-// Strict table column types as defined by SQLite:
+// Strict table column types as defined by SQLite: integer, real, text, blob,
+// any, but numeric is not a strict type but it has unique affinity. See
+// https://sqlite.org/datatype3.html for more details.
+//
+//
 // https://sqlite.org/stricttables.html
 export const BASE_SQLITE_TYPES = [
-  "int",
   "integer",
   "real",
   "text",

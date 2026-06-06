@@ -16,8 +16,8 @@ const allTypesTable = table("all_types", {
     notInsertable: true,
     notUpdatable: true,
   }),
-  int_col: sqlite.int(),
-  int_nullable: sqlite.int({ nullable: true }),
+  int_col: sqlite.integer(),
+  int_nullable: sqlite.integer({ nullable: true }),
   integer_col: sqlite.integer(),
   real_col: sqlite.real(),
   text_col: sqlite.text(),
@@ -55,8 +55,8 @@ describe("sqlite createTableSql", () => {
     expect(sql).toMatchInlineSnapshot(`
       "CREATE TABLE "all_types" (
         "id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
-        "int_col" int NOT NULL,
-        "int_nullable" int,
+        "int_col" integer NOT NULL,
+        "int_nullable" integer,
         "integer_col" integer NOT NULL,
         "real_col" real NOT NULL,
         "text_col" text NOT NULL,
@@ -64,18 +64,18 @@ describe("sqlite createTableSql", () => {
         "blob_col" blob NOT NULL,
         "any_col" any NOT NULL,
         "unique_col" text NOT NULL UNIQUE
-      );
+      ) STRICT;
 
       CREATE TABLE "referenced" (
         "id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
         "name" text NOT NULL
-      );
+      ) STRICT;
 
       CREATE TABLE "with_fk" (
         "id" integer NOT NULL PRIMARY KEY AUTOINCREMENT,
         "ref_id" integer NOT NULL,
         FOREIGN KEY ("ref_id") REFERENCES "referenced"("id")
-      );"
+      ) STRICT;"
     `);
   });
 
@@ -99,6 +99,15 @@ describe("sqlite createTableSql", () => {
     expect(tableNames).toEqual(["all_types", "referenced", "with_fk"]);
 
     sqliteDb.close();
+  });
+
+  it("supports custom table suffixes from opts", () => {
+    const sql = createTableSql(SQLITECOLUMN_TO_SQLTYPE, db, {
+      ...SQLITE_OPTS,
+      tableSuffixes: ["STRICT", "WITHOUT ROWID"],
+    });
+
+    expect(sql).toContain(') STRICT WITHOUT ROWID;');
   });
 
   it("libsql: inserts a row with all columns via Kysely and reads it back", async () => {

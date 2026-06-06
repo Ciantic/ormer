@@ -21,6 +21,9 @@ export type Opts = {
     tableName: string,
     colName: string,
   ) => { prependSql: string; defaultExpr: string };
+  // Tokens appended after each CREATE TABLE closing parenthesis, e.g. ["STRICT"].
+  // Can be static for all tables or computed per table.
+  tableSuffixes?: string[] | ((tableName: string) => string[]);
 };
 
 export function createTableSql<
@@ -113,7 +116,12 @@ export function createTableSql<
 
     const tableName = colNameFn(tableDef.table);
     const allDefs = [...colDefs, ...foreignKeyConstraints];
-    const createTable = `CREATE TABLE ${tableName} (\n  ${allDefs.join(",\n  ")}\n)`;
+    const suffixes =
+      typeof opts.tableSuffixes === "function"
+        ? opts.tableSuffixes(tableDef.table)
+        : opts.tableSuffixes;
+    const tableSuffix = suffixes?.length ? ` ${suffixes.join(" ")}` : "";
+    const createTable = `CREATE TABLE ${tableName} (\n  ${allDefs.join(",\n  ")}\n)${tableSuffix}`;
     statements.push(...prependStatements, createTable);
   }
 

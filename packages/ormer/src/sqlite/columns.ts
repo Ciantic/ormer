@@ -20,14 +20,6 @@ type R<T, B> = {
 // Integer types
 // ----------------------------------------------------------------------------
 
-export function int(): ColumnTypeSingualr<"int">;
-export function int<T extends Params>(
-  params: R<T, Params>,
-): ColumnType<"int", T>;
-export function int(params?: any) {
-  return { type: "int", ...params };
-}
-
 export type IntegerCol = Params<{
   autoIncrement?: boolean;
 }>;
@@ -57,6 +49,7 @@ export function real(params?: any) {
 
 export type TextCol = Params<{
   default?: "now";
+  maxLength?: number;
 }>;
 export function text(): ColumnTypeSingualr<"text">;
 export function text<T extends TextCol>(

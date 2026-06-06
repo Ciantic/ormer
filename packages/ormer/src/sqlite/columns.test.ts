@@ -5,7 +5,6 @@ import { describe, it, expect } from "vitest";
 describe("sqlite columns", () => {
   it("creates a table with all column types", () => {
     const allColumns = table("all_columns", {
-      col_int: o.int(),
       col_integer: o.integer(),
       col_integer_autoinc: o.integer({ autoIncrement: true }),
       col_real: o.real(),
@@ -17,7 +16,6 @@ describe("sqlite columns", () => {
 
     expect(allColumns.table).toBe("all_columns");
 
-    expect(allColumns.columns.col_int.type).toBe("int");
     expect(allColumns.columns.col_integer.type).toBe("integer");
     expect(allColumns.columns.col_integer_autoinc.type).toBe("integer");
     expect(allColumns.columns.col_integer_autoinc.autoIncrement).toBe(true);
