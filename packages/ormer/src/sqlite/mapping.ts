@@ -11,7 +11,6 @@ type InputOutput<I, O = I> = {
 };
 
 export type SqliteUnifiedTypeMapping = {
-  int: InputOutput<string | number | bigint, number>;
   integer: InputOutput<string | number | bigint, number>;
   real: InputOutput<string | number | bigint, number>;
   text: InputOutput<string>;
