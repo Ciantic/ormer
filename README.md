@@ -30,6 +30,7 @@ Notes:
 - `z.bigint()` is mapped to be INT8 in postgres, this might be incorrect for arbitrary sized bigints. If you need that use custom mapping.
 - `z.int()` is mapped to be INT4 in postgres, and thus not all of the IEEE 754 safe integers are valid values.
 - `z.iso.datetime()` can't be used, it does not allow timestamp format without a T divider. Postgres returns TIMESTAMP values as YYYY-MM-DD HH:MM:SS without the T.
+- SQLite support is too buggy, because it only has primitive datatypes, and it would need a custom serialization layer for bigint/boolean/date/array/object types, which I haven't found a good way to do yet. One idea involves using column names as a hint for custom serialization. This half-baked idea is in ormer-experiments as Kysely transformer.
 <table>
   <thead>
     <tr>
