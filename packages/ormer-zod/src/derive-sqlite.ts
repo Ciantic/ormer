@@ -44,10 +44,11 @@ type DeriveBaseSqliteColumn<T extends ZodType> =
   : T extends z.ZodMAC ? ColumnTypeSingualr<"text">
   : T extends z.ZodCIDRv4 ? ColumnTypeSingualr<"text">
   : T extends z.ZodCIDRv6 ? ColumnTypeSingualr<"text">
+  // Date/time — string-based ZodISO types work as TEXT, only ZodDate can't round-trip
   : T extends z.ZodISOTime ? ColumnTypeSingualr<"text">
   : T extends z.ZodISODate ? ColumnTypeSingualr<"text">
   : T extends NaiveDatetime ? ColumnTypeSingualr<"text">
-  : T extends z.ZodISODateTime ? { type: "ERROR" } // Not supported, see test cases
+  : T extends z.ZodISODateTime ? ColumnTypeSingualr<"text">
 
   // Custom workarounds because of this: https://github.com/colinhacks/zod/issues/6045
   // Number formats
@@ -57,23 +58,25 @@ type DeriveBaseSqliteColumn<T extends ZodType> =
   : T extends ZodNumberFormatVal<"float32"> ? ColumnTypeSingualr<"real">
   : T extends ZodNumberFormatVal<"float64"> ? ColumnTypeSingualr<"real">
 
-  // Bigints
-  : T extends ZodBigIntFormatVal<"int64"> ? ColumnTypeSingualr<"integer">
-  : T extends ZodBigIntFormatVal<"uint64"> ? ColumnTypeSingualr<"integer">
+  // Bigints — SQLite INTEGER is always number, can't round-trip bigint
+  : T extends ZodBigIntFormatVal<"int64"> ? { type: "ERROR" }
+  : T extends ZodBigIntFormatVal<"uint64"> ? { type: "ERROR" }
 
-  // JSON — SQLite stores as text
-  : T extends z.ZodObject ? ColumnType<"text", { schema: T }>
-  : T extends z.ZodJSONSchema ? ColumnType<"text", { schema: T }>
+  // JSON — SQLite stores as text, can't round-trip
+  : T extends z.ZodObject ? { type: "ERROR" }
+  : T extends z.ZodJSONSchema ? { type: "ERROR" }
   
   : T extends z.ZodNumberFormat ? { type: "ERROR" } // This should not happen, above list exhaustive
   : T extends z.ZodBigIntFormat ? { type: "ERROR" } // This should not happen, above list exhaustive
   
   : T extends z.ZodNumber ? ColumnTypeSingualr<"real">
-  : T extends z.ZodBigInt ? ColumnTypeSingualr<"integer">
+  : T extends z.ZodBigInt ? { type: "ERROR" }
   : T extends z.ZodString & ZodMaxLengthVal<infer _Max> ? ColumnType<"text", { check: (col: string) => string }>
   : T extends z.ZodString ? ColumnTypeSingualr<"text">
-  : T extends z.ZodBoolean ? ColumnTypeSingualr<"integer">
-  : T extends z.ZodDate ? ColumnTypeSingualr<"text">
+  // Bool — SQLite has no boolean type, stores 0/1, can't round-trip
+  : T extends z.ZodBoolean ? { type: "ERROR" }
+  // Date — SQLite has no native date type, stores as text, can't round-trip
+  : T extends z.ZodDate ? { type: "ERROR" }
   : never;
 
 // prettier-ignore
@@ -81,14 +84,16 @@ export type DeriveSqliteColumn<T extends ZodType> =
   // Explicit .dbSqlite() override — skip derivation entirely
   T extends ZodDbSqliteColumnType<any> ? T["def"]["db"]["sqliteColumnType"]
 
-  // SQLite has no array types — force to text and drop array dimension
+  // SQLite has no array types — error out
   : SafeParamDerivation<T> extends { array: string }
-    ? RewrapToColumnType<{ type: "text" } & Omit<SafeParamDerivation<T>, "array">>
+    ? { type: "ERROR" }
 
-  // Otherwise, derive from the base type + modifiers
-  : RewrapToColumnType<
-      DeriveBaseSqliteColumn<UnwrapModifiers<T>> & SafeParamDerivation<T>
-    >;
+  // Otherwise, derive from the base type + modifiers (only if not ERROR)
+  : DeriveBaseSqliteColumn<UnwrapModifiers<T>> extends { type: "ERROR" }
+    ? { type: "ERROR" }
+    : RewrapToColumnType<
+        DeriveBaseSqliteColumn<UnwrapModifiers<T>> & SafeParamDerivation<T>
+      >;
 
 // ---------------------------------------------------------------------------
 // Runtime helpers
@@ -137,7 +142,9 @@ export function deriveSqliteColumn<
     const p = stripDerived(params);
 
     if (hasArray) {
-      return sqlite.text(p as Params);
+      throw new Error(
+        `Array types are not supported by deriveSqliteColumn. SQLite has no native array type. Use .dbSqlite() to make an explicit choice.`,
+      );
     }
 
     switch (t) {
@@ -189,14 +196,14 @@ export function deriveSqliteColumn<
       case "isoTime":
       case "isoDate":
       case "naiveDatetime":
-        return sqlite.text(p as Params);
       case "isoDatetime":
-        throw new Error(
-          `ZodISODateTime is not supported by deriveSqliteColumn. Use z.string().naiveDatetime() instead.`,
-        );
+        return sqlite.text(p as Params);
       case "int64":
       case "uint64":
       case "bigint":
+        throw new Error(
+          `ZodBigInt / ZodInt64 / ZodUInt64 is not supported by deriveSqliteColumn. SQLite INTEGER maps to number and cannot round-trip bigint values.`,
+        );
       case "int32":
       case "uint32":
         return sqlite.integer(p as Params);
@@ -204,17 +211,18 @@ export function deriveSqliteColumn<
       case "float64":
         return sqlite.real(p as Params);
       case "boolean":
-        return sqlite.integer(p as Params);
+        throw new Error(
+          `ZodBoolean is not supported by deriveSqliteColumn. SQLite has no boolean type (stores 0/1 in INTEGER) and cannot round-trip. Use .dbSqlite() to make an explicit choice.`,
+        );
       case "date":
-        return sqlite.text(p as Params);
+        throw new Error(
+          `ZodDate is not supported by deriveSqliteColumn. SQLite has no native date type and cannot round-trip. Use .dbSqlite() to make an explicit choice.`,
+        );
       case "json":
       case "object":
-        if (!("schema" in params)) {
-          throw new Error(
-            `ZodObject and ZodJSONSchema types must have a "schema" property in their db params for deriveColumn to work.`,
-          );
-        }
-        return sqlite.text(p as Params);
+        throw new Error(
+          `ZodObject / ZodJSONSchema is not supported by deriveSqliteColumn. SQLite has no JSON type and cannot round-trip. Use .dbSqlite() to make an explicit choice.`,
+        );
     }
   }) as DeriveSqliteColumn<T>;
 }

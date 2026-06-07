@@ -258,24 +258,24 @@ export const ALL_SQLITE_FIELDS = {
   c_int32: sqlite.integer(),
   c_uint32: sqlite.integer(),
 
-  // Bigint
-  c_bigint: sqlite.integer(),
-  c_int64: sqlite.integer(),
-  c_int64_pk: sqlite.integer(pkAutoInc),
-  c_uint64: sqlite.integer(),
+  // Bigint — SQLite INTEGER is always number, can't round-trip bigint
+  c_bigint: "ERROR" as const,
+  c_int64: "ERROR" as const,
+  c_int64_pk: "ERROR" as const,
+  c_uint64: "ERROR" as const,
 
-  // Boolean
-  c_bool: sqlite.integer(),
+  // Boolean — SQLite has no boolean, stores 0/1 in INTEGER, can't round-trip
+  c_bool: "ERROR" as const,
 
-  // JSON — SQLite stores as text
-  c_json: sqlite.text({ schema: z.object({ v: z.string() }) }),
-  c_json2: sqlite.text({ schema: z.json() }),
+  // JSON — SQLite stores as text, can't round-trip
+  c_json: "ERROR" as const,
+  c_json2: "ERROR" as const,
 
-  // Date/time types
-  c_date: sqlite.text(),
+  // Date/time types — string-based work as TEXT, only Date can't round-trip
+  c_date: "ERROR" as const,
   c_time: sqlite.text(),
   c_date_only: sqlite.text(),
-  c_datetime: "ERROR" as const,
+  c_datetime: sqlite.text(),
   c_timestamp: sqlite.text(),
 
   // GUID / UUID
@@ -311,11 +311,11 @@ export const ALL_SQLITE_FIELDS = {
   c_cidrv4: sqlite.text(),
   c_cidrv6: sqlite.text(),
 
-  // Array types — SQLite has no arrays → stored as JSON text
-  c_int_arr: sqlite.text(),
-  c_str_arr: sqlite.text(),
-  c_int_arr2: sqlite.text(),
-  c_str_arr_nullable: sqlite.text({ nullable: true }),
+  // Array types — SQLite has no arrays, can't round-trip
+  c_int_arr: "ERROR" as const,
+  c_str_arr: "ERROR" as const,
+  c_int_arr2: "ERROR" as const,
+  c_str_arr_nullable: "ERROR" as const,
 
   // Container types
   c_str_nullable: sqlite.text({ nullable: true }),
@@ -323,10 +323,7 @@ export const ALL_SQLITE_FIELDS = {
   c_str_default: sqlite.text({ default: "hello" }),
   c_str_prefault: sqlite.text({ default: "hello" }),
   c_str_pk: sqlite.text({ primaryKey: true }),
-  c_int64_fk: sqlite.integer({
-    foreignKeyTable: "users",
-    foreignKeyColumn: "id",
-  }),
+  c_int64_fk: "ERROR" as const,
 } as const satisfies {
   [K in keyof typeof ALL_ZOD_FIELDS]: ColumnType<string, any> | "ERROR";
 };

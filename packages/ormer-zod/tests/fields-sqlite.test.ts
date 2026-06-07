@@ -121,29 +121,14 @@ describe("ALL_ZOD_FIELDS deriveSqliteColumn types", () => {
           : { zod: z.output<Z>; sqlite: UpdateDB<Z> };
     };
 
-    // SQLite has no native bigint/boolean/date/array/object types.
-    // Fields where SQLite select type differs from Zod output type are skipped.
-    type SqliteCompatSkipKeys =
-      | "c_bigint"
-      | "c_int64"
-      | "c_int64_pk"
-      | "c_int64_fk"
-      | "c_uint64" // bigint → number
-      | "c_bool" // boolean → 0/1
-      | "c_date" // Date → string
-      | "c_int_arr"
-      | "c_str_arr"
-      | "c_int_arr2"
-      | "c_str_arr_nullable" // arrays → JSON text
-      | "c_json"
-      | "c_json2"; // objects → JSON text
+    // ERROR fields (bigint, boolean, date, arrays) are excluded automatically
+    // by `(typeof ALL_SQLITE_FIELDS)[K] extends "ERROR"` above.
+    // No runtime compat skips needed.
 
     type TestAll = {
       [K in keyof typeof ALL_ZOD_FIELDS]: (typeof ALL_SQLITE_FIELDS)[K] extends "ERROR"
         ? { selectCompat: true; insertCompat: true; updateCompat: true }
-        : K extends SqliteCompatSkipKeys
-          ? { selectCompat: true; insertCompat: true; updateCompat: true }
-          : CompatTest<(typeof ALL_ZOD_FIELDS)[K]["zod"]>;
+        : CompatTest<(typeof ALL_ZOD_FIELDS)[K]["zod"]>;
     };
 
     type FailedTests = {
@@ -165,23 +150,9 @@ describe("ALL_ZOD_FIELDS deriveSqliteColumn types", () => {
 
 describe("ALL_ZOD_FIELDS sqlite round-trip", () => {
   // Fields omitted from the round-trip test:
-  // - ERROR fields (ZodISODateTime has no mapping)
+  // - ERROR fields (bigint, boolean, date, arrays, JSON — excluded automatically)
   // - Extra auto-increment PKs (can't have multiple auto-increment PKs in one table)
-  // - FK field referencing a table that doesn't exist in the test
-  // - Array fields (SQLite has no native array type — stored as JSON text)
-  // - JSON fields (SQLite stores as text — round-trip needs serialization)
-  const ROUND_TRIP_OMIT = new Set([
-    "c_int_pk",
-    "c_int64_pk",
-    "c_int64_fk",
-    "c_uint64", // example value overflows SQLite INTEGER (signed 64-bit)
-    "c_int_arr",
-    "c_str_arr",
-    "c_int_arr2",
-    "c_str_arr_nullable",
-    "c_json",
-    "c_json2",
-  ]);
+  const ROUND_TRIP_OMIT = new Set(["c_int_pk"]);
 
   const roundTripEntries = Object.entries(ALL_ZOD_FIELDS).filter(([key]) => {
     const sl = ALL_SQLITE_FIELDS[key as keyof typeof ALL_SQLITE_FIELDS];
@@ -250,22 +221,8 @@ describe("ALL_ZOD_FIELDS sqlite round-trip", () => {
 
     expect(results).toHaveLength(1);
 
-    // SQLite integers come back as numbers (not bigints), and booleans as 0/1.
-    // bigint values (c_bigint, c_int64, c_uint64) come back as number.
-    // c_uint64 example overflows SQLite INTEGER (signed 64-bit) — use smaller value.
-    const expected = { ...exampleRow } as Record<string, any>;
-    if ("c_bigint" in expected) expected.c_bigint = 9007199254740991;
-    if ("c_int64" in expected) expected.c_int64 = 123456789;
-    if ("c_bool" in expected) expected.c_bool = 1;
-    if ("c_date" in expected && exampleRow.c_date instanceof Date) {
-      // SQLite stores dates as text via Kysely SQLite dialect
-      expected.c_date = exampleRow.c_date.toISOString();
-    }
-
     const row = results[0] as Record<string, any>;
-    for (const key of Object.keys(expected)) {
-      expect(row[key]).toEqual(expected[key]);
-    }
+    expect(row).toMatchObject(exampleRow);
 
     sqliteDb.close();
   });

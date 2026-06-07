@@ -1,8 +1,16 @@
 import { Project, SyntaxKind } from "ts-morph";
-import { PGCOLUMN_TO_SQLTYPE, DUCKDBCOLUMN_TO_SQLTYPE } from "ormer";
+import {
+  PGCOLUMN_TO_SQLTYPE,
+  DUCKDBCOLUMN_TO_SQLTYPE,
+  SQLITECOLUMN_TO_SQLTYPE,
+} from "ormer";
 import { md } from "./md.ts";
 import { writeFileSync } from "fs";
-import { ALL_PG_FIELDS, ALL_DUCKDB_FIELDS } from "../ormer-zod/tests/fields.ts";
+import {
+  ALL_PG_FIELDS,
+  ALL_DUCKDB_FIELDS,
+  ALL_SQLITE_FIELDS,
+} from "../ormer-zod/tests/fields.ts";
 
 /** Collapse multiline expressions into single-line for clean table display */
 function compact(expr: string): string {
@@ -58,6 +66,32 @@ function duckdbColumnToSqlDisplay(col: any): string {
     : "";
 
   return `<code>${fn(params).toUpperCase() + arraySuffix + isPk + isNullable + defaultValue + isFk}</code>`;
+}
+
+/**
+ * Given a sqlite column object (e.g. `sqlite.integer({ primaryKey: true })`),
+ * return the SQL column type name (e.g. `INTEGER`).
+ */
+function sqliteColumnToSqlDisplay(col: any): string {
+  if (typeof col === "string") {
+    if (col === "ERROR") return "<em>Not Available</em>";
+    return col;
+  }
+  if (!col || typeof col.type !== "string") return String(col);
+
+  const { type, ...params } = col;
+  const fn =
+    SQLITECOLUMN_TO_SQLTYPE[type as keyof typeof SQLITECOLUMN_TO_SQLTYPE];
+
+  const isPk = col.primaryKey ? " PRIMARY KEY" : "";
+  const isAutoIncrement = col.autoIncrement ? " AUTOINCREMENT" : "";
+  const isNullable = col.nullable ? " NULL" : "";
+  const defaultValue = col.default ? ` DEFAULT ${col.default}` : "";
+  const isFk = col.foreignKeyTable
+    ? ` FOREIGN KEY REFERENCES ${col.foreignKeyTable}(${col.foreignKeyColumn})`
+    : "";
+
+  return `<code>${fn(params).toUpperCase() + isPk + isAutoIncrement + isNullable + defaultValue + isFk}</code>`;
 }
 
 function zodSrcToDisplay(zodSrc: string): string {
@@ -124,12 +158,15 @@ function makeZodTestCaseTableHtml() {
       const duckCol =
         ALL_DUCKDB_FIELDS[propName as keyof typeof ALL_DUCKDB_FIELDS];
       const duckDisplay = duckdbColumnToSqlDisplay(duckCol);
+      const sqliteCol =
+        ALL_SQLITE_FIELDS[propName as keyof typeof ALL_SQLITE_FIELDS];
+      const sqliteDisplay = sqliteColumnToSqlDisplay(sqliteCol);
       result.push(md`
         <tr>
           <td>${zodDisplay}</td>
           <td>${pgDisplay}</td>
           <td>${duckDisplay}</td>
-          <td><code></code></td>
+          <td>${sqliteDisplay}</td>
         </tr>
       `);
       return result;
@@ -192,7 +229,7 @@ function generateReadmeMd() {
     - \`z.bigint()\` is mapped to be INT8 in postgres, this might be incorrect for arbitrary sized bigints. If you need that use custom mapping.
     - \`z.int()\` is mapped to be INT4 in postgres, and thus not all of the IEEE 754 safe integers are valid values.
     - \`z.iso.datetime()\` can't be used, it does not allow timestamp format without a T divider. Postgres returns TIMESTAMP values as YYYY-MM-DD HH:MM:SS without the T.
-    - SQLite support is too buggy, because it only has primitive datatypes, and it would need a custom serialization layer for bigint/boolean/date/array/object types, which I haven't found a good way to do yet. One idea involves using column names as a hint for custom serialization. This half-baked idea is in ormer-experiments as Kysely transformer.
+    - SQLite only ha primitive datatypes, and it would need a custom serialization layer for bigint/boolean/date/array/object types, which I haven't found a good way to do yet. One idea involves using column names as a hint for custom serialization. This half-baked idea is in ormer-experiments as Kysely transformer.
   `);
 
   readme.push(makeZodTestCaseTableHtml());
