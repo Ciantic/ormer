@@ -92,7 +92,7 @@ function sqliteColumnToSqlDisplay(col: any): string {
     ? ` FOREIGN KEY REFERENCES ${col.foreignKeyTable}(${col.foreignKeyColumn})`
     : "";
 
-  return `<code>${fn(params).toUpperCase() + isPk + isAutoIncrement + isNullable + defaultValue + isFk}</code>`;
+  return `<code>${fn().toUpperCase() + isPk + isAutoIncrement + isNullable + defaultValue + isFk}</code>`;
 }
 
 function zodSrcToDisplay(zodSrc: string): string {
@@ -321,7 +321,9 @@ function generateReadmeMd() {
   readme.push(makeZodTestCaseTableHtml());
   readme.push("");
 
-  readme.push(md`## Ormer-Valibot package`);
+  readme.push(md`
+## Ormer-Valibot package
+  `);
 
   readme.push(makeValibotTestCaseTableHtml());
 
