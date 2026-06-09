@@ -11,6 +11,7 @@ import {
   ALL_DUCKDB_FIELDS,
   ALL_SQLITE_FIELDS,
 } from "../ormer-zod/tests/fields.ts";
+import { ALL_PG_FIELDS as ALL_PG_FIELDS_VALIBOT } from "../ormer-valibot/tests/fields.ts";
 
 /** Collapse multiline expressions into single-line for clean table display */
 function compact(expr: string): string {
@@ -96,6 +97,10 @@ function sqliteColumnToSqlDisplay(col: any): string {
 
 function zodSrcToDisplay(zodSrc: string): string {
   return `<code>${compact(zodSrc)}</code>`;
+}
+
+function valibotSrcToDisplay(src: string): string {
+  return `<code>${compact(src)}</code>`;
 }
 
 function makeZodTestCaseTableHtml() {
@@ -190,6 +195,87 @@ function makeZodTestCaseTableHtml() {
     `;
 }
 
+function makeValibotTestCaseTableHtml() {
+  const project = new Project();
+  const sf = project.addSourceFileAtPath("../ormer-valibot/tests/fields.ts");
+  if (!sf) throw new Error("Could not load valibot fields.ts");
+
+  const decl = sf.getVariableDeclarationOrThrow("ALL_VALIBOT_FIELDS");
+  let initializer = decl.getInitializerOrThrow();
+  // Unwrap `as const` if present
+  if (initializer.isKind(SyntaxKind.AsExpression)) {
+    initializer = initializer
+      .asKindOrThrow(SyntaxKind.AsExpression)
+      .getExpression();
+  }
+
+  const objectLiteral = initializer.asKindOrThrow(
+    SyntaxKind.ObjectLiteralExpression,
+  );
+
+  const rows = objectLiteral
+    .getProperties()
+    .flatMap((prop) => {
+      const fullText = prop.getFullText();
+      const text = prop.getText();
+      const leadingTrivia = fullText.substring(0, fullText.indexOf(text));
+      const commentMatch = leadingTrivia.match(/\/\/\s*(.+?)\s*$/m);
+
+      const result: string[] = [];
+      if (commentMatch) {
+        result.push(md`
+          <tr>
+            <td colspan="2"><strong>${commentMatch[1]}</strong></td>
+          </tr>
+        `);
+      }
+
+      if (!prop.isKind(SyntaxKind.PropertyAssignment)) return result;
+      const assignment = prop.asKindOrThrow(SyntaxKind.PropertyAssignment);
+      const value = assignment.getInitializerOrThrow();
+
+      if (!value.isKind(SyntaxKind.ObjectLiteralExpression)) return result;
+      const inner = value.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+
+      const valibotProp = inner.getProperty("valibot");
+
+      if (!valibotProp || !valibotProp.isKind(SyntaxKind.PropertyAssignment))
+        return result;
+
+      const valibotExpr = valibotProp
+        .asKindOrThrow(SyntaxKind.PropertyAssignment)
+        .getInitializerOrThrow();
+
+      const propName = assignment.getName();
+      const valibotDisplay = valibotSrcToDisplay(valibotExpr.getText());
+      const pgCol =
+        ALL_PG_FIELDS_VALIBOT[propName as keyof typeof ALL_PG_FIELDS_VALIBOT];
+      const pgDisplay = pgColumnToSqlDisplay(pgCol);
+      result.push(md`
+        <tr>
+          <td>${valibotDisplay}</td>
+          <td>${pgDisplay}</td>
+        </tr>
+      `);
+      return result;
+    })
+    .join("\n");
+
+  return md`
+      <table>
+        <thead>
+          <tr>
+            <th>Valibot Schema</th>
+            <th>Postgres</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    `;
+}
+
 function generateReadmeMd() {
   let readme: string[] = [];
 
@@ -200,7 +286,7 @@ function generateReadmeMd() {
 
     This is Work In Progress!
 
-    Made of two packages \`packages/ormer\` and \`packages/ormer-zod\`. There is also old \`packages/ormer-experiments\` which is not used for other than ideas.
+    Made of three packages \`packages/ormer\`, \`packages/ormer-zod\` and \`packages/ormer-valibot\`. There is also old \`packages/ormer-experiments\` which is not used for other than ideas.
 
     ## Ormer package
 
@@ -233,6 +319,11 @@ function generateReadmeMd() {
   `);
 
   readme.push(makeZodTestCaseTableHtml());
+  readme.push("");
+
+  readme.push(md`## Ormer-Valibot package`);
+
+  readme.push(makeValibotTestCaseTableHtml());
 
   return readme.join("\n");
 }

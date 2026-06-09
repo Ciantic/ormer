@@ -41,7 +41,7 @@ export const ALL_VALIBOT_FIELDS = {
   c_time:             { valibot: v.pipe(v.string(), v.isoTime()),         example: "14:30" },
   c_timeseconds:      { valibot: v.pipe(v.string(), v.isoTimeSecond()),   example: "14:30:00" },
   c_date_only:        { valibot: v.pipe(v.string(), v.isoDate()),         example: "2024-01-15" },
-  c_datetime:         { valibot: v.pipe(v.string(), v.isoDateTime()),     example: "2024-01-15 10:00" }, // Does not allow seconds or nanoseconds
+  c_datetime:         { valibot: v.pipe(v.string(), v.isoDateTime()),     example: "2024-01-15 10:00" }, 
   c_timestamp:        { valibot: v.pipe(v.string(), d.naiveDatetime()),   example: "2024-01-15 10:30:00" },
 
   // UUID
