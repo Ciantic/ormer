@@ -1,0 +1,26 @@
+{
+  "name": "ormer-valibot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest --run",
+    "check": "tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "ormer": "workspace:*",
+    "valibot": "^1.4.0"
+  },
+  "devDependencies": {
+    "@duckdb/node-api": "1.5.2-r.1",
+    "@electric-sql/pglite": "^0.4.4",
+    "@types/node": "^25.7.0",
+    "kysely": "^0.29.0",
+    "libsql": "^0.6.0-pre.32",
+    "vitest": "^4.1.6"
+  }
+}
