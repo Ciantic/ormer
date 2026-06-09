@@ -8,6 +8,7 @@ import type {
   NonNullishSchema,
   ExactOptionalSchema,
   ArraySchema,
+  InferMetadata,
 } from "valibot";
 import * as v from "valibot";
 import type { ColumnType, ColumnTypeSingualr, Table } from "ormer";
@@ -15,6 +16,15 @@ import type { ColumnType, ColumnTypeSingualr, Table } from "ormer";
 // ---------------------------------------------------------------------------
 // General utility types
 // ---------------------------------------------------------------------------
+
+export type InferrableValibotSchema =
+  | v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>
+  | v.BaseSchemaAsync<unknown, unknown, v.BaseIssue<unknown>>
+  | v.BaseValidation<any, unknown, v.BaseIssue<unknown>>
+  | v.BaseValidationAsync<any, unknown, v.BaseIssue<unknown>>
+  | v.BaseTransformation<any, unknown, v.BaseIssue<unknown>>
+  | v.BaseTransformationAsync<any, unknown, v.BaseIssue<unknown>>
+  | v.BaseMetadata<any>;
 
 export type ValibotSchema = v.GenericSchema;
 
@@ -182,53 +192,44 @@ type SchemaHasDefault<T> = T extends { fallback: infer F }
     : false;
 
 // ---------------------------------------------------------------------------
-// DB metadata checks (via pipe items)
+// DB metadata extraction (via InferMetadata + modifier unwrap)
 // ---------------------------------------------------------------------------
 
+/**
+ * Extract the merged metadata from a valibot schema, walking through
+ * modifier wrappers (nullable, optional, etc.) to reach the inner schema.
+ * Uses valibot's own InferMetadata for correct depth-first merge semantics.
+ */
+// prettier-ignore
+export type DbMetadataOf<T extends ValibotSchema> =
+   InferMetadata<T> extends { db: infer D } ? D : {};
+
 export type HasDbPk<T extends ValibotSchema> =
-  HasPipeItem<T, "metadata"> extends true
-    ? GetPipeItemProp<T, "metadata", "metadata"> extends infer M
-      ? M extends { db: { primaryKey: true } }
-        ? true
-        : false
-      : false
-    : false;
+  DbMetadataOf<T> extends { primaryKey: true } ? true : false;
 
 export type DbFkTable<T extends ValibotSchema> =
-  GetPipeItemProp<T, "metadata", "metadata"> extends infer M
-    ? M extends { db: { foreignKeyTable: infer N } }
-      ? N extends string
-        ? N
-        : never
+  DbMetadataOf<T> extends { foreignKeyTable: infer N }
+    ? N extends string
+      ? N
       : never
     : never;
 
 export type DbFkColumn<T extends ValibotSchema> =
-  GetPipeItemProp<T, "metadata", "metadata"> extends infer M
-    ? M extends { db: { foreignKeyColumn: infer C } }
-      ? C extends string
-        ? C
-        : never
+  DbMetadataOf<T> extends { foreignKeyColumn: infer C }
+    ? C extends string
+      ? C
       : never
     : never;
 
 export type DbTableName<T extends ValibotSchema> =
-  GetPipeItemProp<T, "metadata", "metadata"> extends infer M
-    ? M extends { db: { tableName: infer N } }
-      ? N extends string
-        ? N
-        : never
+  DbMetadataOf<T> extends { tableName: infer N }
+    ? N extends string
+      ? N
       : never
     : never;
 
 export type HasDbNavigation<T extends ValibotSchema> =
-  HasPipeItem<T, "metadata"> extends true
-    ? GetPipeItemProp<T, "metadata", "metadata"> extends infer M
-      ? M extends { db: { navigation: infer _ } }
-        ? true
-        : false
-      : false
-    : false;
+  DbMetadataOf<T> extends { navigation: infer _ } ? true : false;
 
 // ---------------------------------------------------------------------------
 // Array dimensions
@@ -290,7 +291,7 @@ export type SafeParamDerivation<T extends ValibotSchema> = OmitNever<{
           : IsNullable<T> extends true ? true
           : IsOptional<T> extends true ? true
           : never;
-  default: HasDefaultValue<T> extends true ? unknown : never;
+  default: HasDefaultValue<T> extends true ? v.InferOutput<T> : never;
   autoIncrement: GetAutoIncrement<T>;
   foreignKeyTable: DbFkTable<T>;
   foreignKeyColumn: DbFkColumn<T>;

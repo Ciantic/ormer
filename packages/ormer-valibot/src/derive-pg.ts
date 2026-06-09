@@ -13,6 +13,8 @@ import type {
   ArraySchema,
   MaxLengthAction,
   BrandAction,
+  InferOutput,
+  Brand,
 } from "valibot";
 import {
   deriveColumn,
@@ -20,6 +22,7 @@ import {
   type AnyValibotSchema,
 } from "./derive.ts";
 import type {
+  InferrableValibotSchema,
   ValibotSchema,
   UnwrapModifiers,
   HasPipeItem,
@@ -29,6 +32,7 @@ import type {
   SafeParamDerivation,
   HasDbNavigation,
   DbTableName,
+  DbMetadataOf,
 } from "./common.ts";
 
 // ---------------------------------------------------------------------------
@@ -36,43 +40,43 @@ import type {
 // ---------------------------------------------------------------------------
 
 // prettier-ignore
-type DeriveBrandPgColumn<T extends ValibotSchema> =
-  HasPipeItem<T, "brand"> extends true
-    ? GetPipeItemProp<T, "brand", "name"> extends "naiveDatetime" ? ColumnTypeSingualr<"timestamp">
-    : GetPipeItemProp<T, "brand", "name"> extends "int32"         ? ColumnTypeSingualr<"int4">
-    : GetPipeItemProp<T, "brand", "name"> extends "uint32"        ? { type: "ERROR" }
-    : GetPipeItemProp<T, "brand", "name"> extends "float32"       ? ColumnTypeSingualr<"float4">
-    : GetPipeItemProp<T, "brand", "name"> extends "float64"       ? ColumnTypeSingualr<"float8">
-    : GetPipeItemProp<T, "brand", "name"> extends "int64"         ? ColumnTypeSingualr<"int8">
-    : GetPipeItemProp<T, "brand", "name"> extends "uint64"        ? { type: "ERROR" }
+type DeriveBrandPgColumn<T extends InferrableValibotSchema> =
+  InferOutput<T> extends Brand<infer B>
+    ? B extends "naiveDatetime" ? ColumnTypeSingualr<"timestamp">
+    : B extends "int32"         ? ColumnTypeSingualr<"int4">
+    : B extends "uint32"        ? { type: "ERROR" }
+    : B extends "float32"       ? ColumnTypeSingualr<"float4">
+    : B extends "float64"       ? ColumnTypeSingualr<"float8">
+    : B extends "int64"         ? ColumnTypeSingualr<"int8">
+    : B extends "uint64"        ? { type: "ERROR" }
     : never
     : never;
 
 // prettier-ignore
 type DeriveNonBrandPgColumn<T extends ValibotSchema> =
   // ---- String (with optional maxLength) ----
-    T extends StringSchema<any>
+    UnwrapModifiers<T> extends StringSchema<any>
       ? HasPipeItem<T, "max_length"> extends true
         ? ColumnType<"varchar", { maxLength: GetPipeItemProp<T, "max_length", "requirement"> }>
         : ColumnTypeSingualr<"text">
 
   // ---- Number ----
-  : T extends NumberSchema<any> ? HasPipeItem<T, "safe_integer"> extends true ? ColumnTypeSingualr<"int4"> : ColumnTypeSingualr<"float8">
+  : UnwrapModifiers<T> extends NumberSchema<any> ? HasPipeItem<T, "safe_integer"> extends true ? ColumnTypeSingualr<"int4"> : ColumnTypeSingualr<"float8">
 
   // ---- Bigint ----
-  : T extends BigintSchema<any> ? ColumnTypeSingualr<"int8">
+  : UnwrapModifiers<T> extends BigintSchema<any> ? ColumnTypeSingualr<"int8">
 
   // ---- Boolean ----
-  : T extends BooleanSchema<any> ? ColumnTypeSingualr<"boolean">
+  : UnwrapModifiers<T> extends BooleanSchema<any> ? ColumnTypeSingualr<"boolean">
 
   // ---- Date (JS Date objects → timestamptz) ----
-  : T extends DateSchema<any> ? ColumnTypeSingualr<"timestamptz">
+  : UnwrapModifiers<T> extends DateSchema<any> ? ColumnTypeSingualr<"timestamptz">
 
   // ---- Object / JSON ----
-  : T extends ObjectSchema<any, any> ? ColumnType<"jsonb", { schema: T }>
+  : UnwrapModifiers<T> extends ObjectSchema<any, any> ? ColumnType<"jsonb", { schema: UnwrapModifiers<T> }>
 
   // ---- Array (recurse into element type; SafeParamDerivation provides array: "[]") ----
-  : T extends ArraySchema<infer Inner extends ValibotSchema, any> ? DeriveBasePgColumn<Inner>
+  : UnwrapModifiers<T> extends ArraySchema<infer Inner extends ValibotSchema, any> ? DeriveBasePgColumn<Inner>
 
   // ---- Fallback ----
   : never;
@@ -108,7 +112,7 @@ type DeriveBasePgColumn<T extends ValibotSchema> =
 
   // ---- Brand-based types (delegated to helper) ---
   : [DeriveBrandPgColumn<T>] extends [never]
-    ? DeriveNonBrandPgColumn<UnwrapModifiers<T>>
+    ? DeriveNonBrandPgColumn<T>
     : DeriveBrandPgColumn<T>;
 
 // ---------------------------------------------------------------------------
@@ -123,25 +127,11 @@ type DeriveBasePgColumn<T extends ValibotSchema> =
  */
 // prettier-ignore
 export type DerivePgColumn<T extends ValibotSchema> =
-  // Explicit .dbPgColumnType() override — skip derivation entirely
-  HasPipeItem<T, "metadata"> extends true
-    ? GetPipeItemProp<T, "metadata", "metadata"> extends infer M
-      ? M extends { db: { pgColumnType: infer C } }
-        ? C extends ColumnType<any, any> | ColumnTypeSingualr<string>
-          ? C
-          : never
-        : RewrapToColumnType<
-              DeriveBasePgColumn<T> &
-                SafeParamDerivation<T>
-            >
-      : RewrapToColumnType<
-          DeriveBasePgColumn<T> &
-            SafeParamDerivation<T>
-        >
-    : RewrapToColumnType<
-        DeriveBasePgColumn<T> &
-          SafeParamDerivation<T>
-      >;
+    // Explicit .dbPgColumnType() override — skip derivation entirely
+    DbMetadataOf<T> extends { pgColumnType: infer C } ? C
+  : RewrapToColumnType<
+    DeriveBasePgColumn<T> & SafeParamDerivation<T>
+  >;
 
 // ---------------------------------------------------------------------------
 // Type-level: DerivePgTable

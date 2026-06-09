@@ -461,10 +461,10 @@ describe("SafeParamDerivation", () => {
     expectTypeOf<P["autoIncrement"]>().toEqualTypeOf<true>();
   });
 
-  it("derives default:unknown for schema with default", () => {
+  it("derives default:string for schema with default", () => {
     const s = v.optional(v.string(), "hello");
     type P = SafeParamDerivation<typeof s>;
-    expectTypeOf<P["default"]>().toEqualTypeOf<unknown>();
+    expectTypeOf<P["default"]>().toEqualTypeOf<string>();
   });
 
   it("derives foreignKeyTable and foreignKeyColumn for FK schema", () => {
