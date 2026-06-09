@@ -61,12 +61,13 @@ export type PipeUnion<T extends ValibotSchema> =
 /**
  * Check if a schema has a pipe item with the given type.
  */
-export type HasPipeItem<T extends ValibotSchema, Type extends string> =
-  PipeUnion<T> extends never
+export type HasPipeItem<T extends ValibotSchema, Type extends string> = [
+  PipeUnion<T>,
+] extends [never]
+  ? false
+  : Extract<PipeUnion<T>, { type: Type }> extends never
     ? false
-    : Extract<PipeUnion<T>, { type: Type }> extends never
-      ? false
-      : true;
+    : true;
 
 /**
  * Extract a property from a pipe item matching a given type.
@@ -285,7 +286,8 @@ export type GetAutoIncrement<T extends ValibotSchema> =
 // prettier-ignore
 export type SafeParamDerivation<T extends ValibotSchema> = OmitNever<{
   primaryKey: HasDbPk<T> extends true ? true : never;
-  nullable: IsNullable<T> extends true ? true
+  nullable: HasDefaultValue<T> extends true ? never
+          : IsNullable<T> extends true ? true
           : IsOptional<T> extends true ? true
           : never;
   default: HasDefaultValue<T> extends true ? unknown : never;
