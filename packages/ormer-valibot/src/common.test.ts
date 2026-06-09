@@ -369,11 +369,11 @@ describe("UnwrapModifiers", () => {
     expectTypeOf<v.InferOutput<Base>>().toEqualTypeOf<string>();
   });
 
-  it("unwraps array to item schema", () => {
-    const s = v.array(v.string());
-    type Base = UnwrapModifiers<typeof s>;
-    expectTypeOf<v.InferOutput<Base>>().toEqualTypeOf<string>();
-  });
+  //   it("unwraps array to item schema", () => {
+  //     const s = v.array(v.string());
+  //     type Base = UnwrapModifiers<typeof s>;
+  //     expectTypeOf<v.InferOutput<Base>>().toEqualTypeOf<string>();
+  //   });
 
   it("returns same for non-wrapped schema", () => {
     const s = v.string();

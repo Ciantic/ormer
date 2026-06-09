@@ -102,7 +102,7 @@ export type UnwrapModifiers<T extends ValibotSchema> =
   : T extends NonOptionalSchema<infer Inner extends ValibotSchema, any>    ? UnwrapModifiers<Inner>
   : T extends ExactOptionalSchema<infer Inner extends ValibotSchema, any>  ? UnwrapModifiers<Inner>
   : T extends SchemaWithPipe<infer Pipe>                                   ? UnwrapModifiers<Extract<Pipe[0], ValibotSchema>>
-  : T extends ArraySchema<infer Inner extends ValibotSchema, any>          ? UnwrapModifiers<Inner>
+//   : T extends ArraySchema<infer Inner extends ValibotSchema, any>          ? UnwrapModifiers<Inner>
   : T;
 
 // ---------------------------------------------------------------------------
@@ -126,7 +126,7 @@ export type UnwrapUntilReturnTrue<
   : T extends NonOptionalSchema<infer Inner extends ValibotSchema, any>    ? UnwrapUntilReturnTrue<Inner, Check>
   : T extends ExactOptionalSchema<infer Inner extends ValibotSchema, any>  ? UnwrapUntilReturnTrue<Inner, Check>
   : T extends SchemaWithPipe<infer Pipe>                                   ? UnwrapUntilReturnTrue<Extract<Pipe[0], ValibotSchema>, Check>
-  : T extends ArraySchema<infer Inner extends ValibotSchema, any>          ? UnwrapUntilReturnTrue<Inner, Check>
+//   : T extends ArraySchema<infer Inner extends ValibotSchema, any>          ? UnwrapUntilReturnTrue<Inner, Check>
   : false;
 
 // prettier-ignore
