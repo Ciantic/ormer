@@ -1,6 +1,4 @@
 import type {
-  BaseIssue,
-  BaseSchema,
   SchemaWithPipe,
   NullableSchema,
   OptionalSchema,
@@ -10,8 +8,6 @@ import type {
   NonNullishSchema,
   ExactOptionalSchema,
   ArraySchema,
-  ObjectSchema,
-  MetadataAction,
 } from "valibot";
 import * as v from "valibot";
 import type { ColumnType, ColumnTypeSingualr, Table } from "ormer";
@@ -133,16 +129,25 @@ export type UnwrapUntilReturnTrue<
   : T extends ArraySchema<infer Inner extends ValibotSchema, any>          ? UnwrapUntilReturnTrue<Inner, Check>
   : false;
 
+// prettier-ignore
 export type IsNullable<T extends ValibotSchema> =
-  UnwrapUntilReturnTrue<T, NullableSchema<any, any>> extends [true, infer _]
-    ? true
+  UnwrapUntilReturnTrue<T,
+    | NullableSchema<any, any> 
+    | NullishSchema<any, any>
+  > extends [true, infer _]
+    ? T extends 
+        | NonNullableSchema<any, any> 
+        | NonNullishSchema<any, any> 
+      ? false 
+      : true
     : false;
 
 // prettier-ignore
 export type IsOptional<T extends ValibotSchema> =
-  UnwrapUntilReturnTrue<
-    T,
-    OptionalSchema<any, any> | NullishSchema<any, any> | ExactOptionalSchema<any, any>
+  UnwrapUntilReturnTrue<T, 
+    | OptionalSchema<any, any> 
+    | NullishSchema<any, any> 
+    | ExactOptionalSchema<any, any>
   > extends [true, infer _]
     ? T extends NonOptionalSchema<any, any> ? false : true
     : false;
@@ -270,8 +275,10 @@ export type RewrapDeriveTable<T> =
  */
 export type GetAutoIncrement<T extends ValibotSchema> =
   HasDbPk<T> extends true
-    ? GetPipeItemProp<T, "brand", "name"> extends "int32" | "int64" | "uint64"
-      ? true
+    ? HasPipeItem<T, "brand"> extends true
+      ? GetPipeItemProp<T, "brand", "name"> extends "int32" | "int64" | "uint64"
+        ? true
+        : never
       : never
     : never;
 

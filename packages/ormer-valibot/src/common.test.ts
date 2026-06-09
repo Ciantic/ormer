@@ -41,13 +41,11 @@ describe("IsNullable", () => {
 
   it("returns false for v.nonNullable(v.nullable(...))", () => {
     // nonNullable removes null, so the resulting type is not nullable.
-    // BUG: implementation walks through nonNullable and finds NullableSchema inside.
     const s = v.nonNullable(v.nullable(v.string()));
     expectTypeOf<IsNullable<typeof s>>().toEqualTypeOf<false>();
   });
 
   it("returns true for v.nullish() — nullish includes null", () => {
-    // BUG: NullishSchema does not extend NullableSchema; they are sibling types.
     const s = v.nullish(v.string());
     expectTypeOf<IsNullable<typeof s>>().toEqualTypeOf<true>();
   });
@@ -435,12 +433,8 @@ describe("GetAutoIncrement", () => {
   });
 
   it("returns never for string primary key (non-numeric brand)", () => {
-    // BUG: GetPipeItemProp returns never (no brand), but never extends any string literal
-    // evaluates to true in TS. Should explicitly guard against never.
     const s = v.pipe(v.string(), d.dbPrimaryKey());
-    type IsNever<T> = [T] extends [never] ? true : false;
-    type Result = GetAutoIncrement<typeof s>;
-    expectTypeOf<IsNever<Result>>().toEqualTypeOf<true>();
+    expectTypeOf<GetAutoIncrement<typeof s>>().toEqualTypeOf<never>();
   });
 });
 
