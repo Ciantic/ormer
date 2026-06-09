@@ -1,10 +1,155 @@
 import { pg, table } from "ormer";
-import type { ColumnType, Params, Table } from "ormer";
+import type { ColumnType, ColumnTypeSingualr, Params, Table } from "ormer";
+import type {
+  BaseIssue,
+  BaseSchema,
+  SchemaWithPipe,
+  ObjectSchema,
+  StringSchema,
+  NumberSchema,
+  BigintSchema,
+  BooleanSchema,
+  DateSchema,
+  MaxLengthAction,
+  BrandAction,
+} from "valibot";
 import {
   deriveColumn,
   extractDbMetadata,
   type AnyValibotSchema,
 } from "./derive.ts";
+import type {
+  ValibotSchema,
+  UnwrapModifiers,
+  HasPipeItem,
+  GetPipeItemProp,
+  RewrapToColumnType,
+  RewrapDeriveTable,
+  SafeParamDerivation,
+  HasDbNavigation,
+  DbTableName,
+} from "./common.ts";
+
+// ---------------------------------------------------------------------------
+// Type-level: DeriveBasePgColumn
+// ---------------------------------------------------------------------------
+
+/**
+ * Map a bare (unwrapped) valibot schema to a PostgreSQL ColumnType.
+ * This operates on the inner type after modifiers have been stripped.
+ *
+ * Pipe actions (brands, validation, etc.) are checked via the pipe union.
+ */
+// prettier-ignore
+type DeriveBasePgColumn<T extends ValibotSchema> =
+  // ---- Pipe-action based detection (string formats) ----
+    HasPipeItem<T, "uuid"> extends true                    ? ColumnTypeSingualr<"uuid">
+  : HasPipeItem<T, "url"> extends true                     ? ColumnTypeSingualr<"text">
+  : HasPipeItem<T, "email"> extends true                   ? ColumnTypeSingualr<"text">
+  : HasPipeItem<T, "emoji"> extends true                   ? ColumnTypeSingualr<"text">
+  : HasPipeItem<T, "nanoid"> extends true                  ? ColumnType<"varchar", { maxLength: 21 }>
+  : HasPipeItem<T, "cuid2"> extends true                   ? ColumnTypeSingualr<"text">
+  : HasPipeItem<T, "ulid"> extends true                    ? ColumnType<"varchar", { maxLength: 26 }>
+  : HasPipeItem<T, "base64"> extends true                  ? ColumnTypeSingualr<"text">
+  : HasPipeItem<T, "ipv4"> extends true                    ? ColumnTypeSingualr<"inet">
+  : HasPipeItem<T, "ipv6"> extends true                    ? ColumnTypeSingualr<"inet">
+  : HasPipeItem<T, "mac"> extends true                     ? ColumnTypeSingualr<"macaddr">
+
+  // ---- ISO date/time detection ----
+  : HasPipeItem<T, "iso_time"> extends true                ? { type: "ERROR" }
+  : HasPipeItem<T, "iso_time_second"> extends true         ? ColumnTypeSingualr<"time">
+  : HasPipeItem<T, "iso_date"> extends true                ? ColumnTypeSingualr<"date">
+  : HasPipeItem<T, "iso_date_time"> extends true           ? { type: "ERROR" }
+  : HasPipeItem<T, "iso_date_time_second"> extends true    ? { type: "ERROR" }
+
+  // ---- Brand-based numeric types ----
+  : GetPipeItemProp<T, "brand", "name"> extends "naiveDatetime" ? ColumnTypeSingualr<"timestamp">
+
+  : GetPipeItemProp<T, "brand", "name"> extends "int32" ? ColumnTypeSingualr<"int4">
+  : GetPipeItemProp<T, "brand", "name"> extends "uint32" ? { type: "ERROR" }
+  : GetPipeItemProp<T, "brand", "name"> extends "float32" ? ColumnTypeSingualr<"float4">
+  : GetPipeItemProp<T, "brand", "name"> extends "float64" ? ColumnTypeSingualr<"float8">
+  : GetPipeItemProp<T, "brand", "name"> extends "int64" ? ColumnTypeSingualr<"int8">
+  : GetPipeItemProp<T, "brand", "name"> extends "uint64" ? { type: "ERROR" }
+
+  // ---- String (with optional maxLength) ----
+  : T extends StringSchema<any> ? GetPipeItemProp<T, "max_length", "requirement"> extends number
+      ? ColumnType<"varchar", { maxLength: GetPipeItemProp<T, "max_length", "requirement"> }>
+      : ColumnTypeSingualr<"text">
+
+  // ---- Number ----
+  : T extends NumberSchema<any> ? HasPipeItem<T, "safe_integer"> extends true ? ColumnTypeSingualr<"int4"> : ColumnTypeSingualr<"float8">
+
+  // ---- Bigint ----
+  : T extends BigintSchema<any> ? ColumnTypeSingualr<"int8">
+
+  // ---- Boolean ----
+  : T extends BooleanSchema<any> ? ColumnTypeSingualr<"boolean">
+
+  // ---- Date (JS Date objects → timestamptz) ----
+  : T extends DateSchema<any> ? ColumnTypeSingualr<"timestamptz">
+
+  // ---- Object / JSON ----
+  : T extends ObjectSchema<any, any> ? ColumnType<"jsonb", { schema: T }>
+
+  // ---- Fallback ----
+  : never;
+
+// ---------------------------------------------------------------------------
+// Type-level: DerivePgColumn
+// ---------------------------------------------------------------------------
+
+/**
+ * Derive a PgColumn type from a valibot schema.
+ *
+ * 1. Check for explicit .dbPgColumnType() override in pipe metadata.
+ * 2. Otherwise, derive from the base type + modifier params.
+ */
+// prettier-ignore
+export type DerivePgColumn<T extends ValibotSchema> =
+  // Explicit .dbPgColumnType() override — skip derivation entirely
+  GetPipeItemProp<T, "metadata", "metadata"> extends infer M
+    ? M extends { db: { pgColumnType: infer C } }
+      ? C extends ColumnType<any, any> | ColumnTypeSingualr<string>
+        ? C
+        : never
+      : RewrapToColumnType<
+            DeriveBasePgColumn<UnwrapModifiers<T>> &
+              SafeParamDerivation<T>
+          >
+    : RewrapToColumnType<
+        DeriveBasePgColumn<UnwrapModifiers<T>> &
+          SafeParamDerivation<T>
+      >;
+
+// ---------------------------------------------------------------------------
+// Type-level: DerivePgTable
+// ---------------------------------------------------------------------------
+
+/**
+ * Derive a PgTable type from a valibot object schema with dbTable metadata.
+ */
+// prettier-ignore
+export type DerivePgTable<
+  T extends ObjectSchema<any, any> & { pipe?: readonly any[] },
+> = RewrapDeriveTable<
+  Table<
+    DbTableName<T & ValibotSchema>,
+    {
+      [K in keyof T["entries"] &
+        string as T["entries"][K] extends infer Entry
+        ? Entry extends ValibotSchema
+          ? HasDbNavigation<Entry> extends true
+            ? never
+            : K
+          : K
+        : K
+      ]: DerivePgColumn<
+        T["entries"][K] extends ValibotSchema ? T["entries"][K] : never
+      >;
+    }
+  >
+>;
 
 // ---------------------------------------------------------------------------
 // Runtime implementation

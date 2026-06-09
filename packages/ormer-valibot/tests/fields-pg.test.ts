@@ -1,13 +1,16 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, expectTypeOf } from "vitest";
 import * as v from "valibot";
-import { derivePgColumn } from "../src/derive-pg.ts";
-import { type AnyValibotSchema } from "../src/derive.ts";
+import { derivePgColumn, type DerivePgColumn } from "../src/derive-pg.ts";
+import type { AnyValibotSchema } from "../src/derive.ts";
 import {
   database,
   createTableSql,
   PGCOLUMN_TO_SQLTYPE,
   POSTGRES_OPTS,
   type InferKyselyTypes,
+  type InferKyselySelectCol,
+  type InferKyselyInsertCol,
+  type InferKyselyUpdateCol,
   table,
   createPgliteParsers,
   type PgUnifiedTypeMapping,
@@ -73,6 +76,110 @@ describe("ALL_VALIBOT_FIELDS derivePgColumn", () => {
       runtimeTest(valibotSchema as AnyValibotSchema, expectedColumn);
     });
   }
+
+  it("ALL_VALIBOT_FIELDS type-level tests", () => {
+    type Equal<X, Y> =
+      (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
+        ? true
+        : false;
+
+    type TestAll = {
+      [K in keyof typeof ALL_VALIBOT_FIELDS]: Equal<
+        DerivePgColumn<(typeof ALL_VALIBOT_FIELDS)[K]["valibot"]>,
+        (typeof ALL_PG_FIELDS)[K] extends "ERROR"
+          ? { type: "ERROR" }
+          : (typeof ALL_PG_FIELDS)[K]
+      >;
+    };
+
+    // Hover over FailedTests to see any failed test cases, if it is `never`
+    // then all test cases passed
+    type FailedTests = {
+      [K in keyof TestAll]: TestAll[K] extends true
+        ? never
+        : {
+            key: K;
+            derived: DerivePgColumn<(typeof ALL_VALIBOT_FIELDS)[K]["valibot"]>;
+            expected: (typeof ALL_PG_FIELDS)[K];
+          };
+    }[keyof TestAll];
+
+    expectTypeOf<never>().toEqualTypeOf<FailedTests>();
+  });
+
+  it("PG output and input types are compatible with valibot schema output and input types", () => {
+    type Equal<X, Y> =
+      (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
+        ? true
+        : false;
+
+    // For each non-ERROR field, check the three InferKysely* types
+    // are compatible with the valibot schema's output/input types.
+
+    type SelectPG<Z extends v.GenericSchema> = InferKyselySelectCol<
+      DerivePgColumn<Z>,
+      PgUnifiedTypeMapping
+    >;
+    type InsertPG<Z extends v.GenericSchema> = InferKyselyInsertCol<
+      DerivePgColumn<Z>,
+      PgUnifiedTypeMapping
+    >;
+    type UpdatePG<Z extends v.GenericSchema> = InferKyselyUpdateCol<
+      DerivePgColumn<Z>,
+      PgUnifiedTypeMapping
+    >;
+
+    type CompatTest<Z extends v.GenericSchema> = {
+      // PG SELECT output should be parseable by valibot input
+      selectCompat: [SelectPG<Z>] extends [never]
+        ? false
+        : [SelectPG<Z>] extends [v.InferInput<Z>]
+          ? true
+          : { valibotInput: v.InferInput<Z>; pg: SelectPG<Z> };
+
+      // Valibot output should be insertable into PG
+      insertCompat: [InsertPG<Z>] extends [never]
+        ? false
+        : [v.InferOutput<Z>] extends [InsertPG<Z>]
+          ? true
+          : {
+              valibotOutput: v.InferOutput<Z>;
+              pg: InsertPG<Z>;
+            };
+
+      // Valibot output should be usable for PG updates
+      updateCompat: [UpdatePG<Z>] extends [never]
+        ? false
+        : [v.InferOutput<Z>] extends [UpdatePG<Z>]
+          ? true
+          : {
+              valibotOutput: v.InferOutput<Z>;
+              pg: UpdatePG<Z>;
+            };
+    };
+
+    type TestAll = {
+      [K in keyof typeof ALL_VALIBOT_FIELDS]: (typeof ALL_PG_FIELDS)[K] extends "ERROR"
+        ? { selectCompat: true; insertCompat: true; updateCompat: true }
+        : CompatTest<(typeof ALL_VALIBOT_FIELDS)[K]["valibot"]>;
+    };
+
+    // Each union member is one failed check: { key, checkName: { ... } }
+    type FailedTests = {
+      [K in keyof TestAll]:
+        | (TestAll[K]["selectCompat"] extends true
+            ? never
+            : { key: K; selectCompat: TestAll[K]["selectCompat"] })
+        | (TestAll[K]["insertCompat"] extends true
+            ? never
+            : { key: K; insertCompat: TestAll[K]["insertCompat"] })
+        | (TestAll[K]["updateCompat"] extends true
+            ? never
+            : { key: K; updateCompat: TestAll[K]["updateCompat"] });
+    }[keyof TestAll];
+
+    expectTypeOf<never>().toEqualTypeOf<FailedTests>();
+  });
 });
 
 describe("ALL_VALIBOT_FIELDS pglite round-trip", () => {
