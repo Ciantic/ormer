@@ -81,6 +81,7 @@ export function dbSqliteColumnType<TInput, TColumnType>(
 }
 
 // Numeric helper schemas modeled after zod extension helpers.
+
 export function int32() {
   return v.pipe(
     v.number(),
@@ -143,12 +144,16 @@ const NAIVE_DATETIME_REGEX =
   /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2}(\.\d{3})?)?$/;
 
 /**
- * Valibot's z.isoDateTime almost works, but it doesn't allow seconds or
+ * Valibot's v.isoDateTime almost works, but it doesn't allow seconds or
  * nanoseconds, which are used in SQL datetime formats.
  */
 export function naiveDatetime() {
-  return v.regex(
-    NAIVE_DATETIME_REGEX,
-    "Invalid datetime format, expected YYYY-MM-DD HH:MM:SS[.SSS]",
+  return v.pipe(
+    v.string(),
+    v.regex(
+      NAIVE_DATETIME_REGEX,
+      "Invalid datetime format, expected YYYY-MM-DD HH:MM:SS[.SSS]",
+    ),
+    v.brand("naiveDatetime"),
   );
 }

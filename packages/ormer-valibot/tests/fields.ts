@@ -1,10 +1,12 @@
 import * as v from "valibot";
 import * as d from "../src/valibot-ext.ts";
+import { pg, type ColumnType } from "ormer";
 
 export const UserSchema = v.pipe(
   v.object({ id: v.pipe(v.bigint(), d.int64(), d.dbPrimaryKey()) }),
   d.dbTable("users"),
 );
+const pkAutoInc = { primaryKey: true as true, autoIncrement: true as true };
 
 // prettier-ignore
 export const ALL_VALIBOT_FIELDS = {
@@ -17,16 +19,16 @@ export const ALL_VALIBOT_FIELDS = {
   c_num_int:          { valibot: v.pipe(v.number(), v.integer()),       example: 42 },
   c_f32:              { valibot: v.pipe(v.number(), d.float32()),       example: 1.5 },
   c_f64:              { valibot: v.pipe(v.number(), d.float64()),       example: 2.718281828 },
-  c_int:              { valibot: v.pipe(v.number(), v.integer()),       example: 100 },
-  c_int_pk:           { valibot: v.pipe(v.number(), v.integer(), d.dbPrimaryKey()),  example: 1 },
+  c_int:              { valibot: v.pipe(v.number(), d.int32()),       example: 100 },
+  c_int_pk:           { valibot: v.pipe(v.number(), d.int32(), d.dbPrimaryKey()),  example: 1 },
   c_int32:            { valibot: v.pipe(v.number(), d.int32()),         example: 200 },
   c_uint32:           { valibot: v.pipe(v.number(), d.uint32()),        example: 300 },
 
   // Bigint
   c_bigint:           { valibot: v.bigint(),                            example: 9007199254740991n },
-  c_int64:            { valibot: v.pipe(d.int64()),                     example: 123456789n },
-  c_int64_pk:         { valibot: v.pipe(d.int64(), d.dbPrimaryKey()),   example: 1n },
-  c_uint64:           { valibot: v.pipe(d.uint64()),                    example: 18446744073709551615n },
+  c_int64:            { valibot: v.pipe(v.bigint(), d.int64()),                     example: 123456789n },
+  c_int64_pk:         { valibot: v.pipe(v.bigint(), d.int64(), d.dbPrimaryKey()),   example: 1n },
+  c_uint64:           { valibot: v.pipe(v.bigint(), d.uint64()),                    example: 18446744073709551615n },
 
   // Boolean
   c_bool:             { valibot: v.boolean(),                             example: true },
@@ -36,7 +38,8 @@ export const ALL_VALIBOT_FIELDS = {
 
   // Date/time types
   c_date:             { valibot: v.date(),                                example: new Date("2024-01-15T10:30:00Z") },
-  c_time:             { valibot: v.pipe(v.string(), v.isoTime()),         example: "14:30:00" },
+  c_time:             { valibot: v.pipe(v.string(), v.isoTime()),         example: "14:30" },
+  c_timeseconds:      { valibot: v.pipe(v.string(), v.isoTimeSecond()),   example: "14:30:00" },
   c_date_only:        { valibot: v.pipe(v.string(), v.isoDate()),         example: "2024-01-15" },
   c_datetime:         { valibot: v.pipe(v.string(), v.isoDateTime()),     example: "2024-01-15 10:00" }, // Does not allow seconds or nanoseconds
   c_timestamp:        { valibot: v.pipe(v.string(), d.naiveDatetime()),   example: "2024-01-15 10:30:00" },
@@ -59,9 +62,9 @@ export const ALL_VALIBOT_FIELDS = {
   c_mac:              { valibot: v.pipe(v.string(), v.mac()),             example: "00:1a:2b:3c:4d:5e" },
 
   // Array types
-  c_int_arr:          { valibot: v.array(v.pipe(v.number(), v.integer())),  example: [1, 2, 3] },
+  c_int_arr:          { valibot: v.array(v.pipe(v.number(), d.int32())),  example: [1, 2, 3] },
   c_str_arr:          { valibot: v.array(v.string()),                       example: ["a", "b", "c"] },
-  c_int_arr2:         { valibot: v.array(v.array(v.pipe(v.number(), v.integer()))),        example: [[1, 2], [3, 4]] },
+  c_int_arr2:         { valibot: v.array(v.array(v.pipe(v.number(), d.int32()))),        example: [[1, 2], [3, 4]] },
   c_str_arr_nullable: { valibot: v.nullable(v.array(v.string())),           example: ["a", "b"] },
 
   // Container types
@@ -75,3 +78,72 @@ export const ALL_VALIBOT_FIELDS = {
     example: 1n,
   },
 } as const;
+
+export const ALL_PG_FIELDS = {
+  // String values
+  c_str: pg.text(),
+  c_str_max255: pg.varchar({ maxLength: 255 }),
+
+  // Number types
+  c_num: pg.float8(),
+  c_num_int: pg.float8(),
+  c_f32: pg.float4(),
+  c_f64: pg.float8(),
+  c_int: pg.int4(),
+  c_int_pk: pg.int4(pkAutoInc),
+  c_int32: pg.int4(),
+  c_uint32: "ERROR" as const,
+
+  // Bigint
+  c_bigint: pg.int8(),
+  c_int64: pg.int8(),
+  c_int64_pk: pg.int8(pkAutoInc),
+  c_uint64: "ERROR" as const,
+
+  // Boolean
+  c_bool: pg.boolean(),
+
+  // JSON
+  c_json: pg.jsonb({ schema: v.object({ v: v.string() }) }),
+
+  // Date/time types
+  c_date: pg.timestamptz(),
+  c_time: "ERROR" as const,
+  c_timeseconds: pg.time(),
+  c_date_only: pg.date(),
+  c_datetime: "ERROR" as const,
+  c_timestamp: pg.timestamp(),
+
+  // UUID
+  c_uuid: pg.uuid(),
+
+  // Various string formats
+  c_url: pg.text(),
+  c_email: pg.text(),
+  c_emoji: pg.text(),
+  c_nanoid: pg.varchar({ maxLength: 21 }),
+  c_cuid2: pg.text(),
+  c_ulid: pg.varchar({ maxLength: 26 }),
+  c_base64: pg.text(),
+
+  // Network types
+  c_ipv4: pg.inet(),
+  c_ipv6: pg.inet(),
+  c_mac: pg.macaddr(),
+
+  // Array types
+  c_int_arr: pg.int4({ array: "[]" }),
+  c_str_arr: pg.text({ array: "[]" }),
+  c_int_arr2: pg.int4({ array: "[][]" }),
+  c_str_arr_nullable: pg.text({ array: "[]", nullable: true }),
+
+  // Container types
+  c_str_nullable: pg.text({ nullable: true }),
+  c_str_nullish: pg.text({ nullable: true }),
+  c_str_default: pg.text({ default: "hello" }),
+  c_str_prefault: pg.text({ default: "hello" }),
+  c_str_pk: pg.text({ primaryKey: true }),
+  c_int64_fk: pg.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
+} as const satisfies {
+  [K in keyof typeof ALL_VALIBOT_FIELDS]: ColumnType<string, any> | "ERROR";
+};
