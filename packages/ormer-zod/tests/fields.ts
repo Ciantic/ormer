@@ -94,7 +94,7 @@ export const ALL_PG_FIELDS = {
 
   // Number types
   c_num: pg.float8(),
-  c_num_int: pg.float8(),
+  c_num_int: pg.int4(),
   c_f32: pg.float4(),
   c_f64: pg.float8(),
   c_int: pg.int4(),
@@ -171,7 +171,7 @@ export const ALL_DUCKDB_FIELDS = {
 
   // Number types
   c_num: duckdb.float8(),
-  c_num_int: duckdb.float8(),
+  c_num_int: duckdb.int4(),
   c_f32: duckdb.float4(),
   c_f64: duckdb.float8(),
   c_int: duckdb.int4(),
@@ -250,7 +250,7 @@ export const ALL_SQLITE_FIELDS = {
 
   // Number types
   c_num: sqlite.real(),
-  c_num_int: sqlite.real(),
+  c_num_int: sqlite.integer(),
   c_f32: sqlite.real(),
   c_f64: sqlite.real(),
   c_int: sqlite.integer(),

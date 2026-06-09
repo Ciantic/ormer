@@ -294,6 +294,11 @@ export function deriveColumn<
   }
 
   if (node instanceof z.ZodNumber) {
+    // z.number().int() produces ZodNumber with format: 'safeint' directly
+    const format = (node as any).format as string | null;
+    if (format === "safeint") {
+      return chooser(["int32", pgParamsBase]);
+    }
     return chooser(["float64", pgParamsBase]);
   }
 

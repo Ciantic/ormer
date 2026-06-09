@@ -165,6 +165,10 @@ export type NaiveDatetime = {
   def: { isNaiveDatetime: true };
 };
 
+export type ZodSafeInt = {
+  format: "safeint";
+};
+
 function naiveDatetime<T extends z.ZodString>(this: T): T & NaiveDatetime {
   // YYYY-MM-DD HH:MM:SS[.SSS] no time zone, separated by space
   const res = this.regex(
@@ -197,8 +201,15 @@ declare module "zod" {
     naiveDatetime: typeof naiveDatetime;
   }
 
+  interface ZodNumber {
+    // z.number().int() sets format: 'safeint' directly on ZodNumber
+    // (NOT ZodNumberFormat — that's only for z.int() standalone)
+    int(params?: string | z.core.$ZodNumberFormatParams): this & ZodSafeInt;
+  }
+
   namespace z {
     // Patch Zod ZodNumberFormat's https://github.com/colinhacks/zod/issues/6045
+    // z.int() standalone constructor — returns ZodNumberFormat
     export function int(
       params?: string | z.core.$ZodNumberFormatParams,
     ): ZodNumberFormat & ZodNumberFormatVal<"safeint">;

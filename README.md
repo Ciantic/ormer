@@ -67,9 +67,9 @@ Notes:
 </tr>
 <tr>
 <td><code>z.number().int()</code></td>
-<td><code>FLOAT8</code></td>
-<td><code>FLOAT8</code></td>
-<td><code>REAL</code></td>
+<td><code>INT4</code></td>
+<td><code>INT4</code></td>
+<td><code>INTEGER</code></td>
 </tr>
 <tr>
 <td><code>z.float32()</code></td>

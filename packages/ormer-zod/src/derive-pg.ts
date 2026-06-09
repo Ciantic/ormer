@@ -9,6 +9,7 @@ import type {
   ZodBigIntFormatVal,
   ZodNumberFormatVal,
   NaiveDatetime,
+  ZodSafeInt,
   ZodMaxLengthVal,
 } from "./zod-ext.ts";
 import type {
@@ -66,6 +67,7 @@ type DeriveBaseColumn<T extends ZodType> =
   : T extends z.ZodNumberFormat ? { type: "ERROR" } // This should not happen, above list exhaustive
   : T extends z.ZodBigIntFormat ? { type: "ERROR" } // This should not happen, above list exhaustive
   
+  : T extends z.ZodNumber & ZodSafeInt ? ColumnTypeSingualr<"int4">
   : T extends z.ZodNumber ? ColumnTypeSingualr<"float8">
   : T extends z.ZodBigInt ? ColumnTypeSingualr<"int8">
   : T extends z.ZodString & ZodMaxLengthVal<infer Max> ? ColumnType<"varchar", { maxLength: Max }>

@@ -9,6 +9,7 @@ import type {
   ZodBigIntFormatVal,
   ZodNumberFormatVal,
   NaiveDatetime,
+  ZodSafeInt,
   ZodMaxLengthVal,
 } from "./zod-ext.ts";
 import type {
@@ -69,6 +70,7 @@ type DeriveBaseSqliteColumn<T extends ZodType> =
   : T extends z.ZodNumberFormat ? { type: "ERROR" } // This should not happen, above list exhaustive
   : T extends z.ZodBigIntFormat ? { type: "ERROR" } // This should not happen, above list exhaustive
   
+  : T extends z.ZodNumber & ZodSafeInt ? ColumnTypeSingualr<"integer">
   : T extends z.ZodNumber ? ColumnTypeSingualr<"real">
   : T extends z.ZodBigInt ? { type: "ERROR" }
   : T extends z.ZodString & ZodMaxLengthVal<infer _Max> ? ColumnType<"text", { check: (col: string) => string }>
