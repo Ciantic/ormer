@@ -80,8 +80,6 @@ export function dbSqliteColumnType<TInput, TColumnType>(
   });
 }
 
-// Numeric helper schemas modeled after zod extension helpers.
-
 export function int32() {
   return v.pipe(
     v.number(),
