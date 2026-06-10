@@ -77,6 +77,7 @@ export const ALL_VALIBOT_FIELDS = {
     valibot: v.pipe(v.bigint(), d.int64(), d.dbForeignKey("users", "id")),
     example: 1n,
   },
+  c_pipe_with_nullish: { valibot: v.nullish(v.pipe(v.string(), v.url())), example: null },
 } as const;
 
 export const ALL_PG_FIELDS = {
@@ -144,6 +145,7 @@ export const ALL_PG_FIELDS = {
   c_str_prefault: pg.text({ default: "hello" }),
   c_str_pk: pg.text({ primaryKey: true }),
   c_int64_fk: pg.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
+  c_pipe_with_nullish: pg.text({ nullable: true }),
 } as const satisfies {
   [K in keyof typeof ALL_VALIBOT_FIELDS]: ColumnType<string, any> | "ERROR";
 };

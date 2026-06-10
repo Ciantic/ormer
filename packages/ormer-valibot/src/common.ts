@@ -17,25 +17,16 @@ import type { ColumnType, ColumnTypeSingualr, Table } from "ormer";
 // General utility types
 // ---------------------------------------------------------------------------
 
-export type InferrableValibotSchema =
-  | v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>
-  | v.BaseSchemaAsync<unknown, unknown, v.BaseIssue<unknown>>
-  | v.BaseValidation<any, unknown, v.BaseIssue<unknown>>
-  | v.BaseValidationAsync<any, unknown, v.BaseIssue<unknown>>
-  | v.BaseTransformation<any, unknown, v.BaseIssue<unknown>>
-  | v.BaseTransformationAsync<any, unknown, v.BaseIssue<unknown>>
-  | v.BaseMetadata<any>;
-
 export type ValibotSchema = v.GenericSchema;
 
-export type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
+type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 
-export type OmitNever<T> = Omit<
+type OmitNever<T> = Omit<
   T,
   { [K in keyof T]: T[K] extends never ? K : never }[keyof T]
 >;
 
-export type NonEmptyObject<T> = keyof T extends never ? never : T;
+type NonEmptyObject<T> = keyof T extends never ? never : T;
 
 // ---------------------------------------------------------------------------
 // Pipe union extraction (recursive through modifiers)
@@ -48,7 +39,7 @@ export type NonEmptyObject<T> = keyof T extends never ? never : T;
  * creates a pipe that is itself a pipe item).
  */
 // prettier-ignore
-export type PipeUnion<T extends ValibotSchema> =
+type PipeUnion<T extends ValibotSchema> =
     T extends SchemaWithPipe<infer TPipe>
       ? TPipe[number] extends infer Item
         ? Item extends SchemaWithPipe<infer NestedPipe>
@@ -134,7 +125,7 @@ export type UnwrapModifiers<T extends ValibotSchema> =
  * Recursively unwrap modifiers until Check matches, or return false.
  */
 // prettier-ignore
-export type UnwrapUntilReturnTrue<
+type UnwrapUntilReturnTrue<
   T extends ValibotSchema,
   Check extends ValibotSchema,
 > = T extends Check
@@ -214,17 +205,17 @@ type SchemaHasDefault<T> = T extends { fallback: infer F }
 export type DbMetadataOf<T extends ValibotSchema> =
    InferMetadata<T> extends { db: infer D } ? D : {};
 
-export type HasDbPk<T extends ValibotSchema> =
+type HasDbPk<T extends ValibotSchema> =
   DbMetadataOf<T> extends { primaryKey: true } ? true : false;
 
-export type DbFkTable<T extends ValibotSchema> =
+type DbFkTable<T extends ValibotSchema> =
   DbMetadataOf<T> extends { foreignKeyTable: infer N }
     ? N extends string
       ? N
       : never
     : never;
 
-export type DbFkColumn<T extends ValibotSchema> =
+type DbFkColumn<T extends ValibotSchema> =
   DbMetadataOf<T> extends { foreignKeyColumn: infer C }
     ? C extends string
       ? C
@@ -285,7 +276,7 @@ export type RewrapDeriveTable<T> =
  * Determine autoIncrement: true if the unwrapped base has a brand name
  * matching int32, int64, or uint64 AND the schema has a primary key.
  */
-export type GetAutoIncrement<T extends ValibotSchema> =
+type GetAutoIncrement<T extends ValibotSchema> =
   HasDbPk<T> extends true
     ? HasPipeItem<T, "brand"> extends true
       ? GetPipeItemProp<T, "brand", "name"> extends "int32" | "int64" | "uint64"
