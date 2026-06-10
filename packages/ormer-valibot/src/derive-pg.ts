@@ -33,53 +33,9 @@ import type {
   HasDbNavigation,
   DbTableName,
   DbMetadataOf,
+  HasBrand,
+  HasBaseSchema,
 } from "./common.ts";
-
-// ---------------------------------------------------------------------------
-// Type-level: DeriveBasePgColumn
-// ---------------------------------------------------------------------------
-
-// prettier-ignore
-type DeriveBrandPgColumn<T extends InferrableValibotSchema> =
-  InferOutput<T> extends Brand<infer B>
-    ? B extends "naiveDatetime" ? ColumnTypeSingualr<"timestamp">
-    : B extends "int32"         ? ColumnTypeSingualr<"int4">
-    : B extends "uint32"        ? { type: "ERROR" }
-    : B extends "float32"       ? ColumnTypeSingualr<"float4">
-    : B extends "float64"       ? ColumnTypeSingualr<"float8">
-    : B extends "int64"         ? ColumnTypeSingualr<"int8">
-    : B extends "uint64"        ? { type: "ERROR" }
-    : never
-    : never;
-
-// prettier-ignore
-type DeriveNonBrandPgColumn<T extends ValibotSchema> =
-  // ---- String (with optional maxLength) ----
-    UnwrapModifiers<T> extends StringSchema<any>
-      ? HasPipeItem<T, "max_length"> extends true
-        ? ColumnType<"varchar", { maxLength: GetPipeItemProp<T, "max_length", "requirement"> }>
-        : ColumnTypeSingualr<"text">
-
-  // ---- Number ----
-  : UnwrapModifiers<T> extends NumberSchema<any> ? HasPipeItem<T, "safe_integer"> extends true ? ColumnTypeSingualr<"int4"> : ColumnTypeSingualr<"float8">
-
-  // ---- Bigint ----
-  : UnwrapModifiers<T> extends BigintSchema<any> ? ColumnTypeSingualr<"int8">
-
-  // ---- Boolean ----
-  : UnwrapModifiers<T> extends BooleanSchema<any> ? ColumnTypeSingualr<"boolean">
-
-  // ---- Date (JS Date objects → timestamptz) ----
-  : UnwrapModifiers<T> extends DateSchema<any> ? ColumnTypeSingualr<"timestamptz">
-
-  // ---- Object / JSON ----
-  : UnwrapModifiers<T> extends ObjectSchema<any, any> ? ColumnType<"jsonb", { schema: UnwrapModifiers<T> }>
-
-  // ---- Array (recurse into element type; SafeParamDerivation provides array: "[]") ----
-  : UnwrapModifiers<T> extends ArraySchema<infer Inner extends ValibotSchema, any> ? DeriveBasePgColumn<Inner>
-
-  // ---- Fallback ----
-  : never;
 
 /**
  * Map a (possibly wrapped) valibot schema to a PostgreSQL ColumnType.
@@ -110,10 +66,29 @@ type DeriveBasePgColumn<T extends ValibotSchema> =
   : HasPipeItem<T, "iso_date_time"> extends true           ? { type: "ERROR" }
   : HasPipeItem<T, "iso_date_time_second"> extends true    ? { type: "ERROR" }
 
-  // ---- Brand-based types (delegated to helper) ---
-  : [DeriveBrandPgColumn<T>] extends [never]
-    ? DeriveNonBrandPgColumn<T>
-    : DeriveBrandPgColumn<T>;
+  // Branded types
+  : HasBrand<T, "naiveDatetime"> extends true ? ColumnTypeSingualr<"timestamp">
+  : HasBrand<T, "int32"> extends true         ? ColumnTypeSingualr<"int4">
+  : HasBrand<T, "uint32"> extends true        ? { type: "ERROR" }
+  : HasBrand<T, "float32"> extends true       ? ColumnTypeSingualr<"float4">
+  : HasBrand<T, "float64"> extends true       ? ColumnTypeSingualr<"float8">
+  : HasBrand<T, "int64"> extends true         ? ColumnTypeSingualr<"int8">
+  : HasBrand<T, "uint64"> extends true        ? { type: "ERROR" }
+
+  : HasBaseSchema<T, NumberSchema<any>> extends true ? 
+        HasPipeItem<T, "safe_integer"> extends true 
+      ? ColumnTypeSingualr<"int4"> 
+      : ColumnTypeSingualr<"float8">
+  : HasBaseSchema<T, BigintSchema<any>> extends true ? ColumnTypeSingualr<"int8">
+  : HasBaseSchema<T, BooleanSchema<any>> extends true ? ColumnTypeSingualr<"boolean">
+  : HasBaseSchema<T, StringSchema<any>> extends true ? 
+      HasPipeItem<T, "max_length"> extends true
+    ? ColumnType<"varchar", { maxLength: GetPipeItemProp<T, "max_length", "requirement"> }>
+    : ColumnTypeSingualr<"text">
+  : HasBaseSchema<T, DateSchema<any>> extends true ? ColumnTypeSingualr<"timestamptz">
+  : HasBaseSchema<T, ObjectSchema<any, any>> extends true ? ColumnType<"jsonb", { schema: T }>
+  : UnwrapModifiers<T> extends ArraySchema<infer Inner extends ValibotSchema, any> ? DeriveBasePgColumn<Inner>
+  : never;
 
 // ---------------------------------------------------------------------------
 // Type-level: DerivePgColumn

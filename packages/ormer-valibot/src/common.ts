@@ -79,6 +79,16 @@ export type HasPipeItem<T extends ValibotSchema, Type extends string> = [
     ? false
     : true;
 
+export type HasBaseSchema<T extends ValibotSchema, E extends ValibotSchema> =
+  UnwrapUntilReturnTrue<T, E> extends [true, infer _] ? true : false;
+
+export type HasBrand<T extends ValibotSchema, B extends string> =
+  HasPipeItem<T, "brand"> extends true
+    ? GetPipeItemProp<T, "brand", "name"> extends B
+      ? true
+      : false
+    : false;
+
 /**
  * Extract a property from a pipe item matching a given type.
  * Returns the property value, or never if not found.
