@@ -514,7 +514,7 @@ Notes:
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.email())</code></td>
-<td><code>TEXT</code></td>
+<td><code>VARCHAR(320)</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.emoji())</code></td>
@@ -534,6 +534,10 @@ Notes:
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.base64())</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>v.pipe(v.string(), v.isbn())</code></td>
 <td><code>TEXT</code></td>
 </tr>
 <tr>
@@ -571,6 +575,17 @@ Notes:
 <td><code>TEXT[] NULL</code></td>
 </tr>
 <tr>
+<td colspan="2"><strong>Other</strong></td>
+</tr>
+<tr>
+<td><code>v.pipe(v.string(), v.trim())</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>v.nullish(v.pipe(v.string(), v.trim()))</code></td>
+<td><code>TEXT NULL</code></td>
+</tr>
+<tr>
 <td colspan="2"><strong>Container types</strong></td>
 </tr>
 <tr>
@@ -596,6 +611,10 @@ Notes:
 <tr>
 <td><code>v.pipe(v.bigint(), d.int64(), d.dbForeignKey("users", "id"))</code></td>
 <td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
+</tr>
+<tr>
+<td><code>v.nullish(v.pipe(v.string(), v.url()))</code></td>
+<td><code>TEXT NULL</code></td>
 </tr>
   </tbody>
 </table>
