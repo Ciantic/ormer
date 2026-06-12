@@ -41,13 +41,9 @@ export type ParamsDerived<T = {}> = {
  */
 export type ValibotSchemas =
   | ["uuid", ParamsDerived<{ default?: "generate" }>]
-  | ["url", ParamsDerived]
-  | ["email", ParamsDerived]
-  | ["emoji", ParamsDerived]
+  | ["email", ParamsDerived<{ maxLength: 320 }>]
   | ["nanoid", ParamsDerived<{ maxLength: 21 }>]
-  | ["cuid2", ParamsDerived]
   | ["ulid", ParamsDerived<{ maxLength: 26 }>]
-  | ["base64", ParamsDerived]
   | ["ipv4", ParamsDerived]
   | ["ipv6", ParamsDerived]
   | ["mac", ParamsDerived]
@@ -263,19 +259,9 @@ export function deriveColumn<
     ]);
   }
 
-  // --- URL ---
-  if (hasPipeItem("url")) {
-    return chooser(["url", pgParamsBase]);
-  }
-
   // --- Email ---
   if (hasPipeItem("email")) {
-    return chooser(["email", pgParamsBase]);
-  }
-
-  // --- Emoji ---
-  if (hasPipeItem("emoji")) {
-    return chooser(["emoji", pgParamsBase]);
+    return chooser(["email", { ...pgParamsBase, maxLength: 320 }]);
   }
 
   // --- NanoID ---
@@ -283,19 +269,9 @@ export function deriveColumn<
     return chooser(["nanoid", { ...pgParamsBase, maxLength: 21 }]);
   }
 
-  // --- CUID2 ---
-  if (hasPipeItem("cuid2")) {
-    return chooser(["cuid2", pgParamsBase]);
-  }
-
   // --- ULID ---
   if (hasPipeItem("ulid")) {
     return chooser(["ulid", { ...pgParamsBase, maxLength: 26 }]);
-  }
-
-  // --- Base64 ---
-  if (hasPipeItem("base64")) {
-    return chooser(["base64", pgParamsBase]);
   }
 
   // --- IPv4 ---

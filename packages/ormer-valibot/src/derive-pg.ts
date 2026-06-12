@@ -40,13 +40,9 @@ import type {
 type DeriveBasePgColumn<T extends ValibotSchema> =
   // Stringy formats
     HasPipeItem<T, "uuid"> extends true                    ? ColumnTypeSingualr<"uuid">
-  : HasPipeItem<T, "url"> extends true                     ? ColumnTypeSingualr<"text">
-  : HasPipeItem<T, "email"> extends true                   ? ColumnTypeSingualr<"text">
-  : HasPipeItem<T, "emoji"> extends true                   ? ColumnTypeSingualr<"text">
+  : HasPipeItem<T, "email"> extends true                   ? ColumnType<"varchar", { maxLength: 320 }>
   : HasPipeItem<T, "nanoid"> extends true                  ? ColumnType<"varchar", { maxLength: 21 }>
-  : HasPipeItem<T, "cuid2"> extends true                   ? ColumnTypeSingualr<"text">
   : HasPipeItem<T, "ulid"> extends true                    ? ColumnType<"varchar", { maxLength: 26 }>
-  : HasPipeItem<T, "base64"> extends true                  ? ColumnTypeSingualr<"text">
   : HasPipeItem<T, "ipv4"> extends true                    ? ColumnTypeSingualr<"inet">
   : HasPipeItem<T, "ipv6"> extends true                    ? ColumnTypeSingualr<"inet">
   : HasPipeItem<T, "mac"> extends true                     ? ColumnTypeSingualr<"macaddr">
@@ -156,12 +152,7 @@ export function derivePgColumn(
     switch (t) {
       case "uuid":
         return pg.uuid(params);
-      case "url":
-      case "emoji":
-      case "cuid2":
-      case "base64":
       case "email":
-        return pg.text(params);
       case "nanoid":
       case "ulid":
       case "string":

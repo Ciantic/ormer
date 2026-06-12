@@ -125,7 +125,7 @@ export const ALL_PG_FIELDS = {
 
   // Various string formats
   c_url: pg.text(),
-  c_email: pg.text(),
+  c_email: pg.varchar({ maxLength: 320 }),
   c_emoji: pg.text(),
   c_nanoid: pg.varchar({ maxLength: 21 }),
   c_cuid2: pg.text(),
