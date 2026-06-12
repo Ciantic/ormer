@@ -200,7 +200,7 @@ export const ALL_DUCKDB_FIELDS = {
 
   // Various string formats
   c_url: duckdb.text(),
-  c_email: duckdb.text(),
+  c_email: duckdb.varchar({ maxLength: 320 }),
   c_emoji: duckdb.text(),
   c_nanoid: duckdb.varchar({ maxLength: 21 }),
   c_cuid2: duckdb.text(),

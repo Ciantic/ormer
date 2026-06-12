@@ -540,7 +540,7 @@ Notes:
 <tr>
 <td><code>v.pipe(v.string(), v.email())</code></td>
 <td><code>VARCHAR(320)</code></td>
-<td><code>TEXT</code></td>
+<td><code>VARCHAR(320)</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.emoji())</code></td>

@@ -44,7 +44,7 @@ import type {
 type DeriveBaseDuckDbColumn<T extends ValibotSchema> =
   // Stringy formats
     HasPipeItem<T, "uuid"> extends true                    ? ColumnTypeSingualr<"uuid">
-  : HasPipeItem<T, "email"> extends true                   ? ColumnTypeSingualr<"text">
+  : HasPipeItem<T, "email"> extends true                   ? ColumnType<"varchar", { maxLength: 320 }>
   : HasPipeItem<T, "nanoid"> extends true                  ? ColumnType<"varchar", { maxLength: 21 }>
   : HasPipeItem<T, "ulid"> extends true                    ? ColumnType<"varchar", { maxLength: 26 }>
 
@@ -155,12 +155,8 @@ export function deriveDuckDbColumn(
     switch (t) {
       case "uuid":
         return duckdb.uuid(params);
-      case "email": {
-        // DuckDB maps email to plain text — strip maxLength that
-        // derive.ts always adds (it's only needed for varchar databases like PG).
-        const { maxLength: _ml, ...rest } = params as any;
-        return duckdb.text(rest);
-      }
+      case "email":
+        return duckdb.varchar(params);
       case "nanoid":
         return duckdb.varchar(params);
       case "ulid":
