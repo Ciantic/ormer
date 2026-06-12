@@ -15,17 +15,17 @@ export const ALL_VALIBOT_FIELDS = {
   c_str_max255:       { valibot: v.pipe(v.string(), v.maxLength(255)),  example: "hello again!" },
 
   // Number types
-  c_num:              { valibot: v.number(),                            example: 3.14 },
-  c_num_int:          { valibot: v.pipe(v.number(), v.integer()),       example: 42 },
-  c_f32:              { valibot: v.pipe(v.number(), d.float32()),       example: 1.5 },
-  c_f64:              { valibot: v.pipe(v.number(), d.float64()),       example: 2.718281828 },
-  c_int:              { valibot: v.pipe(v.number(), d.int32()),       example: 100 },
-  c_int_pk:           { valibot: v.pipe(v.number(), d.int32(), d.dbPrimaryKey()),  example: 1 },
-  c_int32:            { valibot: v.pipe(v.number(), d.int32()),         example: 200 },
-  c_uint32:           { valibot: v.pipe(v.number(), d.uint32()),        example: 300 },
+  c_num:              { valibot: v.number(),                                        example: 3.14 },
+  c_num_int:          { valibot: v.pipe(v.number(), v.integer()),                   example: 42 },
+  c_f32:              { valibot: v.pipe(v.number(), d.float32()),                   example: 1.5 },
+  c_f64:              { valibot: v.pipe(v.number(), d.float64()),                   example: 2.718281828 },
+  c_int:              { valibot: v.pipe(v.number(), d.int32()),                     example: 100 },
+  c_int_pk:           { valibot: v.pipe(v.number(), d.int32(), d.dbPrimaryKey()),   example: 1 },
+  c_int32:            { valibot: v.pipe(v.number(), d.int32()),                     example: 200 },
+  c_uint32:           { valibot: v.pipe(v.number(), d.uint32()),                    example: 300 },
 
   // Bigint
-  c_bigint:           { valibot: v.bigint(),                            example: 9007199254740991n },
+  c_bigint:           { valibot: v.bigint(),                                        example: 9007199254740991n },
   c_int64:            { valibot: v.pipe(v.bigint(), d.int64()),                     example: 123456789n },
   c_int64_pk:         { valibot: v.pipe(v.bigint(), d.int64(), d.dbPrimaryKey()),   example: 1n },
   c_uint64:           { valibot: v.pipe(v.bigint(), d.uint64()),                    example: 18446744073709551615n },
@@ -55,6 +55,7 @@ export const ALL_VALIBOT_FIELDS = {
   c_cuid2:            { valibot: v.pipe(v.string(), v.cuid2()),           example: "tz4a98xxat96iws9zmbrgj3a" },
   c_ulid:             { valibot: v.pipe(v.string(), v.ulid()),            example: "01ARZ3NDEKTSV4RRFFQ69G5FAV" },
   c_base64:           { valibot: v.pipe(v.string(), v.base64()),          example: "SGVsbG8gV29ybGQ=" },
+  c_isbn:             { valibot: v.pipe(v.string(), v.isbn()),            example: "978-3-16-148410-0" },
 
   // Network types
   c_ipv4:             { valibot: v.pipe(v.string(), v.ipv4()),            example: "192.168.1.1" },
@@ -62,22 +63,26 @@ export const ALL_VALIBOT_FIELDS = {
   c_mac:              { valibot: v.pipe(v.string(), v.mac()),             example: "00:1a:2b:3c:4d:5e" },
 
   // Array types
-  c_int_arr:          { valibot: v.array(v.pipe(v.number(), d.int32())),  example: [1, 2, 3] },
-  c_str_arr:          { valibot: v.array(v.string()),                       example: ["a", "b", "c"] },
+  c_int_arr:          { valibot: v.array(v.pipe(v.number(), d.int32())),                 example: [1, 2, 3] },
+  c_str_arr:          { valibot: v.array(v.string()),                                    example: ["a", "b", "c"] },
   c_int_arr2:         { valibot: v.array(v.array(v.pipe(v.number(), d.int32()))),        example: [[1, 2], [3, 4]] },
-  c_str_arr_nullable: { valibot: v.nullable(v.array(v.string())),           example: ["a", "b"] },
+  c_str_arr_nullable: { valibot: v.nullable(v.array(v.string())),                        example: ["a", "b"] },
+
+  // Other
+  c_str_trimmed:       { valibot: v.pipe(v.string(), v.trim()),               example: "hello" },
+  c_str_trim_nullish:  { valibot: v.nullish(v.pipe(v.string(), v.trim())),    example: "hello" },
 
   // Container types
-  c_str_nullable:     { valibot: v.nullable(v.string()),                    example: null },
-  c_str_nullish:      { valibot: v.nullish(v.string()),                     example: null },
-  c_str_default:      { valibot: v.optional(v.string(), "hello"),           example: "hello" },
-  c_str_prefault:     { valibot: v.fallback(v.string(), "hello"),           example: "hello" },
-  c_str_pk:           { valibot: v.pipe(v.string(), d.dbPrimaryKey()),      example: "pk_abc123" },
+  c_str_nullable:     { valibot: v.nullable(v.string()),                      example: null },
+  c_str_nullish:      { valibot: v.nullish(v.string()),                       example: null },
+  c_str_default:      { valibot: v.optional(v.string(), "hello"),             example: "hello" },
+  c_str_prefault:     { valibot: v.fallback(v.string(), "hello"),             example: "hello" },
+  c_str_pk:           { valibot: v.pipe(v.string(), d.dbPrimaryKey()),        example: "pk_abc123" },
   c_int64_fk:         { 
     valibot: v.pipe(v.bigint(), d.int64(), d.dbForeignKey("users", "id")),
     example: 1n,
   },
-  c_pipe_with_nullish: { valibot: v.nullish(v.pipe(v.string(), v.url())), example: null },
+  c_pipe_with_nullish: { valibot: v.nullish(v.pipe(v.string(), v.url())),     example: null },
 } as const;
 
 export const ALL_PG_FIELDS = {
@@ -126,6 +131,7 @@ export const ALL_PG_FIELDS = {
   c_cuid2: pg.text(),
   c_ulid: pg.varchar({ maxLength: 26 }),
   c_base64: pg.text(),
+  c_isbn: pg.text(),
 
   // Network types
   c_ipv4: pg.inet(),
@@ -137,6 +143,10 @@ export const ALL_PG_FIELDS = {
   c_str_arr: pg.text({ array: "[]" }),
   c_int_arr2: pg.int4({ array: "[][]" }),
   c_str_arr_nullable: pg.text({ array: "[]", nullable: true }),
+
+  // Other
+  c_str_trimmed: pg.text(),
+  c_str_trim_nullish: pg.text({ nullable: true }),
 
   // Container types
   c_str_nullable: pg.text({ nullable: true }),
