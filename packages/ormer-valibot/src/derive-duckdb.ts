@@ -1,4 +1,4 @@
-import { pg, table } from "ormer";
+import { duckdb, table } from "ormer";
 import type { ColumnType, ColumnTypeSingualr, Params, Table } from "ormer";
 import type {
   ObjectSchema,
@@ -29,23 +29,29 @@ import type {
   HasBaseSchema,
 } from "./common.ts";
 
+// ---------------------------------------------------------------------------
+// Type-level: DeriveDuckDbColumn
+// ---------------------------------------------------------------------------
+
 /**
- * Map a (possibly wrapped) valibot schema to a PostgreSQL ColumnType.
+ * Map a (possibly wrapped) valibot schema to a DuckDB ColumnType.
  *
  * Pipe actions (brands, validation, etc.) are checked via PipeUnion which
  * walks through modifier wrappers. Schema-type checks use UnwrapModifiers
  * to reach the base schema after pipe branches don't match.
  */
 // prettier-ignore
-type DeriveBasePgColumn<T extends ValibotSchema> =
+type DeriveBaseDuckDbColumn<T extends ValibotSchema> =
   // Stringy formats
     HasPipeItem<T, "uuid"> extends true                    ? ColumnTypeSingualr<"uuid">
-  : HasPipeItem<T, "email"> extends true                   ? ColumnType<"varchar", { maxLength: 320 }>
+  : HasPipeItem<T, "email"> extends true                   ? ColumnTypeSingualr<"text">
   : HasPipeItem<T, "nanoid"> extends true                  ? ColumnType<"varchar", { maxLength: 21 }>
   : HasPipeItem<T, "ulid"> extends true                    ? ColumnType<"varchar", { maxLength: 26 }>
-  : HasPipeItem<T, "ipv4"> extends true                    ? ColumnTypeSingualr<"inet">
-  : HasPipeItem<T, "ipv6"> extends true                    ? ColumnTypeSingualr<"inet">
-  : HasPipeItem<T, "mac"> extends true                     ? ColumnTypeSingualr<"macaddr">
+
+  // DuckDB has no inet/macaddr → fall back to text
+  : HasPipeItem<T, "ipv4"> extends true                    ? ColumnTypeSingualr<"text">
+  : HasPipeItem<T, "ipv6"> extends true                    ? ColumnTypeSingualr<"text">
+  : HasPipeItem<T, "mac"> extends true                     ? ColumnTypeSingualr<"text">
 
   // Datetime formats
   : HasBrand<T, "naiveDatetime"> extends true              ? ColumnTypeSingualr<"timestamp">
@@ -64,11 +70,11 @@ type DeriveBasePgColumn<T extends ValibotSchema> =
 
   // Number formats
   : HasBrand<T, "int32"> extends true                   ? ColumnTypeSingualr<"int4">
-  : HasBrand<T, "uint32"> extends true                  ? { type: "ERROR" }
+  : HasBrand<T, "uint32"> extends true                  ? ColumnTypeSingualr<"uinteger">
   : HasBrand<T, "float32"> extends true                 ? ColumnTypeSingualr<"float4">
   : HasBrand<T, "float64"> extends true                 ? ColumnTypeSingualr<"float8">
   : HasBrand<T, "int64"> extends true                   ? ColumnTypeSingualr<"int8">
-  : HasBrand<T, "uint64"> extends true                  ? { type: "ERROR" }
+  : HasBrand<T, "uint64"> extends true                  ? ColumnTypeSingualr<"ubigint">
   : HasPipeItem<T, "safe_integer"> extends true         ? ColumnTypeSingualr<"int4">
   : HasPipeItem<T, "integer"> extends true              ? ColumnTypeSingualr<"int4">
   : HasBaseSchema<T, NumberSchema<any>> extends true    ? ColumnTypeSingualr<"float8">
@@ -77,42 +83,38 @@ type DeriveBasePgColumn<T extends ValibotSchema> =
   // Boolean 
   : HasBaseSchema<T, BooleanSchema<any>> extends true ?   ColumnTypeSingualr<"boolean">
   
-  // JSON
-  : HasBaseSchema<T, ObjectSchema<any, any>> extends true ? ColumnType<"jsonb", { schema: T }>
+  // JSON — DuckDB uses json, not jsonb
+  : HasBaseSchema<T, ObjectSchema<any, any>> extends true ? ColumnType<"json", { schema: T }>
 
   // Array
-  : UnwrapModifiers<T> extends ArraySchema<infer Inner extends ValibotSchema, any> ? DeriveBasePgColumn<Inner>
+  : UnwrapModifiers<T> extends ArraySchema<infer Inner extends ValibotSchema, any> ? DeriveBaseDuckDbColumn<Inner>
 
   // Unsupported
   : never;
 
-// ---------------------------------------------------------------------------
-// Type-level: DerivePgColumn
-// ---------------------------------------------------------------------------
-
 /**
- * Derive a PgColumn type from a valibot schema.
+ * Derive a DuckDB column type from a valibot schema.
  *
- * 1. Check for explicit .dbPgColumnType() override in pipe metadata.
+ * 1. Check for explicit .dbDuckDbColumnType() override in pipe metadata.
  * 2. Otherwise, derive from the base type + modifier params.
  */
 // prettier-ignore
-export type DerivePgColumn<T extends ValibotSchema> =
-    // Explicit .dbPgColumnType() override — skip derivation entirely
-    DbMetadataOf<T> extends { pgColumnType: infer C } ? C
+export type DeriveDuckDbColumn<T extends ValibotSchema> =
+    // Explicit .dbDuckDbColumnType() override — skip derivation entirely
+    DbMetadataOf<T> extends { duckDbColumnType: infer C } ? C
   : RewrapToColumnType<
-    DeriveBasePgColumn<T> & SafeParamDerivation<T>
+    DeriveBaseDuckDbColumn<T> & SafeParamDerivation<T>
   >;
 
 // ---------------------------------------------------------------------------
-// Type-level: DerivePgTable
+// Type-level: DeriveDuckDbTable
 // ---------------------------------------------------------------------------
 
 /**
- * Derive a PgTable type from a valibot object schema with dbTable metadata.
+ * Derive a DuckDB table type from a valibot object schema with dbTable metadata.
  */
 // prettier-ignore
-export type DerivePgTable<
+export type DeriveDuckDbTable<
   T extends ObjectSchema<any, any> & { pipe?: readonly any[] },
 > = RewrapDeriveTable<
   Table<
@@ -126,7 +128,7 @@ export type DerivePgTable<
             : K
           : K
         : K
-      ]: DerivePgColumn<
+      ]: DeriveDuckDbColumn<
         T["entries"][K] extends ValibotSchema ? T["entries"][K] : never
       >;
     }
@@ -138,65 +140,73 @@ export type DerivePgTable<
 // ---------------------------------------------------------------------------
 
 /**
- * Derive a PgColumn from a valibot schema.
+ * Derive a DuckDB column from a valibot schema.
  */
-export function derivePgColumn(
+export function deriveDuckDbColumn(
   schema: AnyValibotSchema,
 ): ColumnType<string, any> {
-  // Check for explicit dbPgColumnType override in metadata
+  // Check for explicit dbDuckDbColumnType override in metadata
   const dbMeta = extractDbMetadata(schema);
-  if (dbMeta?.pgColumnType) {
-    return dbMeta.pgColumnType as ColumnType<any, any>;
+  if (dbMeta?.duckDbColumnType) {
+    return dbMeta.duckDbColumnType as ColumnType<any, any>;
   }
 
   return deriveColumn(schema, ([t, params]) => {
     switch (t) {
       case "uuid":
-        return pg.uuid(params);
-      case "email":
+        return duckdb.uuid(params);
+      case "email": {
+        // DuckDB maps email to plain text — strip maxLength that
+        // derive.ts always adds (it's only needed for varchar databases like PG).
+        const { maxLength: _ml, ...rest } = params as any;
+        return duckdb.text(rest);
+      }
       case "nanoid":
+        return duckdb.varchar(params);
       case "ulid":
+        return duckdb.varchar(params);
       case "string":
-        return "maxLength" in params ? pg.varchar(params) : pg.text(params);
+        return "maxLength" in params
+          ? duckdb.varchar(params)
+          : duckdb.text(params);
       case "ipv4":
       case "ipv6":
-        return pg.inet(params);
       case "mac":
-        return pg.macaddr(params);
+        return duckdb.text(params);
       case "isoTime":
         throw new Error(
-          `v.isoTime() is not supported by derivePgColumn. Use v.isoTimeSecond() instead.`,
+          `v.isoTime() is not supported by deriveDuckDbColumn. Use v.isoTimeSecond() instead.`,
         );
       case "isoTimeSecond":
-        return pg.time(params);
+        return duckdb.time(params);
       case "isoDate":
-        return pg.date(params);
+        return duckdb.date(params);
       case "isoDatetime":
         throw new Error(
-          `v.isoDateTime() is not supported by derivePgColumn. Use d.naiveDatetime() instead.`,
+          `v.isoDateTime() is not supported by deriveDuckDbColumn. Use d.naiveDatetime() instead.`,
         );
       case "naiveDatetime":
-        return pg.timestamp(params as Params);
+        return duckdb.timestamp(params as Params);
       case "integer":
-        return pg.int4(params);
+        return duckdb.int4(params);
       case "int64":
       case "bigint":
-        return pg.int8(params);
+        return duckdb.int8(params);
       case "uint64":
-        throw new Error(`PG has no mapping for uint64`);
+        return duckdb.ubigint(params);
       case "int32":
-        return pg.int4(params);
+        return duckdb.int4(params);
       case "uint32":
-        throw new Error(`PG has no mapping for uint32`);
+        return duckdb.uinteger(params);
       case "float32":
-        return pg.float4(params);
+        return duckdb.float4(params);
       case "float64":
       case "number":
-        return pg.float8(params);
+        return duckdb.float8(params);
       case "boolean":
-        return pg.boolean(params);
+        return duckdb.boolean(params);
       case "date":
-        return pg.timestamptz(params as Params);
+        return duckdb.timestamptz(params as Params);
       case "json":
       case "object": {
         if (!("schema" in params)) {
@@ -204,20 +214,20 @@ export function derivePgColumn(
             `Object types must have a "schema" property for deriveColumn.`,
           );
         }
-        return pg.jsonb(params as any);
+        return duckdb.json(params as any);
       }
     }
   }) as any;
 }
 
 // ---------------------------------------------------------------------------
-// derivePgTable
+// deriveDuckDbTable
 // ---------------------------------------------------------------------------
 
 /**
- * Derive an ormer PgTable from a valibot object schema.
+ * Derive an ormer DuckDB table from a valibot object schema.
  */
-export function derivePgTable(
+export function deriveDuckDbTable(
   schema: AnyValibotSchema,
 ): Table<string, Record<string, ColumnType<any, any>>> {
   const dbMeta = extractDbMetadata(schema);
@@ -239,7 +249,7 @@ export function derivePgTable(
       // Skip navigations (dbRef) — handled as relationship metadata
       continue;
     }
-    columns[key] = derivePgColumn(entry);
+    columns[key] = deriveDuckDbColumn(entry);
   }
 
   return table(tableName as never, columns) as any;

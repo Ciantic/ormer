@@ -389,231 +389,279 @@ Notes:
     <tr>
       <th>Valibot Schema</th>
       <th>Postgres</th>
+      <th>DuckDB</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-<td colspan="2"><strong>String values</strong></td>
+<td colspan="3"><strong>String values</strong></td>
 </tr>
 <tr>
 <td><code>v.string()</code></td>
+<td><code>TEXT</code></td>
 <td><code>TEXT</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.maxLength(255))</code></td>
 <td><code>VARCHAR(255)</code></td>
+<td><code>VARCHAR(255)</code></td>
 </tr>
 <tr>
-<td colspan="2"><strong>Number types</strong></td>
+<td colspan="3"><strong>Number types</strong></td>
 </tr>
 <tr>
 <td><code>v.number()</code></td>
 <td><code>FLOAT8</code></td>
-</tr>
-<tr>
-<td><code>v.pipe(v.number(), v.integer())</code></td>
 <td><code>FLOAT8</code></td>
 </tr>
 <tr>
+<td><code>v.pipe(v.number(), v.integer())</code></td>
+<td><code>INT4</code></td>
+<td><code>INT4</code></td>
+</tr>
+<tr>
 <td><code>v.pipe(v.number(), d.float32())</code></td>
+<td><code>FLOAT4</code></td>
 <td><code>FLOAT4</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.number(), d.float64())</code></td>
 <td><code>FLOAT8</code></td>
+<td><code>FLOAT8</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.number(), d.int32())</code></td>
+<td><code>INT4</code></td>
 <td><code>INT4</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.number(), d.int32(), d.dbPrimaryKey())</code></td>
 <td><code>SERIAL4 PRIMARY KEY</code></td>
+<td><code>INT4 PRIMARY KEY</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.number(), d.int32())</code></td>
+<td><code>INT4</code></td>
 <td><code>INT4</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.number(), d.uint32())</code></td>
 <td><em>Not Available</em></td>
+<td><code>UINTEGER</code></td>
 </tr>
 <tr>
-<td colspan="2"><strong>Bigint</strong></td>
+<td colspan="3"><strong>Bigint</strong></td>
 </tr>
 <tr>
 <td><code>v.bigint()</code></td>
+<td><code>INT8</code></td>
 <td><code>INT8</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.bigint(), d.int64())</code></td>
 <td><code>INT8</code></td>
+<td><code>INT8</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.bigint(), d.int64(), d.dbPrimaryKey())</code></td>
 <td><code>SERIAL8 PRIMARY KEY</code></td>
+<td><code>INT8 PRIMARY KEY</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.bigint(), d.uint64())</code></td>
 <td><em>Not Available</em></td>
+<td><code>UBIGINT</code></td>
 </tr>
 <tr>
-<td colspan="2"><strong>Boolean</strong></td>
+<td colspan="3"><strong>Boolean</strong></td>
 </tr>
 <tr>
 <td><code>v.boolean()</code></td>
 <td><code>BOOLEAN</code></td>
+<td><code>BOOLEAN</code></td>
 </tr>
 <tr>
-<td colspan="2"><strong>JSON</strong></td>
+<td colspan="3"><strong>JSON</strong></td>
 </tr>
 <tr>
 <td><code>v.object({ v: v.string() })</code></td>
 <td><code>JSONB</code></td>
+<td><code>JSON</code></td>
 </tr>
 <tr>
-<td colspan="2"><strong>Date/time types</strong></td>
+<td colspan="3"><strong>Date/time types</strong></td>
 </tr>
 <tr>
 <td><code>v.date()</code></td>
+<td><code>TIMESTAMPTZ</code></td>
 <td><code>TIMESTAMPTZ</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.isoTime())</code></td>
 <td><em>Not Available</em></td>
+<td><em>Not Available</em></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.isoTimeSecond())</code></td>
+<td><code>TIME</code></td>
 <td><code>TIME</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.isoDate())</code></td>
 <td><code>DATE</code></td>
+<td><code>DATE</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.isoDateTime())</code></td>
+<td><em>Not Available</em></td>
 <td><em>Not Available</em></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), d.naiveDatetime())</code></td>
 <td><code>TIMESTAMP</code></td>
+<td><code>TIMESTAMP</code></td>
 </tr>
 <tr>
-<td colspan="2"><strong>UUID</strong></td>
+<td colspan="3"><strong>UUID</strong></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.uuid())</code></td>
 <td><code>UUID</code></td>
+<td><code>UUID</code></td>
 </tr>
 <tr>
-<td colspan="2"><strong>Various string formats</strong></td>
+<td colspan="3"><strong>Various string formats</strong></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.url())</code></td>
+<td><code>TEXT</code></td>
 <td><code>TEXT</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.email())</code></td>
 <td><code>VARCHAR(320)</code></td>
+<td><code>TEXT</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.emoji())</code></td>
+<td><code>TEXT</code></td>
 <td><code>TEXT</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.nanoid())</code></td>
 <td><code>VARCHAR(21)</code></td>
+<td><code>VARCHAR(21)</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.cuid2())</code></td>
+<td><code>TEXT</code></td>
 <td><code>TEXT</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.ulid())</code></td>
 <td><code>VARCHAR(26)</code></td>
+<td><code>VARCHAR(26)</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.base64())</code></td>
+<td><code>TEXT</code></td>
 <td><code>TEXT</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.isbn())</code></td>
 <td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
 </tr>
 <tr>
-<td colspan="2"><strong>Network types</strong></td>
+<td colspan="3"><strong>Network types</strong></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.ipv4())</code></td>
 <td><code>INET</code></td>
+<td><code>TEXT</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.ipv6())</code></td>
 <td><code>INET</code></td>
+<td><code>TEXT</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.mac())</code></td>
 <td><code>MACADDR</code></td>
+<td><code>TEXT</code></td>
 </tr>
 <tr>
-<td colspan="2"><strong>Array types</strong></td>
+<td colspan="3"><strong>Array types</strong></td>
 </tr>
 <tr>
 <td><code>v.array(v.pipe(v.number(), d.int32()))</code></td>
+<td><code>INT4[]</code></td>
 <td><code>INT4[]</code></td>
 </tr>
 <tr>
 <td><code>v.array(v.string())</code></td>
 <td><code>TEXT[]</code></td>
+<td><code>TEXT[]</code></td>
 </tr>
 <tr>
 <td><code>v.array(v.array(v.pipe(v.number(), d.int32())))</code></td>
+<td><code>INT4[][]</code></td>
 <td><code>INT4[][]</code></td>
 </tr>
 <tr>
 <td><code>v.nullable(v.array(v.string()))</code></td>
 <td><code>TEXT[] NULL</code></td>
+<td><code>TEXT[] NULL</code></td>
 </tr>
 <tr>
-<td colspan="2"><strong>Other</strong></td>
+<td colspan="3"><strong>Other</strong></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), v.trim())</code></td>
+<td><code>TEXT</code></td>
 <td><code>TEXT</code></td>
 </tr>
 <tr>
 <td><code>v.nullish(v.pipe(v.string(), v.trim()))</code></td>
 <td><code>TEXT NULL</code></td>
+<td><code>TEXT NULL</code></td>
 </tr>
 <tr>
-<td colspan="2"><strong>Container types</strong></td>
+<td colspan="3"><strong>Container types</strong></td>
 </tr>
 <tr>
 <td><code>v.nullable(v.string())</code></td>
+<td><code>TEXT NULL</code></td>
 <td><code>TEXT NULL</code></td>
 </tr>
 <tr>
 <td><code>v.nullish(v.string())</code></td>
 <td><code>TEXT NULL</code></td>
+<td><code>TEXT NULL</code></td>
 </tr>
 <tr>
 <td><code>v.optional(v.string(), "hello")</code></td>
+<td><code>TEXT DEFAULT hello</code></td>
 <td><code>TEXT DEFAULT hello</code></td>
 </tr>
 <tr>
 <td><code>v.fallback(v.string(), "hello")</code></td>
 <td><code>TEXT DEFAULT hello</code></td>
+<td><code>TEXT DEFAULT hello</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.string(), d.dbPrimaryKey())</code></td>
+<td><code>TEXT PRIMARY KEY</code></td>
 <td><code>TEXT PRIMARY KEY</code></td>
 </tr>
 <tr>
 <td><code>v.pipe(v.bigint(), d.int64(), d.dbForeignKey("users", "id"))</code></td>
 <td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
+<td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
 </tr>
 <tr>
 <td><code>v.nullish(v.pipe(v.string(), v.url()))</code></td>
+<td><code>TEXT NULL</code></td>
 <td><code>TEXT NULL</code></td>
 </tr>
   </tbody>

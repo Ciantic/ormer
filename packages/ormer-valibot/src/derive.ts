@@ -53,6 +53,7 @@ export type ValibotSchemas =
   | ["isoDatetime", ParamsDerived]
   | ["naiveDatetime", ParamsDerived]
   | ["string", ParamsDerived<{ maxLength: number }> | ParamsDerived]
+  | ["integer", ParamsDerived]
   | ["int64", ParamsDerived]
   | ["int32", ParamsDerived]
   | ["uint32", ParamsDerived]
@@ -307,6 +308,11 @@ export function deriveColumn<
   // --- ISO DateTime ---
   if (hasPipeItem("iso_date_time")) {
     return chooser(["isoDatetime", pgParamsBase]);
+  }
+
+  // --- Integer (safe_integer is a different pipe type) ---
+  if (hasPipeItem("integer")) {
+    return chooser(["integer", pgParamsBase]);
   }
 
   // --- Brand-based type detection ---

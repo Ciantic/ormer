@@ -11,7 +11,10 @@ import {
   ALL_DUCKDB_FIELDS,
   ALL_SQLITE_FIELDS,
 } from "../ormer-zod/tests/fields.ts";
-import { ALL_PG_FIELDS as ALL_PG_FIELDS_VALIBOT } from "../ormer-valibot/tests/fields.ts";
+import {
+  ALL_PG_FIELDS as ALL_PG_FIELDS_VALIBOT,
+  ALL_DUCKDB_FIELDS as ALL_DUCKDB_FIELDS_VALIBOT,
+} from "../ormer-valibot/tests/fields.ts";
 
 /** Collapse multiline expressions into single-line for clean table display */
 function compact(expr: string): string {
@@ -225,7 +228,7 @@ function makeValibotTestCaseTableHtml() {
       if (commentMatch) {
         result.push(md`
           <tr>
-            <td colspan="2"><strong>${commentMatch[1]}</strong></td>
+            <td colspan="3"><strong>${commentMatch[1]}</strong></td>
           </tr>
         `);
       }
@@ -251,10 +254,16 @@ function makeValibotTestCaseTableHtml() {
       const pgCol =
         ALL_PG_FIELDS_VALIBOT[propName as keyof typeof ALL_PG_FIELDS_VALIBOT];
       const pgDisplay = pgColumnToSqlDisplay(pgCol);
+      const duckCol =
+        ALL_DUCKDB_FIELDS_VALIBOT[
+          propName as keyof typeof ALL_DUCKDB_FIELDS_VALIBOT
+        ];
+      const duckDisplay = duckdbColumnToSqlDisplay(duckCol);
       result.push(md`
         <tr>
           <td>${valibotDisplay}</td>
           <td>${pgDisplay}</td>
+          <td>${duckDisplay}</td>
         </tr>
       `);
       return result;
@@ -267,6 +276,7 @@ function makeValibotTestCaseTableHtml() {
           <tr>
             <th>Valibot Schema</th>
             <th>Postgres</th>
+            <th>DuckDB</th>
           </tr>
         </thead>
         <tbody>
