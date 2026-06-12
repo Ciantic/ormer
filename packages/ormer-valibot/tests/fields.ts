@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import * as d from "../src/valibot-ext.ts";
-import { pg, duckdb, type ColumnType } from "ormer";
+import { pg, duckdb, sqlite, type ColumnType } from "ormer";
 
 export const UserSchema = v.pipe(
   v.object({ id: v.pipe(v.bigint(), d.int64(), d.dbPrimaryKey()) }),
@@ -231,6 +231,87 @@ export const ALL_DUCKDB_FIELDS = {
   c_str_pk: duckdb.text({ primaryKey: true }),
   c_int64_fk: duckdb.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
   c_pipe_with_nullish: duckdb.text({ nullable: true }),
+} as const satisfies {
+  [K in keyof typeof ALL_VALIBOT_FIELDS]: ColumnType<string, any> | "ERROR";
+};
+
+export const ALL_SQLITE_FIELDS = {
+  // String values
+  c_str: sqlite.text(),
+  c_str_max255: sqlite.text({
+    check: (c: string) => `length(${c}) <= 255`,
+  }),
+
+  // Number types
+  c_num: sqlite.real(),
+  c_num_int: sqlite.integer(),
+  c_f32: sqlite.real(),
+  c_f64: sqlite.real(),
+  c_int: sqlite.integer(),
+  c_int_pk: sqlite.integer(pkAutoInc),
+  c_int32: sqlite.integer(),
+  c_uint32: sqlite.integer(),
+
+  // Bigint — SQLite INTEGER is always number, can't round-trip bigint
+  c_bigint: "ERROR" as const,
+  c_int64: "ERROR" as const,
+  c_int64_pk: "ERROR" as const,
+  c_uint64: "ERROR" as const,
+
+  // Boolean — SQLite has no boolean, stores 0/1 in INTEGER, can't round-trip
+  c_bool: "ERROR" as const,
+
+  // JSON — SQLite stores as text, can't round-trip
+  c_json: "ERROR" as const,
+
+  // Date/time types — string-based work as TEXT, only Date can't round-trip
+  c_date: "ERROR" as const,
+  c_time: sqlite.text(),
+  c_timeseconds: sqlite.text(),
+  c_date_only: sqlite.text(),
+  c_datetime: sqlite.text(),
+  c_timestamp: sqlite.text(),
+
+  // UUID
+  c_uuid: sqlite.text(),
+
+  // Various string formats
+  c_url: sqlite.text(),
+  c_email: sqlite.text({ check: (c: string) => `length(${c}) <= 320` }),
+  c_emoji: sqlite.text(),
+  c_nanoid: sqlite.text({
+    check: (c: string) => `length(${c}) <= 21`,
+  }),
+  c_cuid2: sqlite.text(),
+  c_ulid: sqlite.text({
+    check: (c: string) => `length(${c}) <= 26`,
+  }),
+  c_base64: sqlite.text(),
+  c_isbn: sqlite.text(),
+
+  // Network types — SQLite has no inet/macaddr → fall back to text
+  c_ipv4: sqlite.text(),
+  c_ipv6: sqlite.text(),
+  c_mac: sqlite.text(),
+
+  // Array types — SQLite has no arrays, can't round-trip
+  c_int_arr: "ERROR" as const,
+  c_str_arr: "ERROR" as const,
+  c_int_arr2: "ERROR" as const,
+  c_str_arr_nullable: "ERROR" as const,
+
+  // Other
+  c_str_trimmed: sqlite.text(),
+  c_str_trim_nullish: sqlite.text({ nullable: true }),
+
+  // Container types
+  c_str_nullable: sqlite.text({ nullable: true }),
+  c_str_nullish: sqlite.text({ nullable: true }),
+  c_str_default: sqlite.text({ default: "hello" }),
+  c_str_prefault: sqlite.text({ default: "hello" }),
+  c_str_pk: sqlite.text({ primaryKey: true }),
+  c_int64_fk: "ERROR" as const,
+  c_pipe_with_nullish: sqlite.text({ nullable: true }),
 } as const satisfies {
   [K in keyof typeof ALL_VALIBOT_FIELDS]: ColumnType<string, any> | "ERROR";
 };
