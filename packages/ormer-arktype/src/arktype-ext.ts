@@ -6,23 +6,52 @@ import { scope, TraversalError, type, Type, type Scope } from "arktype";
 // Type<A, $>.
 
 const _db = scope({
-  float32: type("number#float32").configure({ format: "float32" }),
-  float64: type("number#float64").configure({ format: "float64" }),
-  int8: type("number.integer#int8").configure({ format: "int8" }),
-  int16: type("number.integer#int16").configure({ format: "int16" }),
-  int32: type("number.integer#int32").configure({ format: "int32" }),
-  uint8: type("number.integer#uint8").configure({ format: "uint8" }),
-  uint16: type("number.integer#uint16").configure({ format: "uint16" }),
-  uint32: type("number.integer#uint32").configure({ format: "uint32" }),
-  int64: type("bigint#int64").configure({ format: "int64" }),
-  uint64: type("bigint#uint64").configure({ format: "uint64" }),
-  uint128: type("bigint#uint128").configure({ format: "uint128" }),
+  float32: format("float32", "number"),
+  float64: format("float64", "number"),
+  int8: format("int8", "number.integer"),
+  int16: format("int16", "number.integer"),
+  int32: format("int32", "number.integer"),
+  uint8: format("uint8", "number.integer"),
+  uint16: format("uint16", "number.integer"),
+  uint32: format("uint32", "number.integer"),
+  int64: format("int64", "bigint"),
+  uint64: format("uint64", "bigint"),
+  uint128: format("uint128", "bigint"),
 });
 
 type InferScopeType<S> = S extends Scope<infer $> ? $ : never;
 type $Db = InferScopeType<typeof _db>;
 type RemoveUnionItem<T, U> = T extends U ? never : T;
 type StringLiteral<T extends string> = string extends T ? never : T;
+type PrimaryKey = {
+  readonly db: { readonly primaryKey: true };
+};
+
+type TableName<Name extends string> = {
+  readonly db: { readonly tableName: Name };
+};
+
+type ForeignKey<Table extends string, Column extends string> = {
+  readonly db: {
+    readonly foreignKeyTable: Table;
+    readonly foreignKeyColumn: Column;
+  };
+};
+export type FormatId =
+  | "float32"
+  | "float64"
+  | "int8"
+  | "int16"
+  | "int32"
+  | "uint8"
+  | "uint16"
+  | "uint32"
+  | "int64"
+  | "uint64"
+  | "uint128";
+export type Format<F extends FormatId> = {
+  readonly db: { readonly format: F };
+};
 
 export const db = Object.assign(_db, {
   /**
@@ -81,21 +110,6 @@ export const db = Object.assign(_db, {
    */
   table: table,
 });
-
-type PrimaryKey = {
-  readonly db: { readonly primaryKey: true };
-};
-
-type TableName<Name extends string> = {
-  readonly db: { readonly tableName: Name };
-};
-
-type ForeignKey<Table extends string, Column extends string> = {
-  readonly db: {
-    readonly foreignKeyTable: Table;
-    readonly foreignKeyColumn: Column;
-  };
-};
 
 /**
  * Primary key type
@@ -201,4 +215,25 @@ export function runtimeInspect(t: Type<any, any>) {
       `${colName}: ${expr} ## ${kind} ## ${JSON.stringify(db)} ## ${JSON.stringify(meta)}`,
     );
   }
+}
+
+/**
+ * Format type
+ *
+ * Purpose is to retain format information at type-level and in runtime with
+ * configure.
+ */
+function format<
+  const F extends FormatId,
+  $ extends Scope<{}>,
+  const def,
+  r = type.instantiate<def, $>,
+>(
+  format: F,
+  def: type.validate<def, $>,
+): r extends Type<infer A, $> ? Type<A | Format<F>, $> : never {
+  const obj = (type as any)(def);
+  Object.assign(obj, { db: { ...(obj.db ?? {}), format } });
+  obj.configure({ format });
+  return obj;
 }
