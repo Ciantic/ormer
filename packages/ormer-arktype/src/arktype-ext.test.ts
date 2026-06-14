@@ -20,6 +20,19 @@ type ExtractDb<T> =
       : never
     : never;
 
+describe("format types", () => {
+  it("format types have type-level format", () => {
+    const f = db.type("float32");
+    type Out = typeof f.inferOut;
+    expectTypeOf<Out>().toEqualTypeOf<number | Format<"float32">>();
+  });
+
+  it("format types have runtime format", () => {
+    const f = db.type("float32");
+    expect(f.meta.format).toEqual("float32");
+  });
+});
+
 describe("primaryKey", () => {
   it("adds PrimaryKey to the output type union", () => {
     const pk = db.primaryKey("int32");

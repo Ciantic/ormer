@@ -232,8 +232,7 @@ function format<
   format: F,
   def: type.validate<def, $>,
 ): r extends Type<infer A, $> ? Type<A | Format<F>, $> : never {
-  const obj = (type as any)(def);
+  const obj = (type as any)(def).configure({ format });
   Object.assign(obj, { db: { ...(obj.db ?? {}), format } });
-  obj.configure({ format });
   return obj;
 }
