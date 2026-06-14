@@ -93,8 +93,8 @@ describe("primaryKey", () => {
   it("runtime: primaryKey db metadata is accessible", () => {
     const pk = db.primaryKey("int32");
     // The primaryKey function should carry db metadata
-    expect((pk as any).db).toBeDefined();
-    expect((pk as any).db.primaryKey).toBe(true);
+    expect(pk.meta).toBeDefined();
+    expect(pk.meta.primaryKey).toBe(true);
   });
 });
 
@@ -158,9 +158,8 @@ describe("foreignKey", () => {
 
   it("runtime: foreignKey db metadata is accessible", () => {
     const fk = db.foreignKey("int32", "users", "id");
-    expect((fk as any).db).toBeDefined();
-    expect((fk as any).db.foreignKeyTable).toBe("users");
-    expect((fk as any).db.foreignKeyColumn).toBe("id");
+    expect(fk.meta.foreignKeyColumn).toBe("id");
+    expect(fk.meta.foreignKeyTable).toBe("users");
   });
 });
 
@@ -232,8 +231,8 @@ describe("foreignKeyRef", () => {
       title: "string",
     });
     const invoiceId = db.foreignKeyRef(InvoiceTable, "id");
-    expect((invoiceId as any).db.foreignKeyTable).toBe("invoices");
-    expect((invoiceId as any).db.foreignKeyColumn).toBe("id");
+    expect(invoiceId.meta.foreignKeyTable).toBe("invoices");
+    expect(invoiceId.meta.foreignKeyColumn).toBe("id");
   });
 
   it("runtime: foreignKeyRef links to correct table name", () => {
@@ -241,8 +240,8 @@ describe("foreignKeyRef", () => {
       order_id: db.primaryKey("int64"),
     });
     const fk = db.foreignKeyRef(OrdersTable, "order_id");
-    expect((fk as any).db.foreignKeyTable).toBe("orders");
-    expect((fk as any).db.foreignKeyColumn).toBe("order_id");
+    expect(fk.meta.foreignKeyTable).toBe("orders");
+    expect(fk.meta.foreignKeyColumn).toBe("order_id");
   });
 });
 
@@ -359,12 +358,12 @@ describe("table", () => {
       name: "string",
     });
 
-    expect((UserTable as any).db.tableName).toBe("users");
+    expect(UserTable.meta.tableName).toBe("users");
   });
 
   it("runtime: table name is preserved in metadata", () => {
     const t = db.table("products", { sku: "string" });
-    expect((t as any).db.tableName).toBe("products");
+    expect(t.meta.tableName).toBe("products");
   });
 
   it("runtime: table with optional fields", () => {

@@ -53,6 +53,17 @@ export type Format<F extends FormatId> = {
   readonly db: { readonly format: F };
 };
 
+declare global {
+  interface ArkEnv {
+    meta(): {
+      foreignKeyTable?: string;
+      foreignKeyColumn?: string;
+      primaryKey?: true;
+      tableName?: string;
+    };
+  }
+}
+
 export const db = Object.assign(_db, {
   /**
    * Assign type with a primary key
@@ -117,9 +128,9 @@ export const db = Object.assign(_db, {
 function primaryKey<$ extends $Db, const def, r = type.instantiate<def, $>>(
   def: type.validate<def, $>,
 ): r extends Type<infer A, $> ? Type<A | PrimaryKey, $> : never {
-  const obj = (_db.type as any)(def);
-  Object.assign(obj, { db: { ...(obj.db ?? {}), primaryKey: true } });
-  return obj;
+  return _db.type(def as any).configure({
+    primaryKey: true,
+  }) as any;
 }
 
 /**
@@ -130,7 +141,7 @@ function foreignKeyRef<
   C extends T extends Type<infer A, infer _> ? keyof A : never,
 >(
   t: T,
-  col: C,
+  col: C & string,
 ): Type<
   T extends Type<infer A, infer $>
     ?
@@ -139,15 +150,22 @@ function foreignKeyRef<
     : never,
   T extends Type<infer _, infer $> ? $ : never
 > {
-  const obj = (_db.type as any)(t as any).get(col);
-  Object.assign(obj, {
-    db: {
-      ...(obj.db ?? {}),
-      foreignKeyTable: (t as any).db.tableName,
-      foreignKeyColumn: col,
-    },
+  const obj = (
+    (_db.type(t as any) as any).get(col) as Type<any, any>
+  ).configure({
+    foreignKeyTable: (t as any).meta.tableName,
+    foreignKeyColumn: col,
   });
-  return obj;
+  return obj as any;
+  // const obj = (_db.type as any)(t as any).get(col);
+  // Object.assign(obj, {
+  //   db: {
+  //     ...(obj.db ?? {}),
+  //     foreignKeyTable: (t as any).db.tableName,
+  //     foreignKeyColumn: col,
+  //   },
+  // });
+  // return obj;
 }
 
 /**
@@ -166,15 +184,10 @@ function foreignKey<
   tableName: StringLiteral<Table>,
   columnName: StringLiteral<Column>,
 ): r extends Type<infer A, $> ? Type<A | ForeignKey<Table, Column>, $> : never {
-  const obj = (_db.type as any)(def);
-  Object.assign(obj, {
-    db: {
-      ...(obj.db ?? {}),
-      foreignKeyTable: tableName,
-      foreignKeyColumn: columnName,
-    },
-  });
-  return obj;
+  return _db.type(def as any).configure({
+    foreignKeyColumn: columnName,
+    foreignKeyTable: tableName,
+  }) as any;
 }
 
 /**
@@ -189,10 +202,27 @@ function table<
   name: StringLiteral<N>,
   def: type.validate<def, $>,
 ): r extends infer _ ? _ & TableName<N> : never {
-  // Note above type: TableName is addeed to the return type with intersection
-  const obj = (_db.type as any)(def);
-  Object.assign(obj, { db: { ...(obj.db ?? {}), tableName: name } });
-  return obj;
+  return _db.type(def as any).configure({
+    tableName: name,
+  }) as any;
+}
+
+/**
+ * Format type
+ *
+ * Purpose is to retain format information at type-level and in runtime with
+ * configure.
+ */
+function format<
+  const F extends FormatId,
+  $ extends Scope<{}>,
+  const def,
+  r = type.instantiate<def, $>,
+>(
+  format: F,
+  def: type.validate<def, $>,
+): r extends Type<infer A, $> ? Type<A | Format<F>, $> : never {
+  return type(def as any).configure({ format }) as any;
 }
 
 export function runtimeInspect(t: Type<any, any>) {
@@ -215,24 +245,4 @@ export function runtimeInspect(t: Type<any, any>) {
       `${colName}: ${expr} ## ${kind} ## ${JSON.stringify(db)} ## ${JSON.stringify(meta)}`,
     );
   }
-}
-
-/**
- * Format type
- *
- * Purpose is to retain format information at type-level and in runtime with
- * configure.
- */
-function format<
-  const F extends FormatId,
-  $ extends Scope<{}>,
-  const def,
-  r = type.instantiate<def, $>,
->(
-  format: F,
-  def: type.validate<def, $>,
-): r extends Type<infer A, $> ? Type<A | Format<F>, $> : never {
-  const obj = (type as any)(def).configure({ format });
-  Object.assign(obj, { db: { ...(obj.db ?? {}), format } });
-  return obj;
 }
