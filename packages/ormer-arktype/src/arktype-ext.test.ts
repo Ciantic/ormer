@@ -95,6 +95,7 @@ describe("primaryKey", () => {
     // The primaryKey function should carry db metadata
     expect(pk.meta).toBeDefined();
     expect(pk.meta.primaryKey).toBe(true);
+    expect(pk.meta.format).toBe("int32");
   });
 });
 
@@ -160,6 +161,7 @@ describe("foreignKey", () => {
     const fk = db.foreignKey("int32", "users", "id");
     expect(fk.meta.foreignKeyColumn).toBe("id");
     expect(fk.meta.foreignKeyTable).toBe("users");
+    expect(fk.meta.format).toBe("int32");
   });
 });
 
@@ -233,6 +235,7 @@ describe("foreignKeyRef", () => {
     const invoiceId = db.foreignKeyRef(InvoiceTable, "id");
     expect(invoiceId.meta.foreignKeyTable).toBe("invoices");
     expect(invoiceId.meta.foreignKeyColumn).toBe("id");
+    expect(invoiceId.meta.format).toBe("int32");
   });
 
   it("runtime: foreignKeyRef links to correct table name", () => {
@@ -242,6 +245,7 @@ describe("foreignKeyRef", () => {
     const fk = db.foreignKeyRef(OrdersTable, "order_id");
     expect(fk.meta.foreignKeyTable).toBe("orders");
     expect(fk.meta.foreignKeyColumn).toBe("order_id");
+    expect(fk.meta.format).toBe("int64");
   });
 });
 
