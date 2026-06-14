@@ -1,3 +1,6 @@
+// Align all example values:
+// gawk -i inplace '/arktype: .*example:/ { line=$0; sub(/,[[:space:]]*example:[[:space:]]*/, ",\t", line); n=split(line, a, "\t"); if (n==2) { printf "%-62sexample: %s\n", a[1], a[2]; next } } { print }' packages/ormer-arktype/tests/fields.ts
+
 import { type } from "arktype";
 import { db } from "../src/arktype-ext.ts";
 
@@ -14,32 +17,32 @@ export const ALL_ARKTYPE_FIELDS = {
   // Number types
   c_num:              { arktype: type("number"),              example: 3.14 },
   c_num_int:          { arktype: type("number.integer"),      example: 42 },
-  c_f32:              { arktype: db.type("float32"),                     example: 1.5 },
-  c_f64:              { arktype: db.type("float64"),                     example: 2.718281828 },
-  c_int:              { arktype: db.type("int32"),                       example: 100 },
-  c_int_pk:           { arktype: db.primaryKey("int32"),         example: 1 },
-  c_int32:            { arktype: db.type("int32"),                       example: 200 },
-  c_uint32:           { arktype: db.type("uint32"),                      example: 300 },
+  c_f32:              { arktype: db.type("float32"),          example: 1.5 },
+  c_f64:              { arktype: db.type("float64"),          example: 2.718281828 },
+  c_int:              { arktype: db.type("int32"),            example: 100 },
+  c_int_pk:           { arktype: db.primaryKey("int32"),      example: 1 },
+  c_int32:            { arktype: db.type("int32"),            example: 200 },
+  c_uint32:           { arktype: db.type("uint32"),           example: 300 },
 
   // Bigint
   c_bigint:           { arktype: type("bigint"),              example: 9007199254740991n },
-  c_int64:            { arktype: db.type("int64"),                       example: 123456789n },
-  c_int64_pk:         { arktype: db.primaryKey("int64"),         example: 1n },
-  c_uint64:           { arktype: db.type("uint64"),                      example: 18446744073709551615n },
+  c_int64:            { arktype: db.type("int64"),            example: 123456789n },
+  c_int64_pk:         { arktype: db.primaryKey("int64"),      example: 1n },
+  c_uint64:           { arktype: db.type("uint64"),           example: 18446744073709551615n },
 
   // Boolean
   c_bool:             { arktype: type("boolean"),             example: true },
 
   // JSON
-  c_json:            { arktype: type({ v: "string" }),       example: { v: "value" } },
-  c_json2:           { arktype: type("unknown"),             example: [1, 2, 3] },
+  c_json:             { arktype: type({ v: "string" }),       example: { v: "value" } },
+  c_json2:            { arktype: type("unknown"),             example: [1, 2, 3] },
 
   // Date/time types
   c_date:             { arktype: type("Date"),                example: new Date("2024-01-15T10:30:00Z") },
-  c_time:             { arktype: type("string"),                     example: "14:30:00" },
+  c_time:             { arktype: type("string"),              example: "14:30:00" },
   c_date_only:        { arktype: type("string.date"),         example: "2024-01-15" },
   c_datetime:         { arktype: type("string.date.iso"),     example: "2024-01-15T10:00Z" },
-  c_timestamp:        { arktype: type("string"),               example: "2024-01-15 10:30:00" },
+  c_timestamp:        { arktype: type("string"),              example: "2024-01-15 10:30:00" },
 
   // GUID / UUID
   c_uuid:             { arktype: type("string.uuid"),         example: "550e8400-e29b-41d4-a716-446655440000" },
@@ -77,10 +80,13 @@ export const ALL_ARKTYPE_FIELDS = {
 
   // Container types
   c_str_nullable:     { arktype: type("string | null"),       example: null },
-  c_str_nullish:      { arktype: type("string | null | undefined"), example: null },
+  c_str_nullish:      {
+    arktype: type("string | null | undefined"),
+    example: null,
+  },
   c_str_default:      { arktype: type("string"),              example: "hello" },
   c_str_prefault:     { arktype: type("string"),              example: "hello" },
-  c_str_pk:           { arktype: db.primaryKey("string"), example: "pk_abc123" },
+  c_str_pk:           { arktype: db.primaryKey("string"),     example: "pk_abc123" },
   c_int64_fk:         {
     arktype: db.foreignKeyRef(UserSchema, "id"),
     example: 1n,
