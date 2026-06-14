@@ -5,10 +5,12 @@ import { db } from "./arktype-ext.ts";
 /** arktype brand type (from @ark/util, not re-exported by "arktype") */
 type Brand<T = unknown, Id = unknown> = T | { readonly [" brand"]: [T, Id] };
 type PrimaryKey = { readonly db: { readonly primaryKey: true } };
-
-// =========================================================================
-// Type-level helpers
-// =========================================================================
+type ForeignKey<Table extends string, Column extends string> = {
+  readonly db: {
+    readonly foreignKeyTable: Table;
+    readonly foreignKeyColumn: Column;
+  };
+};
 
 type Equal<X, Y> =
   (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
@@ -27,58 +29,23 @@ type ExtractDb<T> =
 type InferOut<T> = T extends Type<infer A, infer _> ? A : never;
 
 describe("primaryKey", () => {
-  // --- Type-level ---
-
   it("adds PrimaryKey to the output type union", () => {
     const pk = db.primaryKey("int32");
-
-    // The output type should be number | PrimaryKey
     type PK = typeof pk;
     type Out = InferOut<PK>;
-
-    type HasPrimaryKey = Extract<
-      Out,
-      { readonly db: { readonly primaryKey: true } }
-    >;
-    expectTypeOf<HasPrimaryKey>().toEqualTypeOf<{
-      readonly db: { readonly primaryKey: true };
-    }>();
-
-    // It should also still accept plain numbers
-    type JustNumber = Exclude<
-      Out,
-      { readonly db: { readonly primaryKey: true } }
-    >;
-    expectTypeOf<JustNumber>().toEqualTypeOf<Brand<number, "int32">>();
+    expectTypeOf<Out>().toEqualTypeOf<Brand<number, "int32"> | PrimaryKey>();
   });
 
   it("primaryKey with inline type works", () => {
     const pk = db.primaryKey(db.type("int32"));
     type Out = InferOut<typeof pk>;
-    type HasPrimaryKey = Extract<
-      Out,
-      { readonly db: { readonly primaryKey: true } }
-    >;
-    expectTypeOf<HasPrimaryKey>().toEqualTypeOf<{
-      readonly db: { readonly primaryKey: true };
-    }>();
+    expectTypeOf<Out>().toEqualTypeOf<Brand<number, "int32"> | PrimaryKey>();
   });
 
   it("primaryKey with bigint", () => {
     const pk = db.primaryKey("int64");
     type Out = InferOut<typeof pk>;
-    type HasPrimaryKey = Extract<
-      Out,
-      { readonly db: { readonly primaryKey: true } }
-    >;
-    expectTypeOf<HasPrimaryKey>().toEqualTypeOf<{
-      readonly db: { readonly primaryKey: true };
-    }>();
-    type JustBigint = Exclude<
-      Out,
-      { readonly db: { readonly primaryKey: true } }
-    >;
-    expectTypeOf<JustBigint>().toEqualTypeOf<Brand<bigint, "int64">>();
+    expectTypeOf<Out>().toEqualTypeOf<Brand<bigint, "int64"> | PrimaryKey>();
   });
 
   // --- Runtime ---
@@ -120,89 +87,28 @@ describe("foreignKey", () => {
     const fk = db.foreignKey("int32", "users", "id");
 
     type Out = InferOut<typeof fk>;
-    type HasFK = Extract<
-      Out,
-      {
-        readonly db: {
-          readonly foreignKeyTable: "users";
-          readonly foreignKeyColumn: "id";
-        };
-      }
-    >;
-    expectTypeOf<HasFK>().toEqualTypeOf<{
-      readonly db: {
-        readonly foreignKeyTable: "users";
-        readonly foreignKeyColumn: "id";
-      };
-    }>();
-
-    // Still accepts plain numbers
-    type JustNumber = Exclude<
-      Out,
-      {
-        readonly db: {
-          readonly foreignKeyTable: "users";
-          readonly foreignKeyColumn: "id";
-        };
-      }
-    >;
-    expectTypeOf<JustNumber>().toEqualTypeOf<Brand<number, "int32">>();
+    expectTypeOf<Out>().toEqualTypeOf<
+      Brand<number, "int32"> | ForeignKey<"users", "id">
+    >();
   });
 
   it("foreignKey preserves const string parameters", () => {
     const fk = db.foreignKey("int64", "orders", "user_id");
 
     type Out = InferOut<typeof fk>;
-    type HasFK = Extract<
-      Out,
-      {
-        readonly db: {
-          readonly foreignKeyTable: "orders";
-          readonly foreignKeyColumn: "user_id";
-        };
-      }
-    >;
-    expectTypeOf<HasFK>().toEqualTypeOf<{
-      readonly db: {
-        readonly foreignKeyTable: "orders";
-        readonly foreignKeyColumn: "user_id";
-      };
-    }>();
-
-    type JustBigint = Exclude<
-      Out,
-      {
-        readonly db: {
-          readonly foreignKeyTable: "orders";
-          readonly foreignKeyColumn: "user_id";
-        };
-      }
-    >;
-    expectTypeOf<JustBigint>().toEqualTypeOf<Brand<bigint, "int64">>();
+    expectTypeOf<Out>().toEqualTypeOf<
+      Brand<bigint, "int64"> | ForeignKey<"orders", "user_id">
+    >();
   });
 
   it("foreignKey with inline db.type def works", () => {
     const fk = db.foreignKey(db.type("int32"), "products", "sku");
 
     type Out = InferOut<typeof fk>;
-    type HasFK = Extract<
-      Out,
-      {
-        readonly db: {
-          readonly foreignKeyTable: "products";
-          readonly foreignKeyColumn: "sku";
-        };
-      }
-    >;
-    expectTypeOf<HasFK>().toEqualTypeOf<{
-      readonly db: {
-        readonly foreignKeyTable: "products";
-        readonly foreignKeyColumn: "sku";
-      };
-    }>();
+    expectTypeOf<Out>().toEqualTypeOf<
+      Brand<number, "int32"> | ForeignKey<"products", "sku">
+    >();
   });
-
-  // --- Runtime ---
 
   it("runtime: accepts valid foreign key value", () => {
     const fk = db.foreignKey("int32", "users", "id");
@@ -233,36 +139,10 @@ describe("foreignKeyRef", () => {
 
     const invoiceId = db.foreignKeyRef(InvoiceTable, "id");
 
-    // The output type should include the ForeignKey with table name and column
     type Out = InferOut<typeof invoiceId>;
-    type HasFK = Extract<
-      Out,
-      {
-        readonly db: {
-          readonly foreignKeyTable: "invoices";
-          readonly foreignKeyColumn: "id";
-        };
-      }
-    >;
-    expectTypeOf<HasFK>().toEqualTypeOf<{
-      readonly db: {
-        readonly foreignKeyTable: "invoices";
-        readonly foreignKeyColumn: "id";
-      };
-    }>();
-
-    // Should also include the plain number (without primaryKey intersection)
-    type JustNumber = Exclude<
-      Out,
-      {
-        readonly db: {
-          readonly foreignKeyTable: "invoices";
-          readonly foreignKeyColumn: "id";
-        };
-      }
-    >;
-    // JustNumber should be number without PrimaryKey
-    expectTypeOf<JustNumber>().toEqualTypeOf<Brand<number, "int32">>();
+    expectTypeOf<Out>().toEqualTypeOf<
+      Brand<number, "int32"> | ForeignKey<"invoices", "id">
+    >();
   });
 
   it("foreignKeyRef excludes PrimaryKey from the referenced column type", () => {
@@ -271,18 +151,12 @@ describe("foreignKeyRef", () => {
       title: "string",
     });
 
-    // The referenced column id has type number | PrimaryKey.
-    // foreignKeyRef should remove PrimaryKey, leaving just number.
     const invoiceId = db.foreignKeyRef(InvoiceTable, "id");
 
     type Out = InferOut<typeof invoiceId>;
-
-    // There should NOT be any PrimaryKey in the output
-    type HasPrimaryKey = Extract<
-      Out,
-      { readonly db: { readonly primaryKey: true } }
-    >;
-    expectTypeOf<HasPrimaryKey>().toEqualTypeOf<never>();
+    expectTypeOf<Out>().toEqualTypeOf<
+      Brand<number, "int32"> | ForeignKey<"invoices", "id">
+    >();
   });
 
   it("foreignKeyRef with bigint column", () => {
@@ -293,35 +167,10 @@ describe("foreignKeyRef", () => {
     const fk = db.foreignKeyRef(BigintTable, "id");
 
     type Out = InferOut<typeof fk>;
-    type HasFK = Extract<
-      Out,
-      {
-        readonly db: {
-          readonly foreignKeyTable: "bigints";
-          readonly foreignKeyColumn: "id";
-        };
-      }
-    >;
-    expectTypeOf<HasFK>().toEqualTypeOf<{
-      readonly db: {
-        readonly foreignKeyTable: "bigints";
-        readonly foreignKeyColumn: "id";
-      };
-    }>();
-
-    type JustBigint = Exclude<
-      Out,
-      {
-        readonly db: {
-          readonly foreignKeyTable: "bigints";
-          readonly foreignKeyColumn: "id";
-        };
-      }
-    >;
-    expectTypeOf<JustBigint>().toEqualTypeOf<Brand<bigint, "int64">>();
+    expectTypeOf<Out>().toEqualTypeOf<
+      Brand<bigint, "int64"> | ForeignKey<"bigints", "id">
+    >();
   });
-
-  // --- Runtime ---
 
   it("runtime: accepts valid foreign key value", () => {
     const InvoiceTable = db.table("invoices", {
@@ -363,13 +212,7 @@ describe("foreignKeyRef", () => {
   });
 });
 
-// =========================================================================
-// table
-// =========================================================================
-
 describe("table", () => {
-  // --- Type-level ---
-
   it("adds TableName to the result type", () => {
     const UserTable = db.table("users", {
       id: db.primaryKey("int32"),
@@ -427,24 +270,11 @@ describe("table", () => {
       description: "string",
     });
 
-    // invoiceId should have foreignKeyTable = "invoices", foreignKeyColumn = "id"
     type Out = InferOut<typeof InvoiceRow>;
-    type InvoiceId = Out["invoiceId"];
-
-    type HasFK = Extract<
-      InvoiceId,
-      {
-        readonly db: {
-          readonly foreignKeyTable: "invoices";
-          readonly foreignKeyColumn: "id";
-        };
-      }
-    >;
-    expectTypeOf<HasFK>().toEqualTypeOf<{
-      readonly db: {
-        readonly foreignKeyTable: "invoices";
-        readonly foreignKeyColumn: "id";
-      };
+    expectTypeOf<Out>().toEqualTypeOf<{
+      id: Brand<number, "int32"> | PrimaryKey;
+      invoiceId: Brand<number, "int32"> | ForeignKey<"invoices", "id">;
+      description: string;
     }>();
 
     // invoiceRow db.tableName should be "invoice_rows"
@@ -601,13 +431,7 @@ describe("composition", () => {
     const fk = db.foreignKey("int32", "users", "id");
     type FkType = typeof fk;
     expectTypeOf<InferOut<FkType>>().toEqualTypeOf<
-      | Brand<number, "int32">
-      | {
-          readonly db: {
-            readonly foreignKeyTable: "users";
-            readonly foreignKeyColumn: "id";
-          };
-        }
+      Brand<number, "int32"> | ForeignKey<"users", "id">
     >();
 
     // table
