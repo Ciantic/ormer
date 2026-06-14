@@ -19,17 +19,6 @@ type $Db = InferScopeType<typeof _db>;
 type RemoveUnionItem<T, U> = T extends U ? never : T;
 type StringLiteral<T extends string> = string extends T ? never : T;
 
-// function foo<$ extends DbInner, const def, r = type.instantiate<def, $>>(
-//   def: type.validate<def, $>,
-// ): r extends infer _ ? _ : never {
-//   return null as any;
-// }
-
-// foo("number.integer");
-// foo("int64");
-// // @ts-expect-error
-// foo("number.integerfsadf");
-
 export const db = Object.assign(_db, {
   primaryKey: primaryKey as typeof primaryKey,
   foreignKey: foreignKey as typeof foreignKey,
@@ -63,6 +52,9 @@ function primaryKey<$ extends $Db, const def, r = type.instantiate<def, $>>(
   return obj;
 }
 
+/**
+ * Typed foreign key reference to a specific table and column.
+ */
 function foreignKeyRef<
   T extends Type<any, any> & TableName<string>,
   C extends T extends Type<infer A, infer _> ? keyof A : never,
@@ -88,20 +80,11 @@ function foreignKeyRef<
   return obj;
 }
 
-const InvoiceTable = db.table("invoices", {
-  id: db.primaryKey("int32"),
-  title: "string",
-});
-
-// type InvoiceId = typeof InvoiceTable.out;
-
-const invoiceId = foreignKeyRef(InvoiceTable, "id");
-
-// const InvoiceRow = type({
-//   id: db.primaryKey(db.type("int32")),
-//   invoiceId: foreignKeyRef(InvoiceTable, "id"),
-// });
-
+/**
+ * Untyped foreign key reference to a specific table and column. This is less
+ * safe than `foreignKeyRef` but can be useful in some cases where you don't
+ * have access to the full table type.
+ */
 function foreignKey<
   const Table extends string,
   const Column extends string,
@@ -142,57 +125,7 @@ function table<
   return obj;
 }
 
-/*
-
-const FooKey = primaryKey(db.type("int32"));
-const ZooBrand = db.type("int32").brand("zoo");
-
-const User = db.type({
-  someidishere: primaryKey(db.type("int32")),
-  someothertest: db.type("number#zoo"),
-  something: db.type("int32"),
-  othervalue: "int64",
-  name: "string",
-  "address?": "string",
-  lastLoggedIn: "Date | null | undefined",
-  email: "string.email",
-});
-
-const UserTable = table("users", User);
-
-const OtherTable = UserTable.omit("address");
-
-console.log("User table name:", UserTable.db.tableName); // "users"
-console.log("Other table name:", (OtherTable as any)?.db?.tableName); // "users"
-
-type InputType = typeof User.infer;
-type UserTableInput = typeof UserTable.infer;
-
-User.from({
-  someidishere: 5,
-  someothertest: 42,
-  something: 123,
-  othervalue: 123456789n,
-  name: "Alice",
-  email: "alice@example.com",
-  lastLoggedIn: new Date("2024-01-15T10:30:00Z"),
-  address: "123 Main St",
-});
-
-const Test = type({
-  id: "number > 10",
-  name: "string",
-});
-
-try {
-  const foo = Test.from({ id: 5, name: "Test" });
-} catch (er) {
-  if (er instanceof TraversalError) {
-    // console.log("Traversal error:", er);
-  }
-}
-
-function runtimeInspect(t: Type<any, any>) {
+export function runtimeInspect(t: Type<any, any>) {
   const structure = (t as any).structure;
   const fields = [...structure?.required, ...(structure?.optional ?? [])];
   for (const required of fields) {
@@ -213,6 +146,3 @@ function runtimeInspect(t: Type<any, any>) {
     );
   }
 }
-
-runtimeInspect(User);
-*/
