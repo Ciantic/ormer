@@ -38,14 +38,13 @@ export const ALL_ARKTYPE_FIELDS = {
 
   // JSON
   c_json:             { arktype: type({ v: "string" }),         example: { v: "value" } },
-  c_json2:            { arktype: type("unknown"),               example: [1, 2, 3] },
 
   // Date/time types
   c_date:             { arktype: type("Date"),                  example: new Date("2024-01-15T10:30:00Z") },
-  c_time:             { arktype: type("string"),                example: "14:30:00" },
-  c_date_only:        { arktype: type("string.date"),           example: "2024-01-15" },
+  c_time:             { arktype: db.type("timepart"),           example: "14:30:00" },
+  c_date_only:        { arktype: db.type("datepart"),           example: "2024-01-15" },
   c_datetime:         { arktype: type("string.date.iso"),       example: "2024-01-15T10:00Z" },
-  c_timestamp:        { arktype: type("string"),                example: "2024-01-15 10:30:00" },
+  c_timestamp:        { arktype: db.type("naivedatetime"),      example: "2024-01-15 10:30:00" },
 
   // GUID / UUID
   c_str_uuid:         { arktype: type("string.uuid"),           example: "550e8400-e29b-41d4-a716-446655440000" },
@@ -81,3 +80,133 @@ export const ALL_ARKTYPE_FIELDS = {
 } as const;
 
 const pkAutoInc = { primaryKey: true as true, autoIncrement: true as true };
+
+export const ALL_PG_FIELDS = {
+  // String values
+  c_str: pg.text(),
+  c_str_max255: pg.varchar({ maxLength: 255 }),
+  c_varchar255: pg.varchar({ maxLength: 255 }),
+
+  // Number types
+  c_num: pg.float8(),
+  c_num_int: pg.float8(),
+  c_f32: pg.float4(),
+  c_f64: pg.float8(),
+  c_int8: "ERROR" as const,
+  c_int16: pg.int2(),
+  c_int32: pg.int4(),
+  c_uint32: "ERROR" as const,
+  c_int_pk: pg.int4(pkAutoInc),
+
+  // Bigint
+  c_bigint: pg.int8(),
+  c_int64: pg.int8(),
+  c_uint64: "ERROR" as const,
+  c_int64_pk: pg.int8(pkAutoInc),
+
+  // Boolean
+  c_bool: pg.boolean(),
+
+  // JSON
+  c_json: pg.jsonb({ schema: type({ v: "string" }) }),
+
+  // Date/time types
+  c_date: pg.timestamptz(),
+  c_time: pg.time(),
+  c_date_only: pg.date(),
+  c_datetime: pg.text(),
+  c_timestamp: pg.timestamp(),
+
+  // GUID / UUID
+  c_str_uuid: pg.text(),
+  c_db_uuid: pg.uuid(),
+
+  // Various string formats
+  c_url: pg.text(),
+  c_email: pg.text(),
+
+  // Network types
+  c_ipv4: pg.text(),
+  c_ipv6: pg.text(),
+
+  // Array types
+  c_int_arr: pg.int4({ array: "[]" }),
+  c_bigint_arr: pg.int8({ array: "[][]" }),
+  c_str_arr: pg.text({ array: "[]" }),
+  c_str_arr_nullable: pg.text({ array: "[]", nullable: true }),
+
+  // Container types
+  c_str_nullable: pg.text({ nullable: true }),
+  c_str_nullish: pg.text({ nullable: true }),
+  c_str_default: pg.text({ default: "" }),
+  c_int64_default: pg.int8({ default: 0n }),
+  c_str_pk: pg.text({ primaryKey: true }),
+  c_int64_fk: pg.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
+} as const satisfies {
+  [K in keyof typeof ALL_ARKTYPE_FIELDS]: ColumnType<string, any> | "ERROR";
+};
+
+export const ALL_DUCKDB_FIELDS = {
+  // String values
+  c_str: duckdb.text(),
+  c_str_max255: duckdb.varchar({ maxLength: 255 }),
+  c_varchar255: duckdb.varchar({ maxLength: 255 }),
+
+  // Number types
+  c_num: duckdb.float8(),
+  c_num_int: duckdb.float8(),
+  c_f32: duckdb.float4(),
+  c_f64: duckdb.float8(),
+  c_int8: duckdb.int1(),
+  c_int16: duckdb.int2(),
+  c_int32: duckdb.int4(),
+  c_uint32: duckdb.uinteger(),
+  c_int_pk: duckdb.int4(pkAutoInc),
+
+  // Bigint
+  c_bigint: duckdb.int8(),
+  c_int64: duckdb.int8(),
+  c_uint64: duckdb.ubigint(),
+  c_int64_pk: duckdb.int8(pkAutoInc),
+
+  // Boolean
+  c_bool: duckdb.boolean(),
+
+  // JSON — DuckDB uses json, not jsonb
+  c_json: duckdb.json({ schema: type({ v: "string" }) }),
+
+  // Date/time types
+  c_date: duckdb.timestamptz(),
+  c_time: duckdb.time(),
+  c_date_only: duckdb.date(),
+  c_datetime: duckdb.text(),
+  c_timestamp: duckdb.timestamp(),
+
+  // GUID / UUID
+  c_str_uuid: duckdb.text(),
+  c_db_uuid: duckdb.uuid(),
+
+  // Various string formats
+  c_url: duckdb.text(),
+  c_email: duckdb.text(),
+
+  // Network types
+  c_ipv4: duckdb.text(),
+  c_ipv6: duckdb.text(),
+
+  // Array types
+  c_int_arr: duckdb.int4({ array: "[]" }),
+  c_bigint_arr: duckdb.int8({ array: "[][]" }),
+  c_str_arr: duckdb.text({ array: "[]" }),
+  c_str_arr_nullable: duckdb.text({ array: "[]", nullable: true }),
+
+  // Container types
+  c_str_nullable: duckdb.text({ nullable: true }),
+  c_str_nullish: duckdb.text({ nullable: true }),
+  c_str_default: duckdb.text({ default: "" }),
+  c_int64_default: duckdb.int8({ default: 0n }),
+  c_str_pk: duckdb.text({ primaryKey: true }),
+  c_int64_fk: duckdb.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
+} as const satisfies {
+  [K in keyof typeof ALL_ARKTYPE_FIELDS]: ColumnType<string, any> | "ERROR";
+};

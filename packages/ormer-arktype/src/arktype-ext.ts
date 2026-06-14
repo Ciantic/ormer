@@ -24,7 +24,10 @@ export type FormatId =
   | "uuid.v5"
   | "uuid.v6"
   | "uuid.v7"
-  | "uuid.v8";
+  | "uuid.v8"
+  | "datepart"
+  | "timepart"
+  | "naivedatetime";
 
 const _db = scope({
   float32: format("float32", "number"),
@@ -47,6 +50,15 @@ const _db = scope({
   ["uuid.v6"]: format("uuid.v6", "string.uuid.v6"),
   ["uuid.v7"]: format("uuid.v7", "string.uuid.v7"),
   ["uuid.v8"]: format("uuid.v8", "string.uuid.v8"),
+  datepart: format("datepart", "string.date"),
+  timepart: format(
+    "timepart",
+    "/^([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(\\.\\d+)?$/",
+  ),
+  naivedatetime: format(
+    "naivedatetime",
+    "/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(\\.\\d+)?$/",
+  ),
 });
 
 type InferScopeType<S> = S extends Scope<infer $> ? $ : never;
