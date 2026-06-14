@@ -20,10 +20,61 @@ type RemoveUnionItem<T, U> = T extends U ? never : T;
 type StringLiteral<T extends string> = string extends T ? never : T;
 
 export const db = Object.assign(_db, {
-  primaryKey: primaryKey as typeof primaryKey,
-  foreignKey: foreignKey as typeof foreignKey,
-  foreignKeyRef: foreignKeyRef as typeof foreignKeyRef,
-  table: table as typeof table,
+  /**
+   * Assign type with a primary key
+   *
+   * @example
+   * ```ts
+   * const User = db.table("users", {
+   *   id: db.primaryKey("int64"),
+   *   name: "string",
+   * });
+   * ```
+   */
+  primaryKey: primaryKey,
+
+  /**
+   * Foreign key without type information. This is less safe than `foreignKeyRef` but can be useful in some cases where you don't have access to the full table type.
+   *
+   * @example
+   * ```ts
+   * const Post = db.table("posts", {
+   *   id: db.primaryKey("int64"),
+   *   authorId: db.foreignKey("int64", "users", "id"),
+   * });
+   * ```
+   */
+
+  foreignKey: foreignKey,
+  /**
+   * Foreign key reference to a specific table and column. This is the safest option as it ensures the referenced table and column exist and are of compatible types.
+   *
+   * @example
+   * ```ts
+   * const User = db.table("users", {
+   *   id: db.primaryKey("int64"),
+   * });
+   *
+   * const Post = db.table("posts", {
+   *   id: db.primaryKey("int64"),
+   *   authorId: db.foreignKeyRef(User, "id"),
+   * });
+   * ```
+   */
+
+  foreignKeyRef: foreignKeyRef,
+  /**
+   * Define a table with a name and a schema. The table name is stored in the type for use in foreign key references and other metadata.
+   *
+   * @example
+   * ```ts
+   * const User = db.table("users", {
+   *   id: db.primaryKey("int64"),
+   *   name: "string",
+   * });
+   * ```
+   */
+  table: table,
 });
 
 type PrimaryKey = {
