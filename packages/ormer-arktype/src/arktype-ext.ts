@@ -1,5 +1,10 @@
 import { scope, TraversalError, type, Type, type Scope } from "arktype";
 
+// Note about type names:
+//
+// Arktype has convention that $ is the scope type parameter. E.g. Scope<$> or
+// Type<A, $>.
+
 const _db = scope({
   float32: type("number#float32").configure({ format: "float32" }),
   float64: type("number#float64").configure({ format: "float64" }),
