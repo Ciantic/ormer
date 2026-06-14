@@ -4,6 +4,27 @@ import { scope, TraversalError, type, Type, type Scope } from "arktype";
 //
 // Arktype has convention that $ is the scope type parameter. E.g. Scope<$> or
 // Type<A, $>.
+export type FormatId =
+  | "float32"
+  | "float64"
+  | "int8"
+  | "int16"
+  | "int32"
+  | "uint8"
+  | "uint16"
+  | "uint32"
+  | "int64"
+  | "uint64"
+  | "uint128"
+  | "uuid"
+  | "uuid.v1"
+  | "uuid.v2"
+  | "uuid.v3"
+  | "uuid.v4"
+  | "uuid.v5"
+  | "uuid.v6"
+  | "uuid.v7"
+  | "uuid.v8";
 
 const _db = scope({
   float32: format("float32", "number"),
@@ -17,6 +38,15 @@ const _db = scope({
   int64: format("int64", "bigint"),
   uint64: format("uint64", "bigint"),
   uint128: format("uint128", "bigint"),
+  uuid: format("uuid", "string.uuid"),
+  ["uuid.v1"]: format("uuid.v1", "string.uuid.v1"),
+  ["uuid.v2"]: format("uuid.v2", "string.uuid.v2"),
+  ["uuid.v3"]: format("uuid.v3", "string.uuid.v3"),
+  ["uuid.v4"]: format("uuid.v4", "string.uuid.v4"),
+  ["uuid.v5"]: format("uuid.v5", "string.uuid.v5"),
+  ["uuid.v6"]: format("uuid.v6", "string.uuid.v6"),
+  ["uuid.v7"]: format("uuid.v7", "string.uuid.v7"),
+  ["uuid.v8"]: format("uuid.v8", "string.uuid.v8"),
 });
 
 type InferScopeType<S> = S extends Scope<infer $> ? $ : never;
@@ -24,31 +54,22 @@ type $Db = InferScopeType<typeof _db>;
 type RemoveUnionItem<T, U> = T extends U ? never : T;
 type StringLiteral<T extends string> = string extends T ? never : T;
 type PrimaryKey = {
-  [" primaryKey"]: true;
+  readonly [" primaryKey"]: true;
 };
 
 type TableName<Name extends string> = {
-  [" tableName"]: Name;
+  readonly [" tableName"]: Name;
 };
 
 type ForeignKey<Table extends string, Column extends string> = {
-  [" foreignKey"]: {
+  readonly [" foreignKey"]: {
     table: Table;
     column: Column;
   };
 };
-export type FormatId =
-  | "float32"
-  | "float64"
-  | "int8"
-  | "int16"
-  | "int32"
-  | "uint8"
-  | "uint16"
-  | "uint32"
-  | "int64"
-  | "uint64"
-  | "uint128";
+
+type VarChar<N extends number> = { readonly [" varchar"]: N };
+
 export type Format<F extends FormatId> = {
   readonly db: { readonly format: F };
 };
@@ -60,6 +81,7 @@ declare global {
       foreignKeyColumn?: string;
       primaryKey?: true;
       tableName?: string;
+      varchar?: number;
     };
   }
 }
@@ -120,6 +142,11 @@ export const db = Object.assign(_db, {
    * ```
    */
   table: table,
+
+  /**
+   * Varchar
+   */
+  varchar: varchar,
 });
 
 /**
@@ -223,6 +250,17 @@ function format<
   def: type.validate<def, $>,
 ): r extends Type<infer A, $> ? Type<A | Format<F>, $> : never {
   return type(def as any).configure({ format }) as any;
+}
+
+/**
+ * Varchar type
+ */
+function varchar<const N extends number>(
+  chars: N,
+): Type<string | VarChar<N>, Scope<{}>> {
+  return type(("string <= " + chars) as any).configure({
+    varchar: chars,
+  }) as any;
 }
 
 export function runtimeInspect(t: Type<any, any>) {

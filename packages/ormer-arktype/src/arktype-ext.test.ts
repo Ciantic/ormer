@@ -2,14 +2,17 @@ import { describe, it, expect, expectTypeOf } from "vitest";
 import { ArkErrors } from "arktype";
 import { db, type Format } from "./arktype-ext.ts";
 
-type GetTableName<T> = T extends { [" tableName"]: infer Name } ? Name : never;
-type PrimaryKey = { [" primaryKey"]: true };
+type GetTableName<T> = T extends { readonly [" tableName"]: infer Name }
+  ? Name
+  : never;
+type PrimaryKey = { readonly [" primaryKey"]: true };
 type ForeignKey<Table extends string, Column extends string> = {
-  [" foreignKey"]: {
+  readonly [" foreignKey"]: {
     table: Table;
     column: Column;
   };
 };
+type VarChar<N extends number> = { readonly [" varchar"]: N };
 
 describe("format types", () => {
   it("format types have type-level format", () => {
@@ -21,6 +24,19 @@ describe("format types", () => {
   it("format types have runtime format", () => {
     const f = db.type("float32");
     expect(f.meta.format).toEqual("float32");
+  });
+});
+
+describe("varchar", () => {
+  it("varchar adds VarChar<N> to the output type", () => {
+    const v = db.varchar(255);
+    type Out = typeof v.inferOut;
+    expectTypeOf<Out>().toEqualTypeOf<string | VarChar<255>>(); // VarChar<N> is added to the output type
+  });
+
+  it("varchar has runtime metadata", () => {
+    const v = db.varchar(255);
+    expect(v.meta.varchar).toBe(255); // The varchar length should be in metadata
   });
 });
 
