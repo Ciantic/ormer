@@ -1,5 +1,5 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
-import { type, Type, ArkErrors } from "arktype";
+import { Type, ArkErrors } from "arktype";
 import { db } from "./arktype-ext.ts";
 
 /** arktype brand type (from @ark/util, not re-exported by "arktype") */
@@ -12,11 +12,6 @@ type ForeignKey<Table extends string, Column extends string> = {
   };
 };
 
-type Equal<X, Y> =
-  (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
-    ? true
-    : false;
-
 /** Extracts the db metadata from a Type (the `db` property on the underlying def) */
 type ExtractDb<T> =
   T extends Type<infer _A, infer _$>
@@ -25,26 +20,22 @@ type ExtractDb<T> =
       : never
     : never;
 
-/** Extracts the inferred (output) type from a Type */
-type InferOut<T> = T extends Type<infer A, infer _> ? A : never;
-
 describe("primaryKey", () => {
   it("adds PrimaryKey to the output type union", () => {
     const pk = db.primaryKey("int32");
-    type PK = typeof pk;
-    type Out = InferOut<PK>;
+    type Out = typeof pk.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<Brand<number, "int32"> | PrimaryKey>();
   });
 
   it("primaryKey with inline type works", () => {
     const pk = db.primaryKey(db.type("int32"));
-    type Out = InferOut<typeof pk>;
+    type Out = typeof pk.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<Brand<number, "int32"> | PrimaryKey>();
   });
 
   it("primaryKey with bigint", () => {
     const pk = db.primaryKey("int64");
-    type Out = InferOut<typeof pk>;
+    type Out = typeof pk.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<Brand<bigint, "int64"> | PrimaryKey>();
   });
 
@@ -86,7 +77,7 @@ describe("foreignKey", () => {
   it("adds ForeignKey to the output type union", () => {
     const fk = db.foreignKey("int32", "users", "id");
 
-    type Out = InferOut<typeof fk>;
+    type Out = typeof fk.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<
       Brand<number, "int32"> | ForeignKey<"users", "id">
     >();
@@ -95,7 +86,7 @@ describe("foreignKey", () => {
   it("foreignKey preserves const string parameters", () => {
     const fk = db.foreignKey("int64", "orders", "user_id");
 
-    type Out = InferOut<typeof fk>;
+    type Out = typeof fk.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<
       Brand<bigint, "int64"> | ForeignKey<"orders", "user_id">
     >();
@@ -104,7 +95,7 @@ describe("foreignKey", () => {
   it("foreignKey with inline db.type def works", () => {
     const fk = db.foreignKey(db.type("int32"), "products", "sku");
 
-    type Out = InferOut<typeof fk>;
+    type Out = typeof fk.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<
       Brand<number, "int32"> | ForeignKey<"products", "sku">
     >();
@@ -139,7 +130,7 @@ describe("foreignKeyRef", () => {
 
     const invoiceId = db.foreignKeyRef(InvoiceTable, "id");
 
-    type Out = InferOut<typeof invoiceId>;
+    type Out = typeof invoiceId.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<
       Brand<number, "int32"> | ForeignKey<"invoices", "id">
     >();
@@ -153,7 +144,7 @@ describe("foreignKeyRef", () => {
 
     const invoiceId = db.foreignKeyRef(InvoiceTable, "id");
 
-    type Out = InferOut<typeof invoiceId>;
+    type Out = typeof invoiceId.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<
       Brand<number, "int32"> | ForeignKey<"invoices", "id">
     >();
@@ -166,7 +157,7 @@ describe("foreignKeyRef", () => {
 
     const fk = db.foreignKeyRef(BigintTable, "id");
 
-    type Out = InferOut<typeof fk>;
+    type Out = typeof fk.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<
       Brand<bigint, "int64"> | ForeignKey<"bigints", "id">
     >();
@@ -246,7 +237,7 @@ describe("table", () => {
     expectTypeOf<TableName>().toEqualTypeOf<{ readonly tableName: "events" }>();
 
     // Type-check the inferred output
-    type Out = InferOut<typeof t>;
+    type Out = typeof t.inferOut;
     type OutId = Out["id"];
     type OutName = Out["name"];
     type OutActive = Out["active"];
@@ -270,7 +261,7 @@ describe("table", () => {
       description: "string",
     });
 
-    type Out = InferOut<typeof InvoiceRow>;
+    type Out = typeof InvoiceRow.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<{
       id: Brand<number, "int32"> | PrimaryKey;
       invoiceId: Brand<number, "int32"> | ForeignKey<"invoices", "id">;
@@ -423,21 +414,21 @@ describe("composition", () => {
     // primaryKey
     const pk = db.primaryKey("int32");
     type PkType = typeof pk;
-    expectTypeOf<InferOut<PkType>>().toEqualTypeOf<
+    expectTypeOf<typeof pk.inferOut>().toEqualTypeOf<
       Brand<number, "int32"> | PrimaryKey
     >();
 
     // foreignKey
     const fk = db.foreignKey("int32", "users", "id");
     type FkType = typeof fk;
-    expectTypeOf<InferOut<FkType>>().toEqualTypeOf<
+    expectTypeOf<typeof fk.inferOut>().toEqualTypeOf<
       Brand<number, "int32"> | ForeignKey<"users", "id">
     >();
 
     // table
     const t = db.table("users", { id: db.primaryKey("int32"), name: "string" });
     type TableType = typeof t;
-    type Out = InferOut<TableType>;
+    type Out = typeof t.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<{
       id: Brand<number, "int32"> | PrimaryKey;
       name: string;
