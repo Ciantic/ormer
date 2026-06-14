@@ -24,17 +24,17 @@ type $Db = InferScopeType<typeof _db>;
 type RemoveUnionItem<T, U> = T extends U ? never : T;
 type StringLiteral<T extends string> = string extends T ? never : T;
 type PrimaryKey = {
-  readonly db: { readonly primaryKey: true };
+  [" primaryKey"]: true;
 };
 
 type TableName<Name extends string> = {
-  readonly db: { readonly tableName: Name };
+  [" tableName"]: Name;
 };
 
 type ForeignKey<Table extends string, Column extends string> = {
-  readonly db: {
-    readonly foreignKeyTable: Table;
-    readonly foreignKeyColumn: Column;
+  [" foreignKey"]: {
+    table: Table;
+    column: Column;
   };
 };
 export type FormatId =

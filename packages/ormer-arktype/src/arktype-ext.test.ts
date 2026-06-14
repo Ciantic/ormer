@@ -1,24 +1,15 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
-import { Type, ArkErrors } from "arktype";
-import { db, type Format, type FormatId } from "./arktype-ext.ts";
+import { ArkErrors } from "arktype";
+import { db, type Format } from "./arktype-ext.ts";
 
-/** arktype brand type (from @ark/util, not re-exported by "arktype") */
-type Brand<T = unknown, Id = unknown> = T | { readonly [" brand"]: [T, Id] };
-type PrimaryKey = { readonly db: { readonly primaryKey: true } };
+type GetTableName<T> = T extends { [" tableName"]: infer Name } ? Name : never;
+type PrimaryKey = { [" primaryKey"]: true };
 type ForeignKey<Table extends string, Column extends string> = {
-  readonly db: {
-    readonly foreignKeyTable: Table;
-    readonly foreignKeyColumn: Column;
+  [" foreignKey"]: {
+    table: Table;
+    column: Column;
   };
 };
-
-/** Extracts the db metadata from a Type (the `db` property on the underlying def) */
-type ExtractDb<T> =
-  T extends Type<infer _A, infer _$>
-    ? T extends { db: infer DB }
-      ? DB
-      : never
-    : never;
 
 describe("format types", () => {
   it("format types have type-level format", () => {
@@ -256,18 +247,12 @@ describe("table", () => {
       name: "string",
     });
 
-    expectTypeOf<
-      (typeof UserTable)["db"]["tableName"]
-    >().toEqualTypeOf<"users">();
+    expectTypeOf<GetTableName<typeof UserTable>>().toEqualTypeOf<"users">();
   });
 
   it("table name is preserved as const literal", () => {
     const t = db.table("products", { sku: "string" });
-
-    type TableName = ExtractDb<typeof t>;
-    expectTypeOf<TableName>().toEqualTypeOf<{
-      readonly tableName: "products";
-    }>();
+    expectTypeOf<GetTableName<typeof t>>().toEqualTypeOf<"products">();
   });
 
   it("table with multiple columns and different types", () => {
@@ -279,8 +264,7 @@ describe("table", () => {
       created_at: "Date",
     });
 
-    type TableName = ExtractDb<typeof t>;
-    expectTypeOf<TableName>().toEqualTypeOf<{ readonly tableName: "events" }>();
+    expectTypeOf<GetTableName<typeof t>>().toEqualTypeOf<"events">();
 
     // Type-check the inferred output
     type Out = typeof t.inferOut;
@@ -317,10 +301,10 @@ describe("table", () => {
     }>();
 
     // invoiceRow db.tableName should be "invoice_rows"
-    type RowTableName = ExtractDb<typeof InvoiceRow>;
-    expectTypeOf<RowTableName>().toEqualTypeOf<{
-      readonly tableName: "invoice_rows";
-    }>();
+
+    expectTypeOf<
+      GetTableName<typeof InvoiceRow>
+    >().toEqualTypeOf<"invoice_rows">();
   });
 
   it("table rejects invalid table name", () => {
@@ -457,15 +441,8 @@ describe("composition", () => {
     });
 
     // Type-level: verify metadata
-    type UsersTableName = ExtractDb<typeof UsersTable>;
-    expectTypeOf<UsersTableName>().toEqualTypeOf<{
-      readonly tableName: "users";
-    }>();
-
-    type PostsTableName = ExtractDb<typeof PostsTable>;
-    expectTypeOf<PostsTableName>().toEqualTypeOf<{
-      readonly tableName: "posts";
-    }>();
+    expectTypeOf<GetTableName<typeof UsersTable>>().toEqualTypeOf<"users">();
+    expectTypeOf<GetTableName<typeof PostsTable>>().toEqualTypeOf<"posts">();
   });
 
   it("type-level: all db helper functions compose correctly", () => {
