@@ -38,6 +38,15 @@ describe("varchar", () => {
     const v = db.varchar(255);
     expect(v.meta.varchar).toBe(255); // The varchar length should be in metadata
   });
+
+  it("varchar validates string length at runtime", () => {
+    const v = db.varchar(5);
+    const result1 = v("hello");
+    expect(result1).toBe("hello"); // Valid
+
+    const result2 = v("too long");
+    expect(result2 instanceof ArkErrors).toBe(true); // Invalid
+  });
 });
 
 describe("primaryKey", () => {
