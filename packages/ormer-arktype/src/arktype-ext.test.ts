@@ -39,6 +39,18 @@ describe("primaryKey", () => {
     expectTypeOf<Out>().toEqualTypeOf<Brand<bigint, "int64"> | PrimaryKey>();
   });
 
+  it("primaryKey rejects incorrect types", () => {
+    try {
+      // @ts-expect-error - Invalid
+      db.primaryKey("foo");
+    } catch (e) {
+      expect(e).toBeInstanceOf(Error);
+    }
+
+    // No error
+    db.primaryKey("int64");
+  });
+
   // --- Runtime ---
 
   it("runtime: accepts valid primary key value", () => {
@@ -99,6 +111,24 @@ describe("foreignKey", () => {
     expectTypeOf<Out>().toEqualTypeOf<
       Brand<number, "int32"> | ForeignKey<"products", "sku">
     >();
+  });
+
+  it("foreignKey rejects incorrect types", () => {
+    try {
+      // @ts-expect-error - Invalid type
+      db.foreignKey("foo", "users", "id");
+    } catch (e) {
+      expect(e).toBeInstanceOf(Error);
+    }
+
+    // @ts-expect-error - Table name must be const
+    db.foreignKey("int32", "users" as string, "id");
+
+    // @ts-expect-error - Column name must be const
+    db.foreignKey("int32", "users", "id" as string);
+
+    // No error
+    db.foreignKey("int64", "orders", "user_id");
   });
 
   it("runtime: accepts valid foreign key value", () => {
@@ -273,6 +303,16 @@ describe("table", () => {
     expectTypeOf<RowTableName>().toEqualTypeOf<{
       readonly tableName: "invoice_rows";
     }>();
+  });
+
+  it("table rejects invalid table name", () => {
+    // @ts-expect-error - Table name must be const string literal
+    db.table("products" as string, { sku: "string" });
+
+    // No error
+    db.table("products", { sku: "string" });
+
+    expectTypeOf<true>().toEqualTypeOf(true);
   });
 
   it("runtime: table accepts valid data", () => {

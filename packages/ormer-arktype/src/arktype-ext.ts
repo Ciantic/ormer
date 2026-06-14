@@ -17,6 +17,7 @@ const _db = scope({
 type InferScopeType<S> = S extends Scope<infer $> ? $ : never;
 type $Db = InferScopeType<typeof _db>;
 type RemoveUnionItem<T, U> = T extends U ? never : T;
+type StringLiteral<T extends string> = string extends T ? never : T;
 
 // function foo<$ extends DbInner, const def, r = type.instantiate<def, $>>(
 //   def: type.validate<def, $>,
@@ -109,8 +110,8 @@ function foreignKey<
   r = type.instantiate<def, $>,
 >(
   def: type.validate<def, $>,
-  tableName: Table,
-  columnName: Column,
+  tableName: StringLiteral<Table>,
+  columnName: StringLiteral<Column>,
 ): r extends Type<infer A, $> ? Type<A | ForeignKey<Table, Column>, $> : never {
   const obj = (_db.type as any)(def);
   Object.assign(obj, {
@@ -132,7 +133,7 @@ function table<
   const def,
   r = type.instantiate<def, $>,
 >(
-  name: N,
+  name: StringLiteral<N>,
   def: type.validate<def, $>,
 ): r extends infer _ ? _ & TableName<N> : never {
   // Note above type: TableName is addeed to the return type with intersection
