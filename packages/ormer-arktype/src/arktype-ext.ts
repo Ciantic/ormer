@@ -206,23 +206,15 @@ function foreignKeyRef<
     : never,
   T extends Type<infer _, infer $> ? $ : never
 > {
-  const obj = (
-    (_db.type(t as any) as any).get(col) as Type<any, any>
-  ).configure({
+  return (
+    (_db.type(t as unknown as C) as Type<object, {}>).get(col) as
+      | Type<any, any>
+      | undefined
+  )?.configure({
     primaryKey: undefined as any,
     foreignKeyTable: (t as any).meta.tableName,
     foreignKeyColumn: col,
-  });
-  return obj as any;
-  // const obj = (_db.type as any)(t as any).get(col);
-  // Object.assign(obj, {
-  //   db: {
-  //     ...(obj.db ?? {}),
-  //     foreignKeyTable: (t as any).db.tableName,
-  //     foreignKeyColumn: col,
-  //   },
-  // });
-  // return obj;
+  }) as any;
 }
 
 /**

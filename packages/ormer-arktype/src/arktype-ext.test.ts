@@ -252,9 +252,14 @@ describe("foreignKeyRef", () => {
       title: "string",
     });
     const invoiceId = db.foreignKeyRef(InvoiceTable, "id");
+    // Should not have primaryKey metadata anymore
+    expect(invoiceId.meta.primaryKey).toBeUndefined();
     expect(invoiceId.meta.foreignKeyTable).toBe("invoices");
     expect(invoiceId.meta.foreignKeyColumn).toBe("id");
     expect(invoiceId.meta.dbformat).toBe("int32");
+
+    // The original column should still have primaryKey metadata
+    expect(InvoiceTable.get("id").meta.primaryKey).toBe(true);
   });
 
   it("runtime: foreignKeyRef links to correct table name", () => {
@@ -262,6 +267,7 @@ describe("foreignKeyRef", () => {
       order_id: db.primaryKey("int64"),
     });
     const fk = db.foreignKeyRef(OrdersTable, "order_id");
+    expect(fk.meta.primaryKey).toBeUndefined(); // Should not have primaryKey metadata anymore
     expect(fk.meta.foreignKeyTable).toBe("orders");
     expect(fk.meta.foreignKeyColumn).toBe("order_id");
     expect(fk.meta.dbformat).toBe("int64");
