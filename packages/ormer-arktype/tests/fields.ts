@@ -21,7 +21,7 @@ export const ALL_ARKTYPE_FIELDS = {
   c_num_int:          { arktype: type("number.integer"),        example: 42 },
   c_f32:              { arktype: db.type("float32"),            example: 1.5 },
   c_f64:              { arktype: db.type("float64"),            example: 2.718281828 },
-  c_int8:             { arktype: db.type("int8"),               example: 1234567890123456789n },
+  c_int8:             { arktype: db.type("int8"),               example: 1234567 },
   c_int16:            { arktype: db.type("int16"),              example: 12345 },
   c_int32:            { arktype: db.type("int32"),              example: 100 },
   c_uint32:           { arktype: db.type("uint32"),             example: 300 },
@@ -84,7 +84,7 @@ const pkAutoInc = { primaryKey: true as true, autoIncrement: true as true };
 export const ALL_PG_FIELDS = {
   // String values
   c_str: pg.text(),
-  c_str_max255: pg.varchar({ maxLength: 255 }),
+  c_str_max255: pg.text(),
   c_varchar255: pg.varchar({ maxLength: 255 }),
 
   // Number types

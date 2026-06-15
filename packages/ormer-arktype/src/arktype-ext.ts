@@ -1,33 +1,47 @@
-import { scope, TraversalError, type, Type, type Scope } from "arktype";
+import { scope, type, Type, type Scope } from "arktype";
+
+export const KNOWN_DB_FORMATS = [
+  "float32",
+  "float64",
+  "int8",
+  "int16",
+  "int32",
+  "uint8",
+  "uint16",
+  "uint32",
+  "int64",
+  "uint64",
+  "uint128",
+  "uuid",
+  "uuid.v1",
+  "uuid.v2",
+  "uuid.v3",
+  "uuid.v4",
+  "uuid.v5",
+  "uuid.v6",
+  "uuid.v7",
+  "uuid.v8",
+  "datepart",
+  "timepart",
+  "naivedatetime",
+] as const;
+
+export const KNWON_DB_TYPES = [
+  "string",
+  "number",
+  "bigint",
+  "boolean",
+  "Date",
+  "object",
+] as const;
 
 // Note about type names:
 //
 // Arktype has convention that $ is the scope type parameter. E.g. Scope<$> or
 // Type<A, $>.
-export type FormatId =
-  | "float32"
-  | "float64"
-  | "int8"
-  | "int16"
-  | "int32"
-  | "uint8"
-  | "uint16"
-  | "uint32"
-  | "int64"
-  | "uint64"
-  | "uint128"
-  | "uuid"
-  | "uuid.v1"
-  | "uuid.v2"
-  | "uuid.v3"
-  | "uuid.v4"
-  | "uuid.v5"
-  | "uuid.v6"
-  | "uuid.v7"
-  | "uuid.v8"
-  | "datepart"
-  | "timepart"
-  | "naivedatetime";
+export type DbFormatId = (typeof KNOWN_DB_FORMATS)[number];
+
+export type KnwownDbType = (typeof KNWON_DB_TYPES)[number];
 
 const _db = scope({
   float32: format("float32", "number"),
@@ -59,42 +73,45 @@ const _db = scope({
     "naivedatetime",
     "/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(\\.\\d+)?$/",
   ),
-});
+} satisfies Record<DbFormatId, any>);
 
 type InferScopeType<S> = S extends Scope<infer $> ? $ : never;
 type $Db = InferScopeType<typeof _db>;
 type RemoveUnionItem<T, U> = T extends U ? never : T;
 type StringLiteral<T extends string> = string extends T ? never : T;
-type PrimaryKey = {
+export type PrimaryKey = {
   readonly [" primaryKey"]: true;
 };
 
-type TableName<Name extends string> = {
+export type TableName<Name extends string> = {
   readonly [" tableName"]: Name;
 };
 
-type ForeignKey<Table extends string, Column extends string> = {
+export type ForeignKey<Table extends string, Column extends string> = {
   readonly [" foreignKey"]: {
     table: Table;
     column: Column;
   };
 };
 
-type VarChar<N extends number> = { readonly [" varchar"]: N };
+export type VarChar<N extends number> = { readonly [" varchar"]: N };
 
-export type Format<F extends FormatId> = {
-  readonly db: { readonly format: F };
+export type DbFormat<F extends DbFormatId> = {
+  readonly [" dbformat"]: F;
+};
+
+export type CustomMeta = {
+  dbformat?: DbFormatId;
+  foreignKeyTable?: string;
+  foreignKeyColumn?: string;
+  primaryKey?: true;
+  tableName?: string;
+  varchar?: number;
 };
 
 declare global {
   interface ArkEnv {
-    meta(): {
-      foreignKeyTable?: string;
-      foreignKeyColumn?: string;
-      primaryKey?: true;
-      tableName?: string;
-      varchar?: number;
-    };
+    meta(): CustomMeta;
   }
 }
 
@@ -192,6 +209,7 @@ function foreignKeyRef<
   const obj = (
     (_db.type(t as any) as any).get(col) as Type<any, any>
   ).configure({
+    primaryKey: undefined as any,
     foreignKeyTable: (t as any).meta.tableName,
     foreignKeyColumn: col,
   });
@@ -253,15 +271,15 @@ function table<
  * configure.
  */
 function format<
-  const F extends FormatId,
+  const F extends DbFormatId,
   $ extends Scope<{}>,
   const def,
   r = type.instantiate<def, $>,
 >(
-  format: F,
+  dbformat: F,
   def: type.validate<def, $>,
-): r extends Type<infer A, $> ? Type<A | Format<F>, $> : never {
-  return type(def as any).configure({ format }) as any;
+): r extends Type<infer A, $> ? Type<A | DbFormat<F>, $> : never {
+  return type(def as any).configure({ dbformat }) as any;
 }
 
 /**

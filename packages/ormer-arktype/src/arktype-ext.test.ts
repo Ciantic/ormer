@@ -1,29 +1,26 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
 import { ArkErrors } from "arktype";
-import { db, type Format } from "./arktype-ext.ts";
+import {
+  db,
+  type DbFormat,
+  type VarChar,
+  type PrimaryKey,
+  type ForeignKey,
+  type TableName,
+} from "./arktype-ext.ts";
 
-type GetTableName<T> = T extends { readonly [" tableName"]: infer Name }
-  ? Name
-  : never;
-type PrimaryKey = { readonly [" primaryKey"]: true };
-type ForeignKey<Table extends string, Column extends string> = {
-  readonly [" foreignKey"]: {
-    table: Table;
-    column: Column;
-  };
-};
-type VarChar<N extends number> = { readonly [" varchar"]: N };
+type GetTableName<T> = T extends TableName<infer Name> ? Name : never;
 
 describe("format types", () => {
   it("format types have type-level format", () => {
     const f = db.type("float32");
     type Out = typeof f.inferOut;
-    expectTypeOf<Out>().toEqualTypeOf<number | Format<"float32">>();
+    expectTypeOf<Out>().toEqualTypeOf<number | DbFormat<"float32">>();
   });
 
   it("format types have runtime format", () => {
     const f = db.type("float32");
-    expect(f.meta.format).toEqual("float32");
+    expect(f.meta.dbformat).toEqual("float32");
   });
 });
 
@@ -53,19 +50,25 @@ describe("primaryKey", () => {
   it("adds PrimaryKey to the output type union", () => {
     const pk = db.primaryKey("int32");
     type Out = typeof pk.inferOut;
-    expectTypeOf<Out>().toEqualTypeOf<number | Format<"int32"> | PrimaryKey>();
+    expectTypeOf<Out>().toEqualTypeOf<
+      number | DbFormat<"int32"> | PrimaryKey
+    >();
   });
 
   it("primaryKey with inline type works", () => {
     const pk = db.primaryKey(db.type("int32"));
     type Out = typeof pk.inferOut;
-    expectTypeOf<Out>().toEqualTypeOf<number | Format<"int32"> | PrimaryKey>();
+    expectTypeOf<Out>().toEqualTypeOf<
+      number | DbFormat<"int32"> | PrimaryKey
+    >();
   });
 
   it("primaryKey with bigint", () => {
     const pk = db.primaryKey("int64");
     type Out = typeof pk.inferOut;
-    expectTypeOf<Out>().toEqualTypeOf<bigint | Format<"int64"> | PrimaryKey>();
+    expectTypeOf<Out>().toEqualTypeOf<
+      bigint | DbFormat<"int64"> | PrimaryKey
+    >();
   });
 
   it("primaryKey rejects incorrect types", () => {
@@ -111,7 +114,7 @@ describe("primaryKey", () => {
     // The primaryKey function should carry db metadata
     expect(pk.meta).toBeDefined();
     expect(pk.meta.primaryKey).toBe(true);
-    expect(pk.meta.format).toBe("int32");
+    expect(pk.meta.dbformat).toBe("int32");
   });
 });
 
@@ -121,7 +124,7 @@ describe("foreignKey", () => {
 
     type Out = typeof fk.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<
-      number | Format<"int32"> | ForeignKey<"users", "id">
+      number | DbFormat<"int32"> | ForeignKey<"users", "id">
     >();
   });
 
@@ -130,7 +133,7 @@ describe("foreignKey", () => {
 
     type Out = typeof fk.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<
-      bigint | Format<"int64"> | ForeignKey<"orders", "user_id">
+      bigint | DbFormat<"int64"> | ForeignKey<"orders", "user_id">
     >();
   });
 
@@ -139,7 +142,7 @@ describe("foreignKey", () => {
 
     type Out = typeof fk.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<
-      number | Format<"int32"> | ForeignKey<"products", "sku">
+      number | DbFormat<"int32"> | ForeignKey<"products", "sku">
     >();
   });
 
@@ -177,7 +180,7 @@ describe("foreignKey", () => {
     const fk = db.foreignKey("int32", "users", "id");
     expect(fk.meta.foreignKeyColumn).toBe("id");
     expect(fk.meta.foreignKeyTable).toBe("users");
-    expect(fk.meta.format).toBe("int32");
+    expect(fk.meta.dbformat).toBe("int32");
   });
 });
 
@@ -192,7 +195,7 @@ describe("foreignKeyRef", () => {
 
     type Out = typeof invoiceId.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<
-      number | Format<"int32"> | ForeignKey<"invoices", "id">
+      number | DbFormat<"int32"> | ForeignKey<"invoices", "id">
     >();
   });
 
@@ -206,7 +209,7 @@ describe("foreignKeyRef", () => {
 
     type Out = typeof invoiceId.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<
-      number | Format<"int32"> | ForeignKey<"invoices", "id">
+      number | DbFormat<"int32"> | ForeignKey<"invoices", "id">
     >();
   });
 
@@ -219,7 +222,7 @@ describe("foreignKeyRef", () => {
 
     type Out = typeof fk.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<
-      bigint | Format<"int64"> | ForeignKey<"bigints", "id">
+      bigint | DbFormat<"int64"> | ForeignKey<"bigints", "id">
     >();
   });
 
@@ -251,7 +254,7 @@ describe("foreignKeyRef", () => {
     const invoiceId = db.foreignKeyRef(InvoiceTable, "id");
     expect(invoiceId.meta.foreignKeyTable).toBe("invoices");
     expect(invoiceId.meta.foreignKeyColumn).toBe("id");
-    expect(invoiceId.meta.format).toBe("int32");
+    expect(invoiceId.meta.dbformat).toBe("int32");
   });
 
   it("runtime: foreignKeyRef links to correct table name", () => {
@@ -261,7 +264,7 @@ describe("foreignKeyRef", () => {
     const fk = db.foreignKeyRef(OrdersTable, "order_id");
     expect(fk.meta.foreignKeyTable).toBe("orders");
     expect(fk.meta.foreignKeyColumn).toBe("order_id");
-    expect(fk.meta.format).toBe("int64");
+    expect(fk.meta.dbformat).toBe("int64");
   });
 });
 
@@ -299,7 +302,7 @@ describe("table", () => {
     type OutCreatedAt = Out["created_at"];
 
     expectTypeOf<OutId>().toEqualTypeOf<
-      bigint | Format<"int64"> | PrimaryKey
+      bigint | DbFormat<"int64"> | PrimaryKey
     >();
     expectTypeOf<OutName>().toEqualTypeOf<string>();
     expectTypeOf<OutActive>().toEqualTypeOf<boolean>();
@@ -320,8 +323,8 @@ describe("table", () => {
 
     type Out = typeof InvoiceRow.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<{
-      id: number | Format<"int32"> | PrimaryKey;
-      invoiceId: number | Format<"int32"> | ForeignKey<"invoices", "id">;
+      id: number | DbFormat<"int32"> | PrimaryKey;
+      invoiceId: number | DbFormat<"int32"> | ForeignKey<"invoices", "id">;
       description: string;
     }>();
 
@@ -475,14 +478,14 @@ describe("composition", () => {
     const pk = db.primaryKey("int32");
     type PkType = typeof pk;
     expectTypeOf<typeof pk.inferOut>().toEqualTypeOf<
-      number | Format<"int32"> | PrimaryKey
+      number | DbFormat<"int32"> | PrimaryKey
     >();
 
     // foreignKey
     const fk = db.foreignKey("int32", "users", "id");
     type FkType = typeof fk;
     expectTypeOf<typeof fk.inferOut>().toEqualTypeOf<
-      number | Format<"int32"> | ForeignKey<"users", "id">
+      number | DbFormat<"int32"> | ForeignKey<"users", "id">
     >();
 
     // table
@@ -490,7 +493,7 @@ describe("composition", () => {
     type TableType = typeof t;
     type Out = typeof t.inferOut;
     expectTypeOf<Out>().toEqualTypeOf<{
-      id: number | Format<"int32"> | PrimaryKey;
+      id: number | DbFormat<"int32"> | PrimaryKey;
       name: string;
     }>();
   });
