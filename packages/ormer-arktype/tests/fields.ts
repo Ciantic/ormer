@@ -22,6 +22,8 @@ export const ALL_ARKTYPE_FIELDS = {
   c_f32:              { arktype: db.type("float32"),            example: 1.5 },
   c_f64:              { arktype: db.type("float64"),            example: 2.718281828 },
   c_int8:             { arktype: db.type("int8"),               example: 1234567 },
+  c_uint8:            { arktype: db.type("uint8"),              example: 255 },
+  c_uint16:           { arktype: db.type("uint16"),             example: 65535 },
   c_int16:            { arktype: db.type("int16"),              example: 12345 },
   c_int32:            { arktype: db.type("int32"),              example: 100 },
   c_uint32:           { arktype: db.type("uint32"),             example: 300 },
@@ -31,6 +33,7 @@ export const ALL_ARKTYPE_FIELDS = {
   c_bigint:           { arktype: type("bigint"),                example: 9007199254740991n },
   c_int64:            { arktype: db.type("int64"),              example: 123456789n },
   c_uint64:           { arktype: db.type("uint64"),             example: 18446744073709551615n },
+  c_uint128:          { arktype: db.type("uint128"),            example: 340282366920938463463374607431768211455n },
   c_int64_pk:         { arktype: db.primaryKey("int64"),        example: 1n },
 
   // Boolean
@@ -77,6 +80,10 @@ export const ALL_ARKTYPE_FIELDS = {
     arktype: db.foreignKeyRef(UserSchema, "id"),
     example: 1n,
   },
+  c_int64_fk_plain:   {
+    arktype: db.foreignKey("int64", "users", "id"),
+    example: 1n,
+  },
 } as const;
 
 const pkAutoInc = { primaryKey: true as true, autoIncrement: true as true };
@@ -93,6 +100,8 @@ export const ALL_PG_FIELDS = {
   c_f32: pg.float4(),
   c_f64: pg.float8(),
   c_int8: "ERROR" as const,
+  c_uint8: "ERROR" as const,
+  c_uint16: "ERROR" as const,
   c_int16: pg.int2(),
   c_int32: pg.int4(),
   c_uint32: "ERROR" as const,
@@ -102,6 +111,7 @@ export const ALL_PG_FIELDS = {
   c_bigint: pg.int8(),
   c_int64: pg.int8(),
   c_uint64: "ERROR" as const,
+  c_uint128: "ERROR" as const,
   c_int64_pk: pg.int8(pkAutoInc),
 
   // Boolean
@@ -142,6 +152,10 @@ export const ALL_PG_FIELDS = {
   c_int64_default: pg.int8({ default: 0n }),
   c_str_pk: pg.text({ primaryKey: true }),
   c_int64_fk: pg.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
+  c_int64_fk_plain: pg.int8({
+    foreignKeyTable: "users",
+    foreignKeyColumn: "id",
+  }),
 } as const satisfies {
   [K in keyof typeof ALL_ARKTYPE_FIELDS]: ColumnType<string, any> | "ERROR";
 };
@@ -158,6 +172,8 @@ export const ALL_DUCKDB_FIELDS = {
   c_f32: duckdb.float4(),
   c_f64: duckdb.float8(),
   c_int8: duckdb.int1(),
+  c_uint8: duckdb.utinyint(),
+  c_uint16: duckdb.usmallint(),
   c_int16: duckdb.int2(),
   c_int32: duckdb.int4(),
   c_uint32: duckdb.uinteger(),
@@ -167,6 +183,7 @@ export const ALL_DUCKDB_FIELDS = {
   c_bigint: duckdb.int8(),
   c_int64: duckdb.int8(),
   c_uint64: duckdb.ubigint(),
+  c_uint128: duckdb.uhugeint(),
   c_int64_pk: duckdb.int8(pkAutoInc),
 
   // Boolean
@@ -207,6 +224,10 @@ export const ALL_DUCKDB_FIELDS = {
   c_int64_default: duckdb.int8({ default: 0n }),
   c_str_pk: duckdb.text({ primaryKey: true }),
   c_int64_fk: duckdb.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
+  c_int64_fk_plain: duckdb.int8({
+    foreignKeyTable: "users",
+    foreignKeyColumn: "id",
+  }),
 } as const satisfies {
   [K in keyof typeof ALL_ARKTYPE_FIELDS]: ColumnType<string, any> | "ERROR";
 };
