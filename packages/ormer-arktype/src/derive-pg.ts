@@ -1,8 +1,40 @@
 import { pg, table } from "ormer";
-import type { ColumnType, Table } from "ormer";
+import type { ColumnType, ColumnTypeSingualr, Table } from "ormer";
 import type { Type } from "arktype";
 import { deriveColumn } from "./derive.ts";
-import type { TableName } from "./arktype-ext.ts";
+import type { DbFormat, TableName } from "./arktype-ext.ts";
+
+type DbFormatOfType<T> = T extends DbFormat<infer F> ? F : never;
+type ParamsOfType<T> = any;
+type BaseType<T> = any;
+
+// prettier-ignore
+type DeriveBasePgColumn<T> =
+  BaseType<T> extends string ? (
+        DbFormatOfType<T> extends "uuid" ? ColumnTypeSingualr<"uuid">
+      : DbFormatOfType<T> extends "timepart" ? ColumnTypeSingualr<"time">
+      : DbFormatOfType<T> extends "datepart" ? ColumnTypeSingualr<"date">
+      : DbFormatOfType<T> extends "naivedatetime" ? ColumnTypeSingualr<"timestamp">
+      : { "maxLength": number } extends ParamsOfType<T> ? ColumnType<"varchar", { maxLength: ParamsOfType<T>["maxLength"] }> 
+      : ColumnTypeSingualr<"text">
+    )
+  : BaseType<T> extends number ? (
+        DbFormatOfType<T> extends "float32" ? ColumnTypeSingualr<"float4"> 
+      : DbFormatOfType<T> extends "float64" ? ColumnTypeSingualr<"float8"> 
+      : DbFormatOfType<T> extends "int32" ? ColumnTypeSingualr<"int4"> 
+      : DbFormatOfType<T> extends "int16" ? ColumnTypeSingualr<"int2"> 
+      : DbFormatOfType<T> extends "int8" | "uint8" | "uint16" | "uint32" ? "ERROR" 
+      : ColumnTypeSingualr<"int4">
+    )
+  : BaseType<T> extends bigint ? (
+      DbFormatOfType<T> extends "int64" | "" ? ColumnTypeSingualr<"int8">
+      : DbFormatOfType<T> extends "uint64" | "uint128" ? "ERROR"
+      : ColumnTypeSingualr<"int8">
+    )
+  : BaseType<T> extends boolean ? ColumnTypeSingualr<"boolean">
+  : BaseType<T> extends Date ? ColumnTypeSingualr<"timestamptz">
+  : BaseType<T> extends object ? ColumnType<"jsonb", { schema: T }>
+  : "ERROR";
 
 /**
  * Map a generic arktype choice to a PostgreSQL ColumnType.
