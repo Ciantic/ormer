@@ -21,7 +21,7 @@ export const ALL_ARKTYPE_FIELDS = {
   c_num_int:          { arktype: type("number.integer"),        example: 42 },
   c_f32:              { arktype: db.type("float32"),            example: 1.5 },
   c_f64:              { arktype: db.type("float64"),            example: 2.718281828 },
-  c_int8:             { arktype: db.type("int8"),               example: 1234567 },
+  c_int8:             { arktype: db.type("int8"),               example: 100 },
   c_uint8:            { arktype: db.type("uint8"),              example: 255 },
   c_uint16:           { arktype: db.type("uint16"),             example: 65535 },
   c_int16:            { arktype: db.type("int16"),              example: 12345 },
