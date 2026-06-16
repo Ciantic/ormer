@@ -89,14 +89,14 @@ describe("deriveColumn", () => {
 
   it("derives int64 | null | undefined as nullable", () => {
     expect(deriveColumn(db.type("int64 | null | undefined"), chooser)).toEqual({
-      domain: "string",
+      domain: "bigint",
       nullable: true,
     });
   });
 
-  it("derives in32 | null | undefined as nullable", () => {
+  it("derives int32 | null | undefined as nullable", () => {
     expect(deriveColumn(db.type("int32 | null | undefined"), chooser)).toEqual({
-      domain: "string",
+      domain: "number",
       nullable: true,
     });
   });
