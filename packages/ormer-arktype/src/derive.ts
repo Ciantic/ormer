@@ -105,6 +105,16 @@ type ToJsonObject =
 type ToJsonResult = ToJsonObject | ToJsonObject[] | JsonLeaf[];
 
 function typeToJson(t: Type<any, any>): Readonly<ToJsonResult> {
+  // Quick manual probes for arktype's `.toJSON()` shape (run from this package's directory):
+  //
+  // deno eval 'import { type } from "arktype"; console.log(JSON.stringify(type("string | null").toJSON(), null, 2));'
+  //
+  // deno eval 'import { type } from "arktype"; console.log(JSON.stringify(type("boolean | null | undefined").toJSON(), null, 2));'
+  //
+  // deno eval 'import { db } from "./src/arktype-ext.ts"; console.log(JSON.stringify(db.type("int64[]").toJSON(), null, 2));'
+  //
+  // deno eval 'import { db } from "./src/arktype-ext.ts"; console.log(JSON.stringify(db.type("int64 | null").configure({ a: 1 }).toJSON(), null, 2));'
+
   return t.json as ToJsonResult;
 }
 
