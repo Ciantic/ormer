@@ -1,6 +1,6 @@
 import type { Type } from "arktype";
 import type { ColumnType } from "ormer";
-import { type KnwownDbType } from "./arktype-ext.ts";
+import { type DbFormatId, type KnwownDbType } from "./arktype-ext.ts";
 
 // Runtime version of the above type, used in the deriveColumn() implementation
 export type ParamsDerived<T = {}> = {
@@ -13,6 +13,7 @@ export type ParamsDerived<T = {}> = {
   foreignKeyColumn?: string;
   array?: string;
   maxLength?: number;
+  dbformat?: DbFormatId;
   //   schema?: ZodType;
 } & T;
 
@@ -220,6 +221,8 @@ function applyMeta(
   if (typeof meta.foreignKeyColumn === "string")
     params.foreignKeyColumn = meta.foreignKeyColumn;
   if (typeof meta.varchar === "number") params.maxLength = meta.varchar;
+  if (typeof meta.dbformat === "string")
+    params.dbformat = meta.dbformat as DbFormatId;
 }
 
 function analyzeJsonObject(

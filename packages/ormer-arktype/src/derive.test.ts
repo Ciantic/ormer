@@ -39,36 +39,42 @@ describe("deriveColumn", () => {
   it("derives int64 (domain bigint)", () => {
     expect(deriveColumn(db.type("int64"), chooser)).toEqual({
       domain: "bigint",
+      dbformat: "int64",
     });
   });
 
   it("derives float32 (domain number)", () => {
     expect(deriveColumn(db.type("float32"), chooser)).toEqual({
       domain: "number",
+      dbformat: "float32",
     });
   });
 
   it("derives float64 (domain number)", () => {
     expect(deriveColumn(db.type("float64"), chooser)).toEqual({
       domain: "number",
+      dbformat: "float64",
     });
   });
 
   it("derives int32 (domain number)", () => {
     expect(deriveColumn(db.type("int32"), chooser)).toEqual({
       domain: "number",
+      dbformat: "int32",
     });
   });
 
   it("derives uint64 (domain bigint)", () => {
     expect(deriveColumn(db.type("uint64"), chooser)).toEqual({
       domain: "bigint",
+      dbformat: "uint64",
     });
   });
 
   it("derives uuid (domain string)", () => {
     expect(deriveColumn(db.type("uuid"), chooser)).toEqual({
       domain: "string",
+      dbformat: "uuid",
     });
   });
 
@@ -91,6 +97,7 @@ describe("deriveColumn", () => {
     expect(deriveColumn(db.type("int64 | null | undefined"), chooser)).toEqual({
       domain: "bigint",
       nullable: true,
+      dbformat: "int64",
     });
   });
 
@@ -98,6 +105,7 @@ describe("deriveColumn", () => {
     expect(deriveColumn(db.type("int32 | null | undefined"), chooser)).toEqual({
       domain: "number",
       nullable: true,
+      dbformat: "int32",
     });
   });
 
@@ -120,6 +128,7 @@ describe("deriveColumn", () => {
     expect(deriveColumn(db.type("int64[]"), chooser)).toEqual({
       domain: "bigint",
       array: "[]",
+      dbformat: "int64",
     });
   });
 
@@ -127,6 +136,7 @@ describe("deriveColumn", () => {
     expect(deriveColumn(db.type("int64[][]"), chooser)).toEqual({
       domain: "bigint",
       array: "[][]",
+      dbformat: "int64",
     });
   });
 
@@ -134,6 +144,7 @@ describe("deriveColumn", () => {
     expect(deriveColumn(db.type("int32[]"), chooser)).toEqual({
       domain: "number",
       array: "[]",
+      dbformat: "int32",
     });
   });
 
@@ -150,6 +161,7 @@ describe("deriveColumn", () => {
       domain: "bigint",
       nullable: true,
       array: "[]",
+      dbformat: "int64",
     });
   });
 
@@ -173,6 +185,7 @@ describe("deriveColumn", () => {
       domain: "bigint",
       primaryKey: true,
       autoIncrement: true,
+      dbformat: "int64",
     });
   });
 
@@ -184,6 +197,7 @@ describe("deriveColumn", () => {
       domain: "bigint",
       foreignKeyTable: "users",
       foreignKeyColumn: "id",
+      dbformat: "int64",
     });
   });
 
