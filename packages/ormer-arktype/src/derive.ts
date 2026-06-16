@@ -1,7 +1,20 @@
 import type { Type } from "arktype";
 import type { ColumnType } from "ormer";
-import type { ParamsDerived } from "./common.ts";
 import { type KnwownDbType } from "./arktype-ext.ts";
+
+// Runtime version of the above type, used in the deriveColumn() implementation
+export type ParamsDerived<T = {}> = {
+  nullable?: boolean;
+  //   optional?: boolean;
+  default?: unknown;
+  primaryKey?: boolean;
+  autoIncrement?: boolean;
+  foreignKeyTable?: string;
+  foreignKeyColumn?: string;
+  array?: string;
+  maxLength?: number;
+  //   schema?: ZodType;
+} & T;
 
 type Choice = [KnwownDbType, ParamsDerived];
 
