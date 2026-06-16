@@ -3,38 +3,62 @@ import type { ColumnType, ColumnTypeSingualr, Table } from "ormer";
 import type { Type } from "arktype";
 import { deriveColumn } from "./derive.ts";
 import type { DbFormat, TableName } from "./arktype-ext.ts";
+import type {
+  DomainOfType,
+  DbFormatOfType,
+  GetMaxLength,
+  IsVarchar,
+  SafeParamDerivation,
+  RemovePlainArrays,
+  RewrapToColumnType,
+} from "./common.ts";
 
-type DbFormatOfType<T> = T extends DbFormat<infer F> ? F : never;
-type ParamsOfType<T> = any;
-type BaseType<T> = any;
+type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 
 // prettier-ignore
-type DeriveBasePgColumn<T> =
-  BaseType<T> extends string ? (
-        DbFormatOfType<T> extends "uuid" ? ColumnTypeSingualr<"uuid">
-      : DbFormatOfType<T> extends "timepart" ? ColumnTypeSingualr<"time">
-      : DbFormatOfType<T> extends "datepart" ? ColumnTypeSingualr<"date">
-      : DbFormatOfType<T> extends "naivedatetime" ? ColumnTypeSingualr<"timestamp">
-      : { "maxLength": number } extends ParamsOfType<T> ? ColumnType<"varchar", { maxLength: ParamsOfType<T>["maxLength"] }> 
+type DeriveBasePgColumn<T extends Type<any, any>> =
+  "string" extends DomainOfType<T> ? (
+        "uuid" extends DbFormatOfType<T> ? ColumnTypeSingualr<"uuid">
+      : "timepart" extends DbFormatOfType<T> ? ColumnTypeSingualr<"time">
+      : "datepart" extends DbFormatOfType<T> ? ColumnTypeSingualr<"date">
+      : "naivedatetime" extends DbFormatOfType<T> ? ColumnTypeSingualr<"timestamp">
+      : IsVarchar<T> extends true ? ColumnType<"varchar", { maxLength: GetMaxLength<T> }> 
       : ColumnTypeSingualr<"text">
     )
-  : BaseType<T> extends number ? (
-        DbFormatOfType<T> extends "float32" ? ColumnTypeSingualr<"float4"> 
-      : DbFormatOfType<T> extends "float64" ? ColumnTypeSingualr<"float8"> 
-      : DbFormatOfType<T> extends "int32" ? ColumnTypeSingualr<"int4"> 
-      : DbFormatOfType<T> extends "int16" ? ColumnTypeSingualr<"int2"> 
-      : DbFormatOfType<T> extends "int8" | "uint8" | "uint16" | "uint32" ? "ERROR" 
-      : ColumnTypeSingualr<"int4">
+  : "number" extends DomainOfType<T> ? (
+        "float32" extends DbFormatOfType<T> ? ColumnTypeSingualr<"float4"> 
+      : "float64" extends DbFormatOfType<T> ? ColumnTypeSingualr<"float8"> 
+      : "int32" extends DbFormatOfType<T> ? ColumnTypeSingualr<"int4"> 
+      : "int16" extends DbFormatOfType<T> ? ColumnTypeSingualr<"int2"> 
+      : "int8" extends DbFormatOfType<T> ? { type: "ERROR" }
+      : "uint8" extends DbFormatOfType<T> ? { type: "ERROR" }
+      : "uint16" extends DbFormatOfType<T> ? { type: "ERROR" }
+      : "uint32" extends DbFormatOfType<T> ? { type: "ERROR" } 
+      : ColumnTypeSingualr<"float8">
     )
-  : BaseType<T> extends bigint ? (
-      DbFormatOfType<T> extends "int64" | "" ? ColumnTypeSingualr<"int8">
-      : DbFormatOfType<T> extends "uint64" | "uint128" ? "ERROR"
+  : "bigint" extends DomainOfType<T> ? (
+        "int64" extends DbFormatOfType<T> ? ColumnTypeSingualr<"int8">
+      : "uint64" extends DbFormatOfType<T> ? { type: "ERROR" } 
+      : "uint128" extends DbFormatOfType<T> ? { type: "ERROR" }
       : ColumnTypeSingualr<"int8">
     )
-  : BaseType<T> extends boolean ? ColumnTypeSingualr<"boolean">
-  : BaseType<T> extends Date ? ColumnTypeSingualr<"timestamptz">
-  : BaseType<T> extends object ? ColumnType<"jsonb", { schema: T }>
-  : "ERROR";
+  : "boolean" extends DomainOfType<T> ? ColumnTypeSingualr<"boolean">
+  : "Date" extends DomainOfType<T> ? ColumnTypeSingualr<"timestamptz">
+  : "object" extends DomainOfType<T> ? ColumnType<"jsonb", { schema: T }>
+  : { type: "ERROR" };
+
+export type DerivePgColumn<
+  T extends Type<any, any> | [Type<any, any>, ...any[]],
+> = RewrapToColumnType<
+  DeriveBasePgColumn<
+    T extends [Type<infer Base, infer $>, ...any[]]
+      ? Type<RemovePlainArrays<Base>, $>
+      : T extends Type<infer A, infer $>
+        ? Type<RemovePlainArrays<A>, $>
+        : never
+  > &
+    SafeParamDerivation<T>
+>;
 
 /**
  * Map a generic arktype choice to a PostgreSQL ColumnType.

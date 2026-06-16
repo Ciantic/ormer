@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { derivePgColumn } from "../src/derive-pg.ts";
+import { describe, it, expect, expectTypeOf } from "vitest";
+import { derivePgColumn, type DerivePgColumn } from "../src/derive-pg.ts";
 import { ALL_ARKTYPE_FIELDS, ALL_PG_FIELDS } from "./fields.ts";
 import {
   database,
@@ -43,6 +43,38 @@ describe("ALL_ARKTYPE_FIELDS derivePgColumn runtime", () => {
       runtimeTest(arktypeSchema, expectedColumn);
     });
   }
+});
+
+describe("ALL_ARKTYPE_FIELDS derivePgColumn types", () => {
+  it("type-level column mapping matches expected PG columns", () => {
+    type Equal<X, Y> =
+      (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
+        ? true
+        : false;
+
+    type TestAll = {
+      [K in keyof typeof ALL_ARKTYPE_FIELDS]: Equal<
+        DerivePgColumn<(typeof ALL_ARKTYPE_FIELDS)[K]["arktype"]>,
+        (typeof ALL_PG_FIELDS)[K] extends "ERROR"
+          ? { type: "ERROR" }
+          : (typeof ALL_PG_FIELDS)[K]
+      >;
+    };
+
+    // Hover over FailedTests to see any failed test cases.
+    // If it is `never`, all test cases passed.
+    type FailedTests = {
+      [K in keyof TestAll]: TestAll[K] extends true
+        ? never
+        : {
+            key: K;
+            derived: DerivePgColumn<(typeof ALL_ARKTYPE_FIELDS)[K]["arktype"]>;
+            expected: (typeof ALL_PG_FIELDS)[K];
+          };
+    }[keyof TestAll];
+
+    expectTypeOf<never>().toEqualTypeOf<FailedTests>();
+  });
 });
 
 describe("ALL_ARKTYPE_FIELDS pglite round-trip", () => {
