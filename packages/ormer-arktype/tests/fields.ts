@@ -163,7 +163,7 @@ export const ALL_PG_FIELDS = {
 export const ALL_DUCKDB_FIELDS = {
   // String values
   c_str: duckdb.text(),
-  c_str_max255: duckdb.varchar({ maxLength: 255 }),
+  c_str_max255: duckdb.text(),
   c_varchar255: duckdb.varchar({ maxLength: 255 }),
 
   // Number types

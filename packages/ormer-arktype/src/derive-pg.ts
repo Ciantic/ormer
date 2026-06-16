@@ -1,12 +1,8 @@
 import { pg, table } from "ormer";
-import type { ColumnType, Params, Table } from "ormer";
+import type { ColumnType, Table } from "ormer";
 import type { Type } from "arktype";
-import { deriveColumn, type ParamsDerived } from "./derive.ts";
+import { deriveColumn } from "./derive.ts";
 import type { TableName } from "./arktype-ext.ts";
-
-export type PgParams = ParamsDerived<{
-  schema?: Type<any, any>;
-}>;
 
 /**
  * Map a generic arktype choice to a PostgreSQL ColumnType.
