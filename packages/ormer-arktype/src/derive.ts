@@ -12,12 +12,53 @@ export type ParamsDerived<T = {}> = {
   foreignKeyTable?: string;
   foreignKeyColumn?: string;
   array?: string;
-  maxLength?: number;
-  dbformat?: DbFormatId;
   //   schema?: ZodType;
 } & T;
 
-type Choice = [KnwownDbType, ParamsDerived];
+/** Internal type used during JSON analysis — accumulates dbformat and
+ * maxLength before they are lifted into the Choice triplet. */
+type InternalDeriveParams = ParamsDerived & {
+  dbformat?: DbFormatId;
+  maxLength?: number;
+};
+
+/** Discriminated union of [domain, dbformat, params] triplets.
+ * The second element is "" when no specific dbformat applies. */
+type Choice =
+  // number
+  | ["number", "", ParamsDerived]
+  | ["number", "float32", ParamsDerived]
+  | ["number", "float64", ParamsDerived]
+  | ["number", "int8", ParamsDerived]
+  | ["number", "int16", ParamsDerived]
+  | ["number", "int32", ParamsDerived]
+  | ["number", "uint8", ParamsDerived]
+  | ["number", "uint16", ParamsDerived]
+  | ["number", "uint32", ParamsDerived]
+  // bigint
+  | ["bigint", "", ParamsDerived]
+  | ["bigint", "int64", ParamsDerived]
+  | ["bigint", "uint64", ParamsDerived]
+  | ["bigint", "uint128", ParamsDerived]
+  // string
+  | ["string", "", ParamsDerived]
+  | ["string", "", ParamsDerived<{ maxLength: number }>]
+  | ["string", "uuid", ParamsDerived<{ default?: "generate" }>]
+  | ["string", "uuid.v1", ParamsDerived]
+  | ["string", "uuid.v2", ParamsDerived]
+  | ["string", "uuid.v3", ParamsDerived]
+  | ["string", "uuid.v4", ParamsDerived]
+  | ["string", "uuid.v5", ParamsDerived]
+  | ["string", "uuid.v6", ParamsDerived]
+  | ["string", "uuid.v7", ParamsDerived]
+  | ["string", "uuid.v8", ParamsDerived]
+  | ["string", "datepart", ParamsDerived]
+  | ["string", "timepart", ParamsDerived]
+  | ["string", "naivedatetime", ParamsDerived<{ default?: "now" }>]
+  // other
+  | ["boolean", "", ParamsDerived]
+  | ["Date", "", ParamsDerived<{ default?: "now" }>]
+  | ["object", "", ParamsDerived];
 
 /** The canonical domain strings that arktype emits in `.json` */
 type Domain = "string" | "number" | "bigint" | "object";
@@ -121,7 +162,7 @@ function typeToJson(t: Type<any, any>): Readonly<ToJsonResult> {
 
 export function deriveColumn<T extends Type<any, any>>(
   schema: T | [T, ...any[]],
-  chooser: (t: Choice) => ColumnType<string, any>,
+  chooser: (t: Readonly<Choice>) => ColumnType<string, any>,
 ): ColumnType<string, any> {
   let defaultValue: unknown = undefined;
   let baseType: T | undefined = undefined;
@@ -139,11 +180,9 @@ export function deriveColumn<T extends Type<any, any>>(
   }
 
   const baseTypeJson = typeToJson(baseType);
-  let params: ParamsDerived = {};
-  console.log("Base type JSON:", JSON.stringify(baseTypeJson, null, 2));
+  let params: InternalDeriveParams = {};
 
   const choice = analyzeJson(baseTypeJson, params);
-  // let choice: KnwownDbType | undefined = undefined;
 
   // Apply defaultValue extracted from the array-branch syntax
   if (defaultValue !== undefined) {
@@ -154,7 +193,11 @@ export function deriveColumn<T extends Type<any, any>>(
   if (params.primaryKey && (choice === "number" || choice === "bigint")) {
     params.autoIncrement = true;
   }
-  return chooser([choice, params]);
+
+  // Lift dbformat out of params into the triplet; maxLength stays on params
+  // (it's part of ParamsDerived<{ maxLength: number }> for the varchar variant).
+  const { dbformat, ...cleanParams } = params;
+  return chooser([choice, dbformat ?? "", cleanParams] as Choice);
 }
 
 /**
@@ -165,7 +208,7 @@ export function deriveColumn<T extends Type<any, any>>(
  */
 function analyzeJson(
   json: Readonly<JsonValue>,
-  params: ParamsDerived,
+  params: InternalDeriveParams,
 ): KnwownDbType {
   // Union array — e.g. string | null, string | null | undefined, boolean
   if (Array.isArray(json)) {
@@ -212,7 +255,7 @@ function normalizeBranch(leaf: JsonLeaf): ToJsonObject {
 /** Apply metadata from `.configure({ … })` exactly once per outer type. */
 function applyMeta(
   meta: Record<string, unknown> | undefined,
-  params: ParamsDerived,
+  params: InternalDeriveParams,
 ): void {
   if (!meta) return;
   if (meta.primaryKey === true) params.primaryKey = true;

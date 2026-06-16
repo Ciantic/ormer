@@ -5,7 +5,6 @@ import { deriveColumn, type ParamsDerived } from "./derive.ts";
 import type { TableName } from "./arktype-ext.ts";
 
 export type PgParams = ParamsDerived<{
-  dbformat?: string;
   schema?: Type<any, any>;
 }>;
 
@@ -19,60 +18,54 @@ export type PgParams = ParamsDerived<{
 export function derivePgColumn(
   schema: Type<any, any>,
 ): ColumnType<string, any> {
-  return deriveColumn(schema, ([choice, rawParams]) => {
-    const params = rawParams as PgParams;
-    const pgParams = { ...params } as any;
-    switch (choice) {
-      case "string": {
-        const fmt = params.dbformat;
-        if (fmt === "uuid") return pg.uuid(pgParams);
-        if (fmt === "timepart") return pg.time(pgParams);
-        if (fmt === "datepart") return pg.date(pgParams);
-        if (fmt === "naivedatetime") return pg.timestamp(pgParams as Params);
-        if (typeof params.maxLength === "number") {
-          return pg.varchar({ ...pgParams, maxLength: params.maxLength });
-        }
-        return pg.text(pgParams);
+  return deriveColumn(schema, (triple) => {
+    if (triple[0] === "string") {
+      if (triple[1] === "uuid") return pg.uuid(triple[2]);
+      if (triple[1] === "timepart") return pg.time(triple[2]);
+      if (triple[1] === "datepart") return pg.date(triple[2]);
+      if (triple[1] === "naivedatetime") return pg.timestamp(triple[2]);
+      if ("maxLength" in triple[2] && typeof triple[2].maxLength === "number") {
+        return pg.varchar(triple[2]);
       }
-      case "number": {
-        const fmt = params.dbformat;
-        if (fmt === "float32") return pg.float4(pgParams);
-        if (fmt === "float64") return pg.float8(pgParams);
-        if (fmt === "int32") return pg.int4(pgParams);
-        if (fmt === "int16") return pg.int2(pgParams);
-        if (
-          fmt === "int8" ||
-          fmt === "uint8" ||
-          fmt === "uint16" ||
-          fmt === "uint32"
-        ) {
-          throw new Error(
-            `PG has no symmetric mapping for number format: ${fmt}`,
-          );
-        }
-        return pg.float8(pgParams);
-      }
-      case "bigint": {
-        const fmt = params.dbformat;
-        if (fmt === "int64" || fmt === undefined) return pg.int8(pgParams);
-        if (fmt === "uint64" || fmt === "uint128") {
-          throw new Error(
-            `PG has no symmetric mapping for bigint format: ${fmt}`,
-          );
-        }
-        return pg.int8(pgParams);
-      }
-      case "boolean":
-        return pg.boolean(pgParams);
-      case "Date":
-        return pg.timestamptz(pgParams as Params);
-      case "object": {
-        return pg.jsonb({ ...pgParams, schema });
-      }
-      default:
-        throw new Error(`Unsupported arktype choice: ${choice}`);
+      return pg.text(triple[2]);
     }
-  }) as ColumnType<string, any>;
+    if (triple[0] === "number") {
+      if (triple[1] === "float32") return pg.float4(triple[2]);
+      if (triple[1] === "float64") return pg.float8(triple[2]);
+      if (triple[1] === "int32") return pg.int4(triple[2]);
+      if (triple[1] === "int16") return pg.int2(triple[2]);
+      if (
+        triple[1] === "int8" ||
+        triple[1] === "uint8" ||
+        triple[1] === "uint16" ||
+        triple[1] === "uint32"
+      ) {
+        throw new Error(
+          `PG has no symmetric mapping for number format: ${triple[1]}`,
+        );
+      }
+      return pg.float8(triple[2]);
+    }
+    if (triple[0] === "bigint") {
+      if (triple[1] === "int64" || triple[1] === "") return pg.int8(triple[2]);
+      if (triple[1] === "uint64" || triple[1] === "uint128") {
+        throw new Error(
+          `PG has no symmetric mapping for bigint format: ${triple[1]}`,
+        );
+      }
+      return pg.int8(triple[2]);
+    }
+    if (triple[0] === "boolean") {
+      return pg.boolean(triple[2]);
+    }
+    if (triple[0] === "Date") {
+      return pg.timestamptz(triple[2]);
+    }
+    if (triple[0] === "object") {
+      return pg.jsonb({ ...triple[2], schema });
+    }
+    throw new Error(`Unsupported arktype choice: ${triple[0]}`);
+  });
 }
 
 /**

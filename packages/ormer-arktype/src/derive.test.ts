@@ -3,7 +3,11 @@ import { type } from "arktype";
 import { deriveColumn } from "./derive.ts";
 import { db } from "./arktype-ext.ts";
 
-const chooser = ([domain, params]: any) => ({ domain, ...params });
+const chooser = (triple: any) => ({
+  domain: triple[0],
+  ...(triple[1] ? { dbformat: triple[1] } : {}),
+  ...triple[2],
+});
 
 describe("deriveColumn", () => {
   // -- Basic domain types --
