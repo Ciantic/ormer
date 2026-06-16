@@ -153,36 +153,6 @@ export function deriveColumn<T extends Type<any, any>>(
   if (params.primaryKey && (choice === "number" || choice === "bigint")) {
     params.autoIncrement = true;
   }
-  /*
-
-  if ("domain" in baseTypeJson && typeof baseTypeJson.domain === "string") {
-    // const domain = baseTypeJson.domain;
-    choice = baseTypeJson.domain;
-  }
-
-  // Union of types: e.g. string | null, string | null | undefined, true | false, ...
-  if (Array.isArray(baseTypeJson)) {
-    if (
-      baseTypeJson.length === 2 &&
-      "unit" in baseTypeJson[0] &&
-      "unit" in baseTypeJson[1] &&
-      typeof baseTypeJson[0].unit === "boolean" &&
-      typeof baseTypeJson[1].unit === "boolean"
-    ) {
-      choice = "boolean";
-    }
-  }
-
-  if ("proto" in baseTypeJson && baseTypeJson.proto === "Date") {
-    choice = "Date";
-  }
-
-  if (!choice) {
-    throw new Error(
-      `Could not determine DB type for schema: ${JSON.stringify(schema)}`,
-    );
-  }
-  */
   return chooser([choice, params]);
 }
 
