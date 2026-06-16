@@ -101,6 +101,13 @@ describe("deriveColumn", () => {
     });
   });
 
+  it("derives boolean | null | undefined as nullable", () => {
+    expect(deriveColumn(type("boolean | null | undefined"), chooser)).toEqual({
+      domain: "boolean",
+      nullable: true,
+    });
+  });
+
   // -- Arrays --
   it("derives 1D string array", () => {
     expect(deriveColumn(type("string[]"), chooser)).toEqual({

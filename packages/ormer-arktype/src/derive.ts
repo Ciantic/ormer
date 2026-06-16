@@ -47,10 +47,19 @@ type JsonConstraints = {
   predicate?: { predicate: string; meta?: unknown }[];
 };
 
+/** Shorthand strings that arktype uses for well-known domains/prototypes. */
+type JsonShorthand = Domain | "Date" | "Array" | (string & {});
+
+/** A leaf value inside arrays, sequences, and unions. */
+type JsonLeaf = JsonShorthand | ToJsonObject;
+
+/** Recursive value accepted by `analyzeJson`: objects, leaves, or arrays of them. */
+type JsonValue = ToJsonObject | JsonLeaf | JsonValue[];
+
 /** `{ domain: "string" | … | nestedObject }` */
 type DomainBranch = JsonMeta &
   JsonConstraints & {
-    domain: Domain | ToJsonObject;
+    domain: JsonLeaf;
     /** Present on domain: "object" when it's a table/struct */
     required?: { key: string; value: JsonLeaf }[];
     optional?: { key: string; value: JsonLeaf }[];
@@ -61,26 +70,23 @@ type UnitBranch = JsonMeta & {
   unit: unknown;
 };
 
-/** A leaf value that can appear inside a `sequence` array */
-type JsonLeaf = Domain | ToJsonObject;
-
-/** `{ sequence: …, proto: "Array" }` */
+/** `{ sequence: …, proto: "Array" | { proto: "Array", meta: … } }` */
 type SequenceBranch = JsonMeta & {
   /** Simple array: element type; union array: [type, type]; tuple: { prefix: […] } */
   sequence: JsonLeaf | JsonLeaf[] | { prefix: JsonLeaf[] };
-  proto: string;
+  proto: JsonShorthand | ProtoBranch;
   /** Present on tuples: exact length */
   exactLength?: number;
 };
 
-/** `{ branches: […] }` – UUID-style multi-branch */
+/** `{ branches: […] }` – configured unions, UUIDs, booleans, etc. */
 type BranchesBranch = JsonMeta & {
   branches: ToJsonObject[];
 };
 
 /** `{ proto: "Date" | "Uint8Array" | … }` – standalone instance / class */
-type ProtoBranch = {
-  proto: string;
+type ProtoBranch = JsonMeta & {
+  proto: JsonShorthand | ProtoBranch;
 };
 
 /** `{}` – unknown */
@@ -95,8 +101,8 @@ type ToJsonObject =
   | ProtoBranch
   | UnknownBranch;
 
-/** The full `.json` output: a single shape, or a union-array of shapes */
-type ToJsonResult = ToJsonObject | ToJsonObject[];
+/** The full `.json` output: a single shape, or a union-array of shapes/leaves. */
+type ToJsonResult = ToJsonObject | ToJsonObject[] | JsonLeaf[];
 
 function typeToJson(t: Type<any, any>): Readonly<ToJsonResult> {
   return t.json as ToJsonResult;
@@ -177,133 +183,111 @@ export function deriveColumn<T extends Type<any, any>>(
  *   foreignKeyTable, foreignKeyColumn
  */
 function analyzeJson(
-  json: Readonly<ToJsonResult>,
+  json: Readonly<JsonValue>,
   params: ParamsDerived,
 ): KnwownDbType {
   // Union array — e.g. string | null, string | null | undefined, boolean
   if (Array.isArray(json)) {
-    let primary: ToJsonObject | undefined;
-    let hasNull = false;
+    const branches = json.map(normalizeBranch);
 
-    for (const branch of json) {
-      // Shorthand string domain: ["string", { unit: null }]
-      if (typeof branch === "string") {
-        primary = { domain: branch as Domain };
-      } else if (typeof branch === "object" && branch !== null) {
-        if ("unit" in branch) {
-          if (branch.unit === null || branch.unit === "undefined") {
-            hasNull = true;
-          }
-        } else {
-          // Sequence, domain, proto, or branches object — this is the real type
-          primary = branch;
-        }
-      }
-    }
+    const unitBranches = branches.filter((b): b is UnitBranch => "unit" in b);
+    const valueBranches = branches.filter((b) => !("unit" in b));
 
-    // Boolean: [{"unit":false},{"unit":true}]
-    if (!primary && json.length === 2) {
-      const allUnitBools = json.every(
-        (b) =>
-          typeof b === "object" &&
-          b !== null &&
-          "unit" in b &&
-          typeof b.unit === "boolean",
-      );
-      if (allUnitBools) return "boolean";
-    }
-
+    const hasNull = unitBranches.some(
+      (b) => b.unit === null || b.unit === "undefined",
+    );
     if (hasNull) params.nullable = true;
 
-    if (primary) return analyzeJson(primary, params);
+    // Boolean: no value branches, and all non-null/undefined units are booleans.
+    const nonNullUnits = unitBranches.filter(
+      (b) => b.unit !== null && b.unit !== "undefined",
+    );
+    if (
+      valueBranches.length === 0 &&
+      nonNullUnits.every((b) => typeof b.unit === "boolean")
+    ) {
+      return "boolean";
+    }
+
+    if (valueBranches.length === 1) {
+      return analyzeJson(valueBranches[0]!, params);
+    }
 
     throw new Error(`Cannot analyze union JSON: ${JSON.stringify(json)}`);
   }
 
   // Single object branch
-  return analyzeJsonObject(json, params);
+  return analyzeJsonObject(json as Readonly<ToJsonObject>, params);
+}
+
+/** Convert a union branch into a normalized object shape. */
+function normalizeBranch(leaf: JsonLeaf): ToJsonObject {
+  if (typeof leaf === "string") {
+    return { domain: leaf };
+  }
+  return leaf;
+}
+
+/** Apply metadata from `.configure({ … })` exactly once per outer type. */
+function applyMeta(
+  meta: Record<string, unknown> | undefined,
+  params: ParamsDerived,
+): void {
+  if (!meta) return;
+  if (meta.primaryKey === true) params.primaryKey = true;
+  if (typeof meta.foreignKeyTable === "string")
+    params.foreignKeyTable = meta.foreignKeyTable;
+  if (typeof meta.foreignKeyColumn === "string")
+    params.foreignKeyColumn = meta.foreignKeyColumn;
+  if (typeof meta.varchar === "number") params.maxLength = meta.varchar;
 }
 
 function analyzeJsonObject(
-  json: Readonly<ToJsonResult>,
+  json: Readonly<ToJsonObject>,
   params: ParamsDerived,
 ): KnwownDbType {
-  // Extract metadata configured via .configure({ … })
-  const meta = ("meta" in json ? json.meta : undefined) as
-    | Record<string, unknown>
-    | undefined;
-  if (meta) {
-    if (meta.primaryKey === true) params.primaryKey = true;
-    if (typeof meta.foreignKeyTable === "string")
-      params.foreignKeyTable = meta.foreignKeyTable;
-    if (typeof meta.foreignKeyColumn === "string")
-      params.foreignKeyColumn = meta.foreignKeyColumn;
-    if (typeof meta.varchar === "number")
-      params.maxLength = meta.varchar as number;
-  }
+  applyMeta(json.meta, params);
 
   // Sequence = array type, e.g. string[], int64[][]
-  if ("sequence" in json && json.sequence !== undefined) {
+  if ("sequence" in json) {
     params.array = (params.array ?? "") + "[]";
-
-    const seq = json.sequence as JsonLeaf;
-    if (typeof seq === "string") {
-      // Shorthand: "string" → { domain: "string" }
-      return analyzeJson({ domain: seq as Domain }, params);
-    }
-    // Nested object: { sequence: "bigint", proto: "Array" }
-    return analyzeJson(seq as ToJsonResult, params);
+    const seq = json.sequence;
+    return analyzeJson(
+      typeof seq === "string" ? { domain: seq } : (seq as JsonValue),
+      params,
+    );
   }
 
-  // Proto: "Date" or nested Array proto
-  if ("proto" in json) {
-    const proto = json.proto;
-    if (proto === "Date") return "Date";
-
-    // proto may be an object when meta is attached:
-    // { proto: "Array", meta: { dbformat: "int64" } }
-    if (typeof proto === "string" && proto === "Array") {
-      // Array without sequence — shouldn't happen at this point, but handle
-      // gracefully by falling through to any domain check
-    }
-    if (typeof proto === "object" && proto !== null && "proto" in proto) {
-      // Nested proto object — extract its meta
-      const protoObj = proto as Record<string, unknown>;
-      const innerMeta = protoObj.meta as Record<string, unknown> | undefined;
-      if (innerMeta) {
-        if (innerMeta.primaryKey === true) params.primaryKey = true;
-        if (typeof innerMeta.foreignKeyTable === "string")
-          params.foreignKeyTable = innerMeta.foreignKeyTable;
-        if (typeof innerMeta.foreignKeyColumn === "string")
-          params.foreignKeyColumn = innerMeta.foreignKeyColumn;
-      }
-    }
+  // Proto: "Date" is the only prototype we map directly. Nested Array proto is
+  // handled via `sequence`, so we ignore it here.
+  if ("proto" in json && json.proto === "Date") {
+    return "Date";
   }
 
-  // Domain: "string" | "number" | "bigint" | "object"
+  // Domain: "string" | "number" | "bigint" | "object", or a nested configured
+  // domain object such as `{ domain: "string", meta: { dbformat: "uuid" } }`.
   if ("domain" in json) {
-    if (typeof json.domain === "string") {
-      const domain = json.domain as string;
+    const domain = json.domain;
+    if (typeof domain === "string") {
       if (
         domain === "string" ||
         domain === "number" ||
         domain === "bigint" ||
         domain === "object"
       ) {
-        return domain;
+        return domain as KnwownDbType;
       }
-    } else if (typeof json.domain === "object" && json.domain !== null) {
-      // Nested domain object — configured types insert meta inside domain
-      // e.g. { domain: { domain: "number", meta: { dbformat: "int32" } }, ... }
-      return analyzeJson(json.domain as ToJsonResult, params);
+      throw new Error(`Unsupported domain: ${domain}`);
     }
+    return analyzeJson(domain, params);
   }
 
-  // Branches — uuid, boolean, etc.
+  // Branches — configured unions, UUIDs, booleans, etc.
   if ("branches" in json && Array.isArray(json.branches)) {
-    // Boolean: all branches are unit booleans
+    const branches = json.branches;
+
     if (
-      json.branches.every(
+      branches.every(
         (b) =>
           typeof b === "object" &&
           b !== null &&
@@ -314,17 +298,12 @@ function analyzeJsonObject(
       return "boolean";
     }
 
-    // UUID / other multi-branch: find the domain branch (not unit)
-    for (const branch of json.branches) {
-      if (typeof branch === "object" && branch !== null && "domain" in branch) {
-        return analyzeJson(branch as ToJsonResult, params);
-      }
-    }
-
-    // Fallback: try the first branch
-    const first = json.branches[0];
-    if (typeof first === "object" && first !== null) {
-      return analyzeJson(first as ToJsonResult, params);
+    const firstValue = branches.find(
+      (b): b is ToJsonObject =>
+        typeof b === "object" && b !== null && !("unit" in b),
+    );
+    if (firstValue) {
+      return analyzeJson(firstValue, params);
     }
   }
 
