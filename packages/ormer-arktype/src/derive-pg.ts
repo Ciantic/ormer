@@ -18,53 +18,55 @@ export type PgParams = ParamsDerived<{
 export function derivePgColumn(
   schema: Type<any, any>,
 ): ColumnType<string, any> {
-  return deriveColumn(schema, (triple) => {
-    if (triple[0] === "string") {
-      if (triple[1] === "uuid") return pg.uuid(triple[2]);
-      if (triple[1] === "timepart") return pg.time(triple[2]);
-      if (triple[1] === "datepart") return pg.date(triple[2]);
-      if (triple[1] === "naivedatetime") return pg.timestamp(triple[2]);
-      if ("maxLength" in triple[2] && typeof triple[2].maxLength === "number") {
-        return pg.varchar(triple[2]);
+  return deriveColumn(schema, ([domain, dbformat, params]) => {
+    if (domain === "string") {
+      if (dbformat === "uuid") return pg.uuid(params);
+      if (dbformat === "timepart") return pg.time(params);
+      if (dbformat === "datepart") return pg.date(params);
+      if (dbformat === "naivedatetime") return pg.timestamp(params);
+      if ("maxLength" in params && typeof params.maxLength === "number") {
+        return pg.varchar(params);
       }
-      return pg.text(triple[2]);
+      return pg.text(params);
     }
-    if (triple[0] === "number") {
-      if (triple[1] === "float32") return pg.float4(triple[2]);
-      if (triple[1] === "float64") return pg.float8(triple[2]);
-      if (triple[1] === "int32") return pg.int4(triple[2]);
-      if (triple[1] === "int16") return pg.int2(triple[2]);
+    if (domain === "number") {
+      if (dbformat === "float32") return pg.float4(params);
+      if (dbformat === "float64") return pg.float8(params);
+      if (dbformat === "int32") return pg.int4(params);
+      if (dbformat === "int16") return pg.int2(params);
       if (
-        triple[1] === "int8" ||
-        triple[1] === "uint8" ||
-        triple[1] === "uint16" ||
-        triple[1] === "uint32"
+        dbformat === "int8" ||
+        dbformat === "uint8" ||
+        dbformat === "uint16" ||
+        dbformat === "uint32"
       ) {
         throw new Error(
-          `PG has no symmetric mapping for number format: ${triple[1]}`,
+          `PG has no symmetric mapping for number format: ${dbformat}`,
         );
       }
-      return pg.float8(triple[2]);
+      return pg.float8(params);
     }
-    if (triple[0] === "bigint") {
-      if (triple[1] === "int64" || triple[1] === "") return pg.int8(triple[2]);
-      if (triple[1] === "uint64" || triple[1] === "uint128") {
+    if (domain === "bigint") {
+      if (dbformat === "int64" || dbformat === "") return pg.int8(params);
+      if (dbformat === "uint64" || dbformat === "uint128") {
         throw new Error(
-          `PG has no symmetric mapping for bigint format: ${triple[1]}`,
+          `PG has no symmetric mapping for bigint format: ${dbformat}`,
         );
       }
-      return pg.int8(triple[2]);
+      return pg.int8(params);
     }
-    if (triple[0] === "boolean") {
-      return pg.boolean(triple[2]);
+    if (domain === "boolean") {
+      return pg.boolean(params);
     }
-    if (triple[0] === "Date") {
-      return pg.timestamptz(triple[2]);
+    if (domain === "Date") {
+      return pg.timestamptz(params);
     }
-    if (triple[0] === "object") {
-      return pg.jsonb({ ...triple[2], schema });
+    if (domain === "object") {
+      return pg.jsonb({ ...params, schema });
     }
-    throw new Error(`Unsupported arktype choice: ${triple[0]}`);
+    throw new Error(
+      `Unsupported arktype choice: ${domain} with dbformat ${dbformat}`,
+    );
   });
 }
 
