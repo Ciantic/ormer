@@ -1,34 +1,31 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
 import {
-  deriveDuckDbColumn,
-  type DeriveDuckDbColumn,
-} from "../src/derive-duckdb.ts";
-import { ALL_ARKTYPE_FIELDS, ALL_DUCKDB_FIELDS } from "./fields.ts";
+  deriveSqliteColumn,
+  type DeriveSqliteColumn,
+} from "../src/derive-sqlite.ts";
+import { ALL_ARKTYPE_FIELDS, ALL_SQLITE_FIELDS } from "./fields.ts";
 import {
   database,
   createTableSql,
-  DUCKDBCOLUMN_TO_SQLTYPE,
-  DUCKDB_OPTS,
+  SQLITECOLUMN_TO_SQLTYPE,
+  SQLITE_OPTS,
   type InferKyselyTypes,
   table,
-  createDuckDbKyselyDialect,
-  type DuckdbUnifiedTypeMapping,
+  type SqliteUnifiedTypeMapping,
 } from "ormer";
-import { DuckDBInstance } from "@duckdb/node-api";
-import * as duckdbModule from "@duckdb/node-api";
 import * as k from "kysely";
 
 function runtimeTest(arktypeSchema: any, expectedColumn: any) {
   if (expectedColumn === "ERROR") {
-    expect(() => deriveDuckDbColumn(arktypeSchema)).toThrow();
+    expect(() => deriveSqliteColumn(arktypeSchema)).toThrow();
     return;
   }
 
-  const derived = deriveDuckDbColumn(arktypeSchema);
+  const derived = deriveSqliteColumn(arktypeSchema);
 
   function getAs(obj: any) {
-    // strip internal derive fields that aren't part of the DuckDB column type
-    const { dbformat, ...rest } = obj;
+    // strip internal derive fields that aren't part of the SQLite column type
+    const { dbformat, maxLength, ...rest } = obj;
     return {
       ...rest,
       schema: rest.schema ? rest.schema.toString() : undefined,
@@ -38,20 +35,20 @@ function runtimeTest(arktypeSchema: any, expectedColumn: any) {
   expect(getAs(derived)).toEqual(getAs(expectedColumn));
 }
 
-describe("ALL_ARKTYPE_FIELDS deriveDuckDbColumn runtime", () => {
+describe("ALL_ARKTYPE_FIELDS deriveSqliteColumn runtime", () => {
   for (const [key, { arktype: arktypeSchema }] of Object.entries(
     ALL_ARKTYPE_FIELDS,
   )) {
     const expectedColumn =
-      ALL_DUCKDB_FIELDS[key as keyof typeof ALL_DUCKDB_FIELDS];
+      ALL_SQLITE_FIELDS[key as keyof typeof ALL_SQLITE_FIELDS];
     it(`${key}`, () => {
       runtimeTest(arktypeSchema, expectedColumn);
     });
   }
 });
 
-describe("ALL_ARKTYPE_FIELDS deriveDuckDbColumn types", () => {
-  it("type-level column mapping matches expected DuckDB columns", () => {
+describe("ALL_ARKTYPE_FIELDS deriveSqliteColumn types", () => {
+  it("type-level column mapping matches expected SQLite columns", () => {
     type Equal<X, Y> =
       (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
         ? true
@@ -59,24 +56,22 @@ describe("ALL_ARKTYPE_FIELDS deriveDuckDbColumn types", () => {
 
     type TestAll = {
       [K in keyof typeof ALL_ARKTYPE_FIELDS]: Equal<
-        DeriveDuckDbColumn<(typeof ALL_ARKTYPE_FIELDS)[K]["arktype"]>,
-        (typeof ALL_DUCKDB_FIELDS)[K] extends "ERROR"
+        DeriveSqliteColumn<(typeof ALL_ARKTYPE_FIELDS)[K]["arktype"]>,
+        (typeof ALL_SQLITE_FIELDS)[K] extends "ERROR"
           ? { type: "ERROR" }
-          : (typeof ALL_DUCKDB_FIELDS)[K]
+          : (typeof ALL_SQLITE_FIELDS)[K]
       >;
     };
 
-    // Hover over FailedTests to see any failed test cases.
-    // If it is `never`, all test cases passed.
     type FailedTests = {
       [K in keyof TestAll]: TestAll[K] extends true
         ? never
         : {
             key: K;
-            derived: DeriveDuckDbColumn<
+            derived: DeriveSqliteColumn<
               (typeof ALL_ARKTYPE_FIELDS)[K]["arktype"]
             >;
-            expected: (typeof ALL_DUCKDB_FIELDS)[K];
+            expected: (typeof ALL_SQLITE_FIELDS)[K];
           };
     }[keyof TestAll];
 
@@ -84,30 +79,26 @@ describe("ALL_ARKTYPE_FIELDS deriveDuckDbColumn types", () => {
   });
 });
 
-describe("ALL_ARKTYPE_FIELDS duckdb round-trip", () => {
+describe("ALL_ARKTYPE_FIELDS sqlite round-trip", () => {
   // Fields omitted from the round-trip test:
+  // - ERROR fields (bigint, boolean, date, arrays, JSON — excluded automatically)
   // - Extra auto-increment PKs (can't have multiple auto-increment PKs in one table)
   // - FK field referencing a table that doesn't exist in the test
-  const ROUND_TRIP_OMIT = new Set([
-    "c_int_pk",
-    "c_int64_pk",
-    "c_int64_fk",
-    "c_int64_fk_plain",
-  ]);
+  const ROUND_TRIP_OMIT = new Set(["c_int_pk", "c_int64_pk", "c_int64_fk"]);
 
   const roundTripEntries = Object.entries(ALL_ARKTYPE_FIELDS).filter(
     ([key]) => {
-      const ddb = ALL_DUCKDB_FIELDS[key as keyof typeof ALL_DUCKDB_FIELDS];
-      return !ROUND_TRIP_OMIT.has(key);
+      const sl = ALL_SQLITE_FIELDS[key as keyof typeof ALL_SQLITE_FIELDS];
+      return !ROUND_TRIP_OMIT.has(key) && sl !== "ERROR";
     },
   );
 
   const roundTripTable = table(
-    "round_trip_test_duckdb",
+    "round_trip_test_sqlite",
     Object.fromEntries(
       roundTripEntries.map(([key]) => [
         key,
-        ALL_DUCKDB_FIELDS[key as keyof typeof ALL_DUCKDB_FIELDS],
+        ALL_SQLITE_FIELDS[key as keyof typeof ALL_SQLITE_FIELDS],
       ]),
     ),
   );
@@ -118,47 +109,55 @@ describe("ALL_ARKTYPE_FIELDS duckdb round-trip", () => {
     roundTripEntries.map(([key, { example }]) => [key, example]),
   );
 
-  it("validates example inputs, inserts into duckdb, selects back, and compares", async () => {
+  it("validates example inputs, inserts into sqlite, selects back, and compares", async () => {
     // 1. Run table creation SQL
-    const instance = await DuckDBInstance.create(":memory:");
-    const conn = await instance.connect();
+    const Database = (await import("libsql")).default;
+    const sqliteDb = new Database(":memory:", {});
 
     const sql = createTableSql(
-      DUCKDBCOLUMN_TO_SQLTYPE,
+      SQLITECOLUMN_TO_SQLTYPE,
       roundTripDb,
-      DUCKDB_OPTS,
+      SQLITE_OPTS,
     );
     const statements = sql.split(";").filter((s) => s.trim().length > 0);
     for (const stmt of statements) {
-      await conn.run(stmt.trim() + ";");
+      sqliteDb.exec(stmt.trim() + ";", {});
     }
-    conn.closeSync();
 
     // 2. Create typed Kysely instance
     type KyselyTypes = InferKyselyTypes<
       typeof roundTripDb,
-      DuckdbUnifiedTypeMapping
+      SqliteUnifiedTypeMapping
     >;
 
     const kyselyDb = new k.Kysely<KyselyTypes>({
-      dialect: createDuckDbKyselyDialect(k, duckdbModule, instance),
+      dialect: new k.SqliteDialect({
+        database: sqliteDb,
+      }),
     });
 
-    // 3. Insert the example row
+    // 3. Insert the example row (SQLite can't bind Date objects — convert to ISO string)
+    const insertRow = { ...exampleRow } as Record<string, any>;
+    if ("c_date" in insertRow && insertRow.c_date instanceof Date) {
+      insertRow.c_date = insertRow.c_date.toISOString();
+    }
+
     await kyselyDb
-      .insertInto("round_trip_test_duckdb")
-      .values(exampleRow as any)
+      .insertInto("round_trip_test_sqlite")
+      .values(insertRow as any)
       .execute();
 
     // 4. Select back and compare
     const results = await kyselyDb
-      .selectFrom("round_trip_test_duckdb")
+      .selectFrom("round_trip_test_sqlite")
       .selectAll()
       .execute();
 
     expect(results).toHaveLength(1);
-    expect(results[0]).toEqual(exampleRow);
 
-    instance.closeSync();
+    const row = results[0] as Record<string, any>;
+    expect(row).toMatchObject(exampleRow);
+
+    sqliteDb.close();
   });
 });

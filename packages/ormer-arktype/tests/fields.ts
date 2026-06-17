@@ -220,14 +220,83 @@ export const ALL_DUCKDB_FIELDS = {
   // Container types
   c_str_nullable: duckdb.text({ nullable: true }),
   c_str_nullish: duckdb.text({ nullable: true }),
-  c_str_default: duckdb.text({ default: "" }),
-  c_int64_default: duckdb.int8({ default: 0n }),
+  c_str_default: duckdb.text({ default: "" as const }),
+  c_int64_default: duckdb.int8({ default: 0n as const }),
   c_str_pk: duckdb.text({ primaryKey: true }),
   c_int64_fk: duckdb.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
   c_int64_fk_plain: duckdb.int8({
     foreignKeyTable: "users",
     foreignKeyColumn: "id",
   }),
+} as const satisfies {
+  [K in keyof typeof ALL_ARKTYPE_FIELDS]: ColumnType<string, any> | "ERROR";
+};
+
+export const ALL_SQLITE_FIELDS = {
+  // String values
+  c_str: sqlite.text(),
+  c_str_max255: sqlite.text(),
+  c_varchar255: sqlite.text(),
+
+  // Number types
+  c_num: sqlite.real(),
+  c_num_int: sqlite.real(),
+  c_f32: sqlite.real(),
+  c_f64: sqlite.real(),
+  c_int8: sqlite.integer(),
+  c_uint8: sqlite.integer(),
+  c_uint16: sqlite.integer(),
+  c_int16: sqlite.integer(),
+  c_int32: sqlite.integer(),
+  c_uint32: sqlite.integer(),
+  c_int_pk: sqlite.integer(pkAutoInc),
+
+  // Bigint — SQLite INTEGER is signed 64-bit, can't round-trip bigint
+  c_bigint: "ERROR" as const,
+  c_int64: "ERROR" as const,
+  c_uint64: "ERROR" as const,
+  c_uint128: "ERROR" as const,
+  c_int64_pk: "ERROR" as const,
+
+  // Boolean — SQLite has no boolean type
+  c_bool: "ERROR" as const,
+
+  // JSON — SQLite stores as text, can't round-trip
+  c_json: "ERROR" as const,
+
+  // Date/time types — string-based work as TEXT, only Date can't round-trip
+  c_date: "ERROR" as const,
+  c_time: sqlite.text(),
+  c_date_only: sqlite.text(),
+  c_datetime: sqlite.text(),
+  c_timestamp: sqlite.text(),
+
+  // GUID / UUID
+  c_str_uuid: sqlite.text(),
+  c_db_uuid: sqlite.text(),
+
+  // Various string formats
+  c_url: sqlite.text(),
+  c_email: sqlite.text(),
+
+  // Network types
+  c_ipv4: sqlite.text(),
+  c_ipv6: sqlite.text(),
+
+  // Array types — SQLite has no native array type
+  c_int_arr: "ERROR" as const,
+  c_bigint_arr: "ERROR" as const,
+  c_str_arr: "ERROR" as const,
+  c_str_arr_nullable: "ERROR" as const,
+
+  // Container types
+  c_str_nullable: sqlite.text({ nullable: true }),
+  c_str_nullish: sqlite.text({ nullable: true }),
+  c_str_default: sqlite.text({ default: "" as const }),
+  c_int64_default: "ERROR" as const,
+  c_str_pk: sqlite.text({ primaryKey: true }),
+  c_int64_fk: "ERROR" as const,
+  c_int64_fk_plain: "ERROR" as const,
 } as const satisfies {
   [K in keyof typeof ALL_ARKTYPE_FIELDS]: ColumnType<string, any> | "ERROR";
 };

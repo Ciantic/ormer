@@ -143,12 +143,14 @@ type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
 /**
  * Rewrap a { type, ...params } into ColumnType or ColumnTypeSingualr.
  */
-export type RewrapToColumnType<T> = T extends {
-  type: infer Type extends string;
-} & infer Params
-  ? Omit<Params, "type"> extends NonEmptyObject<Omit<Params, "type">>
-    ? ColumnType<Type, FinalType<Omit<Params, "type">>>
-    : ColumnTypeSingualr<Type>
-  : T extends ColumnTypeSingualr<infer Type>
-    ? ColumnTypeSingualr<Type>
-    : never;
+export type RewrapToColumnType<T> = T extends { type: "ERROR" }
+  ? { type: "ERROR" }
+  : T extends {
+        type: infer Type extends string;
+      } & infer Params
+    ? Omit<Params, "type"> extends NonEmptyObject<Omit<Params, "type">>
+      ? ColumnType<Type, FinalType<Omit<Params, "type">>>
+      : ColumnTypeSingualr<Type>
+    : T extends ColumnTypeSingualr<infer Type>
+      ? ColumnTypeSingualr<Type>
+      : never;
