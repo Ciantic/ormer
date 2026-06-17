@@ -22,7 +22,7 @@ export type DomainOfType<T extends Type<any, any>> =
     : bigint extends A ? "bigint"
     : boolean extends A ? "boolean"
     : Date extends A ? "Date"
-    : object extends A ? "object"
+    : A extends {} ? "object"
     : false
   : false;
 
@@ -41,21 +41,41 @@ export type GetMaxLength<T> =
   T extends Type<infer A, any>
     ? A extends VarChar<infer N>
       ? N
-      : false
-    : false;
+      : never
+    : never;
 
-type HasDbPk<T> =
+type GetBaseType<T extends Type<any, any> | [Type<any, any>, ...any[]]> =
+  T extends Type<infer A, any>
+    ? Type<A, any>
+    : T extends [Type<infer A, any>, ...any[]]
+      ? Type<A, any>
+      : never;
+
+export type GetBaseTypeWithoutArrays<
+  T extends Type<any, any> | [Type<any, any>, ...any[]],
+> = T extends [Type<infer Base, infer $>, ...any[]]
+  ? Type<RemovePlainArrays<Base>, $>
+  : T extends Type<infer Base, infer $>
+    ? Type<RemovePlainArrays<Base>, $>
+    : never;
+
+type HasDbPk<T extends Type<any, any>> =
   T extends Type<infer A, any> ? (PrimaryKey extends A ? true : false) : false;
 
-type IsNullable<T> =
+type IsNullable<T extends Type<any, any>> =
   T extends Type<infer A, any> ? (null extends A ? true : false) : false;
 
-type IsOptional<T> =
+type IsOptional<T extends Type<any, any>> =
   T extends Type<infer A, any> ? (undefined extends A ? true : false) : false;
 
-type HasDefaultValue<T> = false;
+type HasDefaultValue<
+  T extends Type<any, any> | [Type<any, any>, "=", ...any[]],
+> = T extends [any, "=", ...any[]] ? true : false;
 
-type GetAutoIncrement<T> =
+type GetDefaultValue<T extends Type<any, any> | [Type<any, any>, ...any[]]> =
+  T extends [any, "=", infer Default, ...any[]] ? Default : never;
+
+type GetAutoIncrement<T extends Type<any, any>> =
   T extends Type<any, any>
     ? HasDbPk<T> extends true
       ? DomainOfType<T> extends "number" | "bigint"
@@ -101,14 +121,16 @@ type OmitNever<T> = Omit<
 >;
 
 // prettier-ignore
-export type SafeParamDerivation<T> = OmitNever<{
-  primaryKey: HasDbPk<T> extends true ? true : never;
-  nullable: HasDefaultValue<T> extends true ? never
-          : IsNullable<T> extends true ? true
-          : IsOptional<T> extends true ? true
+export type SafeParamDerivation<
+  T extends Type<any, any> | [Type<any, any>, ...any[]],
+> = OmitNever<{
+  primaryKey: HasDbPk<GetBaseType<T>> extends true ? true : never;
+  nullable: HasDefaultValue<GetBaseType<T>> extends true ? never
+          : IsNullable<GetBaseType<T>> extends true ? true
+          : IsOptional<GetBaseType<T>> extends true ? true
           : never;
-  default: HasDefaultValue<T> extends true ? never : never;
-  autoIncrement: GetAutoIncrement<T>;
+  default: GetDefaultValue<T>;
+  autoIncrement: GetAutoIncrement<GetBaseType<T>>;
   foreignKeyTable: DbFkTable<T>;
   foreignKeyColumn: DbFkColumn<T>;
   array: ArrayDimensions<T>;

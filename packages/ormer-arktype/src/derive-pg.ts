@@ -9,8 +9,8 @@ import type {
   GetMaxLength,
   IsVarchar,
   SafeParamDerivation,
-  RemovePlainArrays,
   RewrapToColumnType,
+  GetBaseTypeWithoutArrays,
 } from "./common.ts";
 
 type FinalType<T> = T extends infer U ? { [K in keyof U]: U[K] } : never;
@@ -50,14 +50,7 @@ type DeriveBasePgColumn<T extends Type<any, any>> =
 export type DerivePgColumn<
   T extends Type<any, any> | [Type<any, any>, ...any[]],
 > = RewrapToColumnType<
-  DeriveBasePgColumn<
-    T extends [Type<infer Base, infer $>, ...any[]]
-      ? Type<RemovePlainArrays<Base>, $>
-      : T extends Type<infer A, infer $>
-        ? Type<RemovePlainArrays<A>, $>
-        : never
-  > &
-    SafeParamDerivation<T>
+  DeriveBasePgColumn<GetBaseTypeWithoutArrays<T>> & SafeParamDerivation<T>
 >;
 
 /**

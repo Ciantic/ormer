@@ -148,8 +148,8 @@ export const ALL_PG_FIELDS = {
   // Container types
   c_str_nullable: pg.text({ nullable: true }),
   c_str_nullish: pg.text({ nullable: true }),
-  c_str_default: pg.text({ default: "" }),
-  c_int64_default: pg.int8({ default: 0n }),
+  c_str_default: pg.text({ default: "" as const }),
+  c_int64_default: pg.int8({ default: 0n as const }),
   c_str_pk: pg.text({ primaryKey: true }),
   c_int64_fk: pg.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
   c_int64_fk_plain: pg.int8({

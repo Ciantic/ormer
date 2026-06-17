@@ -67,11 +67,11 @@ const _db = scope({
   datepart: format("datepart", "string.date"),
   timepart: format(
     "timepart",
-    "/^([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(\\.\\d+)?$/",
+    "/^([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(\\.\\d+)?$/" as type.cast<string>,
   ),
   naivedatetime: format(
     "naivedatetime",
-    "/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(\\.\\d+)?$/",
+    "/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}(\\.\\d+)?$/" as type.cast<string>,
   ),
 } satisfies Record<DbFormatId, any>);
 
