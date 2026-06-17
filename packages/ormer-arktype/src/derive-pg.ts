@@ -54,15 +54,32 @@ export type DerivePgColumn<
 >;
 
 /**
+ * Derive a PgTable type from a ZodObject with dbTable metadata.
+ */
+export type DerivePgTable<
+  T extends Type<Record<string, any>, any> & TableName<string>,
+> =
+  T extends Type<infer Shape, infer $>
+    ? T extends TableName<infer Name>
+      ? Table<
+          Name,
+          {
+            [K in keyof Shape]: DerivePgColumn<Type<Shape[K], $>>;
+          }
+        >
+      : never
+    : never;
+
+/**
  * Map a generic arktype choice to a PostgreSQL ColumnType.
  *
  * For "string" and "number" we also inspect `params.dbformat` (set from
  * `.configure({ dbformat: ... })` or `db.varchar()` / `db.type("...")`) to
  * pick the correct PG type.
  */
-export function derivePgColumn(
-  schema: Type<any, any>,
-): ColumnType<string, any> {
+export function derivePgColumn<
+  T extends Type<any, any> | [Type<any, any>, ...any[]],
+>(schema: T): DerivePgColumn<T> {
   return deriveColumn(schema, ([domain, dbformat, params]) => {
     if (domain === "string") {
       if (dbformat === "uuid") return pg.uuid(params);
@@ -118,9 +135,9 @@ export function derivePgColumn(
 /**
  * Derive an ormer PgTable from an arktype table type created with `db.table()`.
  */
-export function derivePgTable(
-  schema: Type<any, any> & TableName<string>,
-): Table<string, Record<string, ColumnType<string, any>>> {
+export function derivePgTable<
+  T extends Type<Record<string, any>, any> & TableName<string>,
+>(schema: T): DerivePgTable<T> {
   const tableName = (schema as any).meta?.tableName;
   if (typeof tableName !== "string") {
     throw new Error(
