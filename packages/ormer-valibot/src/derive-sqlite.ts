@@ -184,9 +184,9 @@ function maxLengthCheck(colName: string, maxLength: number): string {
 /**
  * Derive a SQLite column from a valibot schema.
  */
-export function deriveSqliteColumn(
-  schema: AnyValibotSchema,
-): ColumnType<string, any> {
+export function deriveSqliteColumn<T extends ValibotSchema>(
+  schema: T,
+): DeriveSqliteColumn<T> {
   // Check for explicit dbSqliteColumnType override in metadata
   const dbMeta = extractDbMetadata(schema);
   if (dbMeta?.sqliteColumnType) {
@@ -279,9 +279,9 @@ export function deriveSqliteColumn(
 /**
  * Derive an ormer SQLite table from a valibot object schema.
  */
-export function deriveSqliteTable(
-  schema: AnyValibotSchema,
-): Table<string, Record<string, ColumnType<any, any>>> {
+export function deriveSqliteTable<
+  T extends ObjectSchema<any, any> & { pipe?: readonly any[] },
+>(schema: T): DeriveSqliteTable<T> {
   const dbMeta = extractDbMetadata(schema);
   if (!dbMeta || typeof dbMeta.tableName !== "string") {
     throw new Error(

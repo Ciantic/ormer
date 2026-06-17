@@ -23,6 +23,7 @@ import * as duckdbModule from "@duckdb/node-api";
 import * as k from "kysely";
 import { ALL_VALIBOT_FIELDS, ALL_DUCKDB_FIELDS } from "./fields.ts";
 import "../src/valibot-ext.ts";
+import type { ValibotSchema } from "../src/common.ts";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -58,7 +59,7 @@ function getAs(obj: any): any {
  * Run deriveDuckDbColumn on a valibot schema and compare against the expected
  * DuckDB column definition.
  */
-function runtimeTest(valibotSchema: AnyValibotSchema, expectedColumn: any) {
+function runtimeTest(valibotSchema: ValibotSchema, expectedColumn: any) {
   if (expectedColumn === "ERROR") {
     expect(() => deriveDuckDbColumn(valibotSchema)).toThrow();
   } else {
@@ -78,7 +79,7 @@ describe("ALL_VALIBOT_FIELDS deriveDuckDbColumn", () => {
     const expectedColumn =
       ALL_DUCKDB_FIELDS[key as keyof typeof ALL_DUCKDB_FIELDS];
     it(`${key}`, () => {
-      runtimeTest(valibotSchema as AnyValibotSchema, expectedColumn);
+      runtimeTest(valibotSchema, expectedColumn);
     });
   }
 

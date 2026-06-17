@@ -142,9 +142,9 @@ export type DeriveDuckDbTable<
 /**
  * Derive a DuckDB column from a valibot schema.
  */
-export function deriveDuckDbColumn(
-  schema: AnyValibotSchema,
-): ColumnType<string, any> {
+export function deriveDuckDbColumn<T extends ValibotSchema>(
+  schema: T,
+): DeriveDuckDbColumn<T> {
   // Check for explicit dbDuckDbColumnType override in metadata
   const dbMeta = extractDbMetadata(schema);
   if (dbMeta?.duckDbColumnType) {
@@ -223,9 +223,9 @@ export function deriveDuckDbColumn(
 /**
  * Derive an ormer DuckDB table from a valibot object schema.
  */
-export function deriveDuckDbTable(
-  schema: AnyValibotSchema,
-): Table<string, Record<string, ColumnType<any, any>>> {
+export function deriveDuckDbTable<
+  T extends ObjectSchema<any, any> & { pipe?: readonly any[] },
+>(schema: T): DeriveDuckDbTable<T> {
   const dbMeta = extractDbMetadata(schema);
   if (!dbMeta || typeof dbMeta.tableName !== "string") {
     throw new Error(

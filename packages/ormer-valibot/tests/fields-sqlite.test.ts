@@ -20,6 +20,7 @@ import {
 import * as k from "kysely";
 import { ALL_VALIBOT_FIELDS, ALL_SQLITE_FIELDS } from "./fields.ts";
 import "../src/valibot-ext.ts";
+import type { ValibotSchema } from "../src/common.ts";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -58,7 +59,7 @@ function getAs(obj: any): any {
  * Run deriveSqliteColumn on a valibot schema and compare against the expected
  * SQLite column definition.
  */
-function runtimeTest(valibotSchema: AnyValibotSchema, expectedColumn: any) {
+function runtimeTest(valibotSchema: ValibotSchema, expectedColumn: any) {
   if (expectedColumn === "ERROR") {
     expect(() => deriveSqliteColumn(valibotSchema)).toThrow();
   } else {
@@ -78,7 +79,7 @@ describe("ALL_VALIBOT_FIELDS deriveSqliteColumn runtime", () => {
     const expectedColumn =
       ALL_SQLITE_FIELDS[key as keyof typeof ALL_SQLITE_FIELDS];
     it(`${key}`, () => {
-      runtimeTest(valibotSchema as AnyValibotSchema, expectedColumn);
+      runtimeTest(valibotSchema, expectedColumn);
     });
   }
 });

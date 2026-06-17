@@ -1,7 +1,6 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
 import * as v from "valibot";
 import { derivePgColumn, type DerivePgColumn } from "../src/derive-pg.ts";
-import type { AnyValibotSchema } from "../src/derive.ts";
 import {
   database,
   createTableSql,
@@ -19,6 +18,7 @@ import { PGlite } from "@electric-sql/pglite";
 import * as k from "kysely";
 import { ALL_VALIBOT_FIELDS, ALL_PG_FIELDS } from "./fields.ts";
 import "../src/valibot-ext.ts";
+import type { ValibotSchema } from "../src/common.ts";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -54,7 +54,7 @@ function getAs(obj: any): any {
  * Run derivePgColumn on a valibot schema and compare against the expected
  * PG column definition.
  */
-function runtimeTest(valibotSchema: AnyValibotSchema, expectedColumn: any) {
+function runtimeTest(valibotSchema: ValibotSchema, expectedColumn: any) {
   if (expectedColumn === "ERROR") {
     expect(() => derivePgColumn(valibotSchema)).toThrow();
   } else {
@@ -73,7 +73,7 @@ describe("ALL_VALIBOT_FIELDS derivePgColumn", () => {
   )) {
     const expectedColumn = ALL_PG_FIELDS[key as keyof typeof ALL_PG_FIELDS];
     it(`${key}`, () => {
-      runtimeTest(valibotSchema as AnyValibotSchema, expectedColumn);
+      runtimeTest(valibotSchema as ValibotSchema, expectedColumn);
     });
   }
 

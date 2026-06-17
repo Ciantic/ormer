@@ -140,9 +140,9 @@ export type DerivePgTable<
 /**
  * Derive a PgColumn from a valibot schema.
  */
-export function derivePgColumn(
-  schema: AnyValibotSchema,
-): ColumnType<string, any> {
+export function derivePgColumn<T extends ValibotSchema>(
+  schema: T,
+): DerivePgColumn<T> {
   // Check for explicit dbPgColumnType override in metadata
   const dbMeta = extractDbMetadata(schema);
   if (dbMeta?.pgColumnType) {
@@ -217,9 +217,9 @@ export function derivePgColumn(
 /**
  * Derive an ormer PgTable from a valibot object schema.
  */
-export function derivePgTable(
-  schema: AnyValibotSchema,
-): Table<string, Record<string, ColumnType<any, any>>> {
+export function derivePgTable<
+  T extends ObjectSchema<any, any> & { pipe?: readonly any[] },
+>(schema: T): DerivePgTable<T> {
   const dbMeta = extractDbMetadata(schema);
   if (!dbMeta || typeof dbMeta.tableName !== "string") {
     throw new Error(
