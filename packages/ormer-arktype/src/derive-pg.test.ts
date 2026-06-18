@@ -54,7 +54,7 @@ describe("derivePgTable", () => {
     // strip internal derive fields and compare
     const cols = invoiceTable.columns;
     function clean(obj: any) {
-      const { dbformat, columnName, tableName, ...rest } = obj;
+      const { columnName, tableName, ...rest } = obj;
       return rest;
     }
 
