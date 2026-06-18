@@ -714,3 +714,308 @@ Notes:
 </tr>
   </tbody>
 </table>
+
+## Ormer-Arktype package
+<table>
+  <thead>
+    <tr>
+      <th>ArkType Schema</th>
+      <th>Postgres</th>
+      <th>DuckDB</th>
+      <th>SQLite</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+<td colspan="4"><strong>String values</strong></td>
+</tr>
+<tr>
+<td><code>type("string")</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>type("string <= 255")</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>db.varchar(255)</code></td>
+<td><code>VARCHAR(255)</code></td>
+<td><code>VARCHAR(255)</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Number types</strong></td>
+</tr>
+<tr>
+<td><code>type("number")</code></td>
+<td><code>FLOAT8</code></td>
+<td><code>FLOAT8</code></td>
+<td><code>REAL</code></td>
+</tr>
+<tr>
+<td><code>type("number.integer")</code></td>
+<td><code>FLOAT8</code></td>
+<td><code>FLOAT8</code></td>
+<td><code>REAL</code></td>
+</tr>
+<tr>
+<td><code>db.type("float32")</code></td>
+<td><code>FLOAT4</code></td>
+<td><code>FLOAT4</code></td>
+<td><code>REAL</code></td>
+</tr>
+<tr>
+<td><code>db.type("float64")</code></td>
+<td><code>FLOAT8</code></td>
+<td><code>FLOAT8</code></td>
+<td><code>REAL</code></td>
+</tr>
+<tr>
+<td><code>db.type("int8")</code></td>
+<td><em>Not Available</em></td>
+<td><code>INT1</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>db.type("uint8")</code></td>
+<td><em>Not Available</em></td>
+<td><code>UTINYINT</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>db.type("uint16")</code></td>
+<td><em>Not Available</em></td>
+<td><code>USMALLINT</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>db.type("int16")</code></td>
+<td><code>INT2</code></td>
+<td><code>INT2</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>db.type("int32")</code></td>
+<td><code>INT4</code></td>
+<td><code>INT4</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>db.type("uint32")</code></td>
+<td><em>Not Available</em></td>
+<td><code>UINTEGER</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>db.primaryKey("int32")</code></td>
+<td><code>SERIAL4 PRIMARY KEY</code></td>
+<td><code>INT4 PRIMARY KEY</code></td>
+<td><code>INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Bigint</strong></td>
+</tr>
+<tr>
+<td><code>type("bigint")</code></td>
+<td><code>INT8</code></td>
+<td><code>INT8</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>db.type("int64")</code></td>
+<td><code>INT8</code></td>
+<td><code>INT8</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>db.type("uint64")</code></td>
+<td><em>Not Available</em></td>
+<td><code>UBIGINT</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>db.type("uint128")</code></td>
+<td><em>Not Available</em></td>
+<td><code>UHUGEINT</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>db.primaryKey("int64")</code></td>
+<td><code>SERIAL8 PRIMARY KEY</code></td>
+<td><code>INT8 PRIMARY KEY</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Boolean</strong></td>
+</tr>
+<tr>
+<td><code>type("boolean")</code></td>
+<td><code>BOOLEAN</code></td>
+<td><code>BOOLEAN</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td colspan="4"><strong>JSON</strong></td>
+</tr>
+<tr>
+<td><code>type({ v: "string" })</code></td>
+<td><code>JSONB</code></td>
+<td><code>JSON</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Date/time types</strong></td>
+</tr>
+<tr>
+<td><code>type("Date")</code></td>
+<td><code>TIMESTAMPTZ</code></td>
+<td><code>TIMESTAMPTZ</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>db.type("timepart")</code></td>
+<td><code>TIME</code></td>
+<td><code>TIME</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>db.type("datepart")</code></td>
+<td><code>DATE</code></td>
+<td><code>DATE</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>type("string.date.iso")</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>db.type("naivedatetime")</code></td>
+<td><code>TIMESTAMP</code></td>
+<td><code>TIMESTAMP</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>GUID / UUID</strong></td>
+</tr>
+<tr>
+<td><code>type("string.uuid")</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>db.type("uuid")</code></td>
+<td><code>UUID</code></td>
+<td><code>UUID</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Various string formats</strong></td>
+</tr>
+<tr>
+<td><code>type("string.url")</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>type("string.email")</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Network types</strong></td>
+</tr>
+<tr>
+<td><code>type("string.ip.v4")</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>type("string.ip.v6")</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Array types</strong></td>
+</tr>
+<tr>
+<td><code>db.type("int32[]")</code></td>
+<td><code>INT4[]</code></td>
+<td><code>INT4[]</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>db.type("int64[][]")</code></td>
+<td><code>INT8[][]</code></td>
+<td><code>INT8[][]</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>type("string[]")</code></td>
+<td><code>TEXT[]</code></td>
+<td><code>TEXT[]</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>type("string[] | null")</code></td>
+<td><code>TEXT[] NULL</code></td>
+<td><code>TEXT[] NULL</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Container types</strong></td>
+</tr>
+<tr>
+<td><code>type("string | null")</code></td>
+<td><code>TEXT NULL</code></td>
+<td><code>TEXT NULL</code></td>
+<td><code>TEXT NULL</code></td>
+</tr>
+<tr>
+<td><code>type("string | null | undefined")</code></td>
+<td><code>TEXT NULL</code></td>
+<td><code>TEXT NULL</code></td>
+<td><code>TEXT NULL</code></td>
+</tr>
+<tr>
+<td><code>type("string").default("")</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>db.type("int64").default(0n)</code></td>
+<td><code>INT8</code></td>
+<td><code>INT8</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>db.primaryKey("string")</code></td>
+<td><code>TEXT PRIMARY KEY</code></td>
+<td><code>TEXT PRIMARY KEY</code></td>
+<td><code>TEXT PRIMARY KEY</code></td>
+</tr>
+<tr>
+<td><code>db.foreignKeyRef(UserSchema, "id")</code></td>
+<td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
+<td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>db.foreignKey("int64", "users", "id")</code></td>
+<td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
+<td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
+<td><em>Not Available</em></td>
+</tr>
+  </tbody>
+</table>
