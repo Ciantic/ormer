@@ -52,15 +52,15 @@ function dbMetadata<TInput, TExt extends Record<string, unknown>>(
   return v.metadata<TInput, { db: TExt }>({ db: extension });
 }
 
-export function dbTable<TInput, const TName extends string>(tableName: TName) {
+export function table<TInput, const TName extends string>(tableName: TName) {
   return dbMetadata<TInput, { tableName: TName }>({ tableName });
 }
 
-export function dbPrimaryKey<TInput>() {
+export function primaryKey<TInput>() {
   return dbMetadata<TInput, { primaryKey: true }>({ primaryKey: true });
 }
 
-export function dbForeignKey<
+export function foreignKey<
   TInput,
   const TTable extends string,
   const TColumn extends string,
@@ -74,7 +74,7 @@ export function dbForeignKey<
   });
 }
 
-export function dbNavigate<TInput, TSchema, const TKey extends string>(
+export function navigation<TInput, TSchema, const TKey extends string>(
   schema: TSchema,
   key: TKey,
 ) {
@@ -83,23 +83,19 @@ export function dbNavigate<TInput, TSchema, const TKey extends string>(
   });
 }
 
-export function dbPgColumnType<TInput, TColumnType>(columnType: TColumnType) {
+export function pgColumnType<TInput, TColumnType>(columnType: TColumnType) {
   return dbMetadata<TInput, { pgColumnType: TColumnType }>({
     pgColumnType: columnType,
   });
 }
 
-export function dbDuckDbColumnType<TInput, TColumnType>(
-  columnType: TColumnType,
-) {
+export function duckDbColumnType<TInput, TColumnType>(columnType: TColumnType) {
   return dbMetadata<TInput, { duckDbColumnType: TColumnType }>({
     duckDbColumnType: columnType,
   });
 }
 
-export function dbSqliteColumnType<TInput, TColumnType>(
-  columnType: TColumnType,
-) {
+export function sqliteColumnType<TInput, TColumnType>(columnType: TColumnType) {
   return dbMetadata<TInput, { sqliteColumnType: TColumnType }>({
     sqliteColumnType: columnType,
   });

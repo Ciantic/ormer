@@ -21,7 +21,7 @@ describe("derivePgTable", () => {
   it("derives an invoice table with common PG column types", () => {
     const InvoiceSchema = v.pipe(
       v.object({
-        id: v.pipe(v.bigint(), d.int64(), d.dbPrimaryKey()),
+        id: v.pipe(v.bigint(), d.int64(), d.primaryKey()),
         title: v.string(),
         description: v.nullable(v.string()),
         due_date: v.pipe(v.string(), d.naiveDatetime()),
@@ -30,7 +30,7 @@ describe("derivePgTable", () => {
         quantity: v.pipe(v.number(), d.float64()),
         is_paid: v.boolean(),
       }),
-      d.dbTable("invoice"),
+      d.table("invoice"),
     );
 
     const invoiceTable = derivePgTable(InvoiceSchema);
