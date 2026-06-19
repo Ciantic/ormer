@@ -66,12 +66,18 @@ type DeriveBaseDuckDbColumn<T extends ValibotSchema> =
       : ColumnTypeSingualr<"text">
 
   // Number formats
+  : HasDbTypeCheck<T, "int8"> extends true                    ? ColumnTypeSingualr<"int1">
+  : HasDbTypeCheck<T, "int16"> extends true                   ? ColumnTypeSingualr<"int2">
   : HasDbTypeCheck<T, "int32"> extends true                   ? ColumnTypeSingualr<"int4">
+  : HasDbTypeCheck<T, "uint8"> extends true                   ? ColumnTypeSingualr<"utinyint">
+  : HasDbTypeCheck<T, "uint16"> extends true                  ? ColumnTypeSingualr<"usmallint">
   : HasDbTypeCheck<T, "uint32"> extends true                  ? ColumnTypeSingualr<"uinteger">
-  : HasDbTypeCheck<T, "float32"> extends true                 ? ColumnTypeSingualr<"float4">
-  : HasDbTypeCheck<T, "float64"> extends true                 ? ColumnTypeSingualr<"float8">
   : HasDbTypeCheck<T, "int64"> extends true                   ? ColumnTypeSingualr<"int8">
   : HasDbTypeCheck<T, "uint64"> extends true                  ? ColumnTypeSingualr<"ubigint">
+  : HasDbTypeCheck<T, "int128"> extends true                  ? ColumnTypeSingualr<"hugeint">
+  : HasDbTypeCheck<T, "uint128"> extends true                 ? ColumnTypeSingualr<"uhugeint">
+  : HasDbTypeCheck<T, "float32"> extends true                 ? ColumnTypeSingualr<"float4">
+  : HasDbTypeCheck<T, "float64"> extends true                 ? ColumnTypeSingualr<"float8">
   : HasPipeItem<T, "safe_integer"> extends true          ? ColumnTypeSingualr<"int4">
   : HasPipeItem<T, "integer"> extends true               ? ColumnTypeSingualr<"int4">
   : HasBaseSchema<T, NumberSchema<any>> extends true     ? ColumnTypeSingualr<"float8">
@@ -182,15 +188,27 @@ export function deriveDuckDbColumn<T extends ValibotSchema>(
         return duckdb.timestamp(params as Params);
       case "integer":
         return duckdb.int4(params);
+      case "int8":
+        return duckdb.int1(params);
+      case "int16":
+        return duckdb.int2(params);
       case "int64":
       case "bigint":
         return duckdb.int8(params);
+      case "uint8":
+        return duckdb.utinyint(params);
+      case "uint16":
+        return duckdb.usmallint(params);
       case "uint64":
         return duckdb.ubigint(params);
       case "int32":
         return duckdb.int4(params);
       case "uint32":
         return duckdb.uinteger(params);
+      case "int128":
+        return duckdb.hugeint(params);
+      case "uint128":
+        return duckdb.uhugeint(params);
       case "float32":
         return duckdb.float4(params);
       case "float64":

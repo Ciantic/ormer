@@ -280,13 +280,21 @@ export type RewrapDeriveTable<T> =
  */
 type GetAutoIncrement<T extends ValibotSchema> =
   HasDbPk<T> extends true
-    ? HasDbTypeCheck<T, "int32"> extends true
+    ? HasDbTypeCheck<T, "int8"> extends true
       ? true
-      : HasDbTypeCheck<T, "int64"> extends true
+      : HasDbTypeCheck<T, "int16"> extends true
         ? true
-        : HasDbTypeCheck<T, "uint64"> extends true
+        : HasDbTypeCheck<T, "int32"> extends true
           ? true
-          : never
+          : HasDbTypeCheck<T, "uint8"> extends true
+            ? true
+            : HasDbTypeCheck<T, "uint16"> extends true
+              ? true
+              : HasDbTypeCheck<T, "int64"> extends true
+                ? true
+                : HasDbTypeCheck<T, "uint64"> extends true
+                  ? true
+                  : never
     : never;
 
 // prettier-ignore

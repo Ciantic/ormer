@@ -54,10 +54,16 @@ export type ValibotSchemas =
   | ["naiveDatetime", ParamsDerived]
   | ["string", ParamsDerived<{ maxLength: number }> | ParamsDerived]
   | ["integer", ParamsDerived]
-  | ["int64", ParamsDerived]
+  | ["int8", ParamsDerived]
+  | ["int16", ParamsDerived]
   | ["int32", ParamsDerived]
+  | ["uint8", ParamsDerived]
+  | ["uint16", ParamsDerived]
   | ["uint32", ParamsDerived]
+  | ["int64", ParamsDerived]
   | ["uint64", ParamsDerived]
+  | ["int128", ParamsDerived]
+  | ["uint128", ParamsDerived]
   | ["float32", ParamsDerived]
   | ["float64", ParamsDerived]
   | ["bigint", ParamsDerived]
@@ -322,11 +328,18 @@ export function deriveColumn<
   if (dbtype) {
     switch (dbtype) {
       case "int64":
+      case "int8":
+      case "int16":
       case "int32":
         if (primaryKey) pgParamsBase.autoIncrement = true;
         return chooser([dbtype, pgParamsBase] as any);
-      case "uint64":
+      case "uint8":
+      case "uint16":
       case "uint32":
+      case "int64":
+      case "uint64":
+      case "int128":
+      case "uint128":
       case "float32":
       case "float64":
         return chooser([dbtype, pgParamsBase] as any);

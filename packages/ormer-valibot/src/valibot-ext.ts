@@ -19,12 +19,21 @@ export interface DbTypeIssue<T extends string> {
   (): string;
 }
 
+const INT8_MIN = -128;
+const INT8_MAX = 127;
+const INT16_MIN = -32768;
+const INT16_MAX = 32767;
 const INT32_MIN = -2147483648;
 const INT32_MAX = 2147483647;
+const UINT8_MAX = 255;
+const UINT16_MAX = 65535;
 const UINT32_MAX = 4294967295;
 const INT64_MIN = -9223372036854775808n;
 const INT64_MAX = 9223372036854775807n;
 const UINT64_MAX = 18446744073709551615n;
+const HUGEINT_MIN = -170141183460469231731687303715884105728n;
+const HUGEINT_MAX = 170141183460469231731687303715884105727n;
+const UHUGEINT_MAX = 340282366920938463463374607431768211455n;
 
 function dbCheck<TInput, const Discriminant extends string>(
   discriminant: Discriminant,
@@ -96,6 +105,28 @@ export function dbSqliteColumnType<TInput, TColumnType>(
   });
 }
 
+export function int8() {
+  return v.pipe(
+    v.number(),
+    dbCheck(
+      "int8",
+      (n) => Number.isInteger(n) && n >= INT8_MIN && n <= INT8_MAX,
+      `Value must be an integer between ${INT8_MIN} and ${INT8_MAX}`,
+    ),
+  );
+}
+
+export function int16() {
+  return v.pipe(
+    v.number(),
+    dbCheck(
+      "int16",
+      (n) => Number.isInteger(n) && n >= INT16_MIN && n <= INT16_MAX,
+      `Value must be an integer between ${INT16_MIN} and ${INT16_MAX}`,
+    ),
+  );
+}
+
 export function int32() {
   return v.pipe(
     v.number(),
@@ -103,6 +134,28 @@ export function int32() {
       "int32",
       (n) => Number.isInteger(n) && n >= INT32_MIN && n <= INT32_MAX,
       `Value must be an integer between ${INT32_MIN} and ${INT32_MAX}`,
+    ),
+  );
+}
+
+export function uint8() {
+  return v.pipe(
+    v.number(),
+    dbCheck(
+      "uint8",
+      (n) => Number.isInteger(n) && n >= 0 && n <= UINT8_MAX,
+      `Value must be an integer between 0 and ${UINT8_MAX}`,
+    ),
+  );
+}
+
+export function uint16() {
+  return v.pipe(
+    v.number(),
+    dbCheck(
+      "uint16",
+      (n) => Number.isInteger(n) && n >= 0 && n <= UINT16_MAX,
+      `Value must be an integer between 0 and ${UINT16_MAX}`,
     ),
   );
 }
@@ -158,6 +211,28 @@ export function uint64() {
       "uint64",
       (n) => n >= 0n && n <= UINT64_MAX,
       `Value must be a bigint between 0 and ${UINT64_MAX}`,
+    ),
+  );
+}
+
+export function int128() {
+  return v.pipe(
+    v.bigint(),
+    dbCheck(
+      "int128",
+      (n) => n >= HUGEINT_MIN && n <= HUGEINT_MAX,
+      `Value must be a bigint between ${HUGEINT_MIN} and ${HUGEINT_MAX}`,
+    ),
+  );
+}
+
+export function uint128() {
+  return v.pipe(
+    v.bigint(),
+    dbCheck(
+      "uint128",
+      (n) => n >= 0n && n <= UHUGEINT_MAX,
+      `Value must be a bigint between 0 and ${UHUGEINT_MAX}`,
     ),
   );
 }

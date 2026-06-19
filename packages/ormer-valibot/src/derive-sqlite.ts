@@ -68,12 +68,18 @@ type DeriveBaseSqliteColumn<T extends ValibotSchema> =
       : ColumnTypeSingualr<"text">
 
   // Number formats — SQLite INTEGER is always number, can't round-trip bigint
+  : HasDbTypeCheck<T, "int8"> extends true                    ? ColumnTypeSingualr<"integer">
+  : HasDbTypeCheck<T, "int16"> extends true                   ? ColumnTypeSingualr<"integer">
   : HasDbTypeCheck<T, "int32"> extends true                   ? ColumnTypeSingualr<"integer">
+  : HasDbTypeCheck<T, "uint8"> extends true                   ? ColumnTypeSingualr<"integer">
+  : HasDbTypeCheck<T, "uint16"> extends true                  ? ColumnTypeSingualr<"integer">
   : HasDbTypeCheck<T, "uint32"> extends true                  ? ColumnTypeSingualr<"integer">
   : HasDbTypeCheck<T, "float32"> extends true                 ? ColumnTypeSingualr<"real">
   : HasDbTypeCheck<T, "float64"> extends true                 ? ColumnTypeSingualr<"real">
   : HasDbTypeCheck<T, "int64"> extends true                   ? { type: "ERROR" }
   : HasDbTypeCheck<T, "uint64"> extends true                  ? { type: "ERROR" }
+  : HasDbTypeCheck<T, "int128"> extends true                  ? { type: "ERROR" }
+  : HasDbTypeCheck<T, "uint128"> extends true                 ? { type: "ERROR" }
   : HasPipeItem<T, "safe_integer"> extends true          ? ColumnTypeSingualr<"integer">
   : HasPipeItem<T, "integer"> extends true               ? ColumnTypeSingualr<"integer">
   : HasBaseSchema<T, NumberSchema<any>> extends true     ? ColumnTypeSingualr<"real">
@@ -237,16 +243,22 @@ export function deriveSqliteColumn<T extends ValibotSchema>(
       case "isoDatetime":
       case "naiveDatetime":
         return sqlite.text(p as Params);
-      case "int64":
-      case "uint64":
-      case "bigint":
-        throw new Error(
-          `BigInt / Int64 / UInt64 is not supported by deriveSqliteColumn. SQLite INTEGER maps to number and cannot round-trip bigint values.`,
-        );
       case "integer":
+      case "int8":
+      case "int16":
       case "int32":
+      case "uint8":
+      case "uint16":
       case "uint32":
         return sqlite.integer(p as Params);
+      case "int64":
+      case "uint64":
+      case "int128":
+      case "uint128":
+      case "bigint":
+        throw new Error(
+          `BigInt / Int64 / UInt64 / Int128 / UInt128 is not supported by deriveSqliteColumn. SQLite INTEGER maps to number and cannot round-trip bigint values.`,
+        );
       case "float32":
       case "float64":
       case "number":

@@ -60,12 +60,18 @@ type DeriveBasePgColumn<T extends ValibotSchema> =
       : ColumnTypeSingualr<"text">
 
   // Number formats
+  : HasDbTypeCheck<T, "int8"> extends true                    ? { type: "ERROR" }
+  : HasDbTypeCheck<T, "int16"> extends true                   ? ColumnTypeSingualr<"int2">
   : HasDbTypeCheck<T, "int32"> extends true                   ? ColumnTypeSingualr<"int4">
+  : HasDbTypeCheck<T, "uint8"> extends true                   ? { type: "ERROR" }
+  : HasDbTypeCheck<T, "uint16"> extends true                  ? { type: "ERROR" }
   : HasDbTypeCheck<T, "uint32"> extends true                  ? { type: "ERROR" }
   : HasDbTypeCheck<T, "float32"> extends true                 ? ColumnTypeSingualr<"float4">
   : HasDbTypeCheck<T, "float64"> extends true                 ? ColumnTypeSingualr<"float8">
   : HasDbTypeCheck<T, "int64"> extends true                   ? ColumnTypeSingualr<"int8">
   : HasDbTypeCheck<T, "uint64"> extends true                  ? { type: "ERROR" }
+  : HasDbTypeCheck<T, "int128"> extends true                  ? { type: "ERROR" }
+  : HasDbTypeCheck<T, "uint128"> extends true                 ? { type: "ERROR" }
   : HasPipeItem<T, "safe_integer"> extends true          ? ColumnTypeSingualr<"int4">
   : HasPipeItem<T, "integer"> extends true               ? ColumnTypeSingualr<"int4">
   : HasBaseSchema<T, NumberSchema<any>> extends true     ? ColumnTypeSingualr<"float8">
@@ -176,15 +182,27 @@ export function derivePgColumn<T extends ValibotSchema>(
         return pg.timestamp(params as Params);
       case "integer":
         return pg.int4(params);
+      case "int8":
+        throw new Error(`PG has no mapping for int8 (tinyint)`);
+      case "int16":
+        return pg.int2(params);
       case "int64":
       case "bigint":
         return pg.int8(params);
+      case "uint8":
+        throw new Error(`PG has no mapping for uint8`);
+      case "uint16":
+        throw new Error(`PG has no mapping for uint16`);
       case "uint64":
         throw new Error(`PG has no mapping for uint64`);
       case "int32":
         return pg.int4(params);
       case "uint32":
         throw new Error(`PG has no mapping for uint32`);
+      case "int128":
+        throw new Error(`PG has no mapping for int128 (hugeint)`);
+      case "uint128":
+        throw new Error(`PG has no mapping for uint128 (uhugeint)`);
       case "float32":
         return pg.float4(params);
       case "float64":
