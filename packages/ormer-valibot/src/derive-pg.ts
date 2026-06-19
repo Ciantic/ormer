@@ -103,7 +103,9 @@ type DeriveBasePgColumn<T extends ValibotSchema> =
 export type DerivePgColumn<T extends ValibotSchema> =
     // Explicit .dbPgColumnType() override — skip derivation entirely
     DbMetadataOf<T> extends { pgColumnType: infer C } ? C
-  : RewrapToColumnType<
+  : DeriveBasePgColumn<T> extends { type: "ERROR" }
+    ? { type: "ERROR" }
+    : RewrapToColumnType<
     DeriveBasePgColumn<T> & SafeParamDerivation<T>
   >;
 

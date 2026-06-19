@@ -23,12 +23,18 @@ export const ALL_VALIBOT_FIELDS = {
   c_int_pk:           { valibot: v.pipe(v.number(), d.int32(), d.dbPrimaryKey()),   example: 1 },
   c_int32:            { valibot: v.pipe(v.number(), d.int32()),                     example: 200 },
   c_uint32:           { valibot: v.pipe(v.number(), d.uint32()),                    example: 300 },
+  c_int8:             { valibot: v.pipe(v.number(), d.int8()),                      example: 100 },
+  c_int16:            { valibot: v.pipe(v.number(), d.int16()),                     example: 1000 },
+  c_uint8:            { valibot: v.pipe(v.number(), d.uint8()),                     example: 200 },
+  c_uint16:           { valibot: v.pipe(v.number(), d.uint16()),                    example: 10000 },
 
   // Bigint
   c_bigint:           { valibot: v.bigint(),                                        example: 9007199254740991n },
   c_int64:            { valibot: v.pipe(v.bigint(), d.int64()),                     example: 123456789n },
   c_int64_pk:         { valibot: v.pipe(v.bigint(), d.int64(), d.dbPrimaryKey()),   example: 1n },
   c_uint64:           { valibot: v.pipe(v.bigint(), d.uint64()),                    example: 18446744073709551615n },
+  c_int128:           { valibot: v.pipe(v.bigint(), d.int128()),                    example: 170141183460469231731687303715884105727n },
+  c_uint128:          { valibot: v.pipe(v.bigint(), d.uint128()),                   example: 340282366920938463463374607431768211455n },
 
   // Boolean
   c_bool:             { valibot: v.boolean(),                             example: true },
@@ -99,12 +105,18 @@ export const ALL_PG_FIELDS = {
   c_int_pk: pg.int4(pkAutoInc),
   c_int32: pg.int4(),
   c_uint32: "ERROR" as const,
+  c_int8: "ERROR" as const,
+  c_int16: pg.int2(),
+  c_uint8: "ERROR" as const,
+  c_uint16: "ERROR" as const,
 
   // Bigint
   c_bigint: pg.int8(),
   c_int64: pg.int8(),
   c_int64_pk: pg.int8(pkAutoInc),
   c_uint64: "ERROR" as const,
+  c_int128: "ERROR" as const,
+  c_uint128: "ERROR" as const,
 
   // Boolean
   c_bool: pg.boolean(),
@@ -174,12 +186,18 @@ export const ALL_DUCKDB_FIELDS = {
   c_int_pk: duckdb.int4(pkAutoInc),
   c_int32: duckdb.int4(),
   c_uint32: duckdb.uinteger(),
+  c_int8: duckdb.int1(),
+  c_int16: duckdb.int2(),
+  c_uint8: duckdb.utinyint(),
+  c_uint16: duckdb.usmallint(),
 
   // Bigint
   c_bigint: duckdb.int8(),
   c_int64: duckdb.int8(),
   c_int64_pk: duckdb.int8(pkAutoInc),
   c_uint64: duckdb.ubigint(),
+  c_int128: duckdb.hugeint(),
+  c_uint128: duckdb.uhugeint(),
 
   // Boolean
   c_bool: duckdb.boolean(),
@@ -251,12 +269,18 @@ export const ALL_SQLITE_FIELDS = {
   c_int_pk: sqlite.integer(pkAutoInc),
   c_int32: sqlite.integer(),
   c_uint32: sqlite.integer(),
+  c_int8: sqlite.integer(),
+  c_int16: sqlite.integer(),
+  c_uint8: sqlite.integer(),
+  c_uint16: sqlite.integer(),
 
   // Bigint — SQLite INTEGER is always number, can't round-trip bigint
   c_bigint: "ERROR" as const,
   c_int64: "ERROR" as const,
   c_int64_pk: "ERROR" as const,
   c_uint64: "ERROR" as const,
+  c_int128: "ERROR" as const,
+  c_uint128: "ERROR" as const,
 
   // Boolean — SQLite has no boolean, stores 0/1 in INTEGER, can't round-trip
   c_bool: "ERROR" as const,

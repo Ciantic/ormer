@@ -105,7 +105,9 @@ type DeriveBaseDuckDbColumn<T extends ValibotSchema> =
 export type DeriveDuckDbColumn<T extends ValibotSchema> =
     // Explicit .dbDuckDbColumnType() override — skip derivation entirely
     DbMetadataOf<T> extends { duckDbColumnType: infer C } ? C
-  : RewrapToColumnType<
+  : DeriveBaseDuckDbColumn<T> extends { type: "ERROR" }
+    ? { type: "ERROR" }
+    : RewrapToColumnType<
     DeriveBaseDuckDbColumn<T> & SafeParamDerivation<T>
   >;
 
