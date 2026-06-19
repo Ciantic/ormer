@@ -20,7 +20,8 @@ import type {
   HasDbNavigation,
   DbTableName,
   DbMetadataOf,
-  HasDbType,
+  HasDbTypeCheck,
+  HasDbTypeRegex,
   HasBaseSchema,
 } from "./common.ts";
 
@@ -52,7 +53,7 @@ type DeriveBaseSqliteColumn<T extends ValibotSchema> =
   : HasPipeItem<T, "mac"> extends true                     ? ColumnTypeSingualr<"text">
 
   // Datetime formats
-  : HasDbType<T, "naiveDatetime"> extends true             ? ColumnTypeSingualr<"text">
+  : HasDbTypeRegex<T, "naiveDatetime"> extends true              ? ColumnTypeSingualr<"text">
   : HasPipeItem<T, "iso_time"> extends true                ? ColumnTypeSingualr<"text">
   : HasPipeItem<T, "iso_time_second"> extends true         ? ColumnTypeSingualr<"text">
   : HasPipeItem<T, "iso_date"> extends true                ? ColumnTypeSingualr<"text">
@@ -67,12 +68,12 @@ type DeriveBaseSqliteColumn<T extends ValibotSchema> =
       : ColumnTypeSingualr<"text">
 
   // Number formats — SQLite INTEGER is always number, can't round-trip bigint
-  : HasDbType<T, "int32"> extends true                   ? ColumnTypeSingualr<"integer">
-  : HasDbType<T, "uint32"> extends true                  ? ColumnTypeSingualr<"integer">
-  : HasDbType<T, "float32"> extends true                 ? ColumnTypeSingualr<"real">
-  : HasDbType<T, "float64"> extends true                 ? ColumnTypeSingualr<"real">
-  : HasDbType<T, "int64"> extends true                   ? { type: "ERROR" }
-  : HasDbType<T, "uint64"> extends true                  ? { type: "ERROR" }
+  : HasDbTypeCheck<T, "int32"> extends true                   ? ColumnTypeSingualr<"integer">
+  : HasDbTypeCheck<T, "uint32"> extends true                  ? ColumnTypeSingualr<"integer">
+  : HasDbTypeCheck<T, "float32"> extends true                 ? ColumnTypeSingualr<"real">
+  : HasDbTypeCheck<T, "float64"> extends true                 ? ColumnTypeSingualr<"real">
+  : HasDbTypeCheck<T, "int64"> extends true                   ? { type: "ERROR" }
+  : HasDbTypeCheck<T, "uint64"> extends true                  ? { type: "ERROR" }
   : HasPipeItem<T, "safe_integer"> extends true          ? ColumnTypeSingualr<"integer">
   : HasPipeItem<T, "integer"> extends true               ? ColumnTypeSingualr<"integer">
   : HasBaseSchema<T, NumberSchema<any>> extends true     ? ColumnTypeSingualr<"real">

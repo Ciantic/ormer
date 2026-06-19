@@ -237,13 +237,13 @@ export function deriveColumn<
     allPipeItems.some((p) => p.type === type);
 
   const getDbType = (): string | undefined => {
-    const check = allPipeItems.find(
+    const item = allPipeItems.find(
       (p): p is AnyValibotSchema & { message: { dbtype: string } } =>
-        p.type === "check" &&
+        (p.type === "check" || p.type === "regex") &&
         typeof (p as any).message === "function" &&
         typeof (p as any).message.dbtype === "string",
     );
-    return check?.message.dbtype;
+    return item?.message.dbtype;
   };
 
   const getMaxLength = (): number | undefined => {

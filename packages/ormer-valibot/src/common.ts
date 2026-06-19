@@ -80,25 +80,20 @@ export type HasBrand<T extends ValibotSchema, B extends string> =
       : false
     : false;
 
-/**
- * Check if a pipe `check` item carries a `dbtype` discriminant matching D.
- * Used by dbCheck()-based helpers (int32, float32, etc.) to distinguish
- * db-specific types without needing valibot brands.
- *
- * dbCheck() passes the DbTypeIssue function (which has a .dbtype property)
- * as the message to v.check(). Valibot stores this on pipe item .message.
- */
-export type HasDbType<T extends ValibotSchema, D extends string> =
+export type HasDbTypeCheck<T extends ValibotSchema, D extends string> =
   GetPipeItemProp<T, "check", "message"> extends { dbtype: infer DB }
     ? DB extends D
       ? true
       : false
     : false;
 
-/**
- * Extract a property from a pipe item matching a given type.
- * Returns the property value, or never if not found.
- */
+export type HasDbTypeRegex<T extends ValibotSchema, D extends string> =
+  GetPipeItemProp<T, "regex", "message"> extends { dbtype: infer DB }
+    ? DB extends D
+      ? true
+      : false
+    : false;
+
 export type GetPipeItemProp<
   T extends ValibotSchema,
   Type extends string,
@@ -109,10 +104,6 @@ export type GetPipeItemProp<
       ? V
       : never
     : never;
-
-// ---------------------------------------------------------------------------
-// Valibot modifier unwrapping utilities (type-level)
-// ---------------------------------------------------------------------------
 
 /**
  * Unwrap modifier schemas to get the inner (base) schema.
@@ -131,10 +122,6 @@ export type UnwrapModifiers<T extends ValibotSchema> =
   : T extends SchemaWithPipe<infer Pipe>                                   ? UnwrapModifiers<Extract<Pipe[0], ValibotSchema>>
 //   : T extends ArraySchema<infer Inner extends ValibotSchema, any>          ? UnwrapModifiers<Inner>
   : T;
-
-// ---------------------------------------------------------------------------
-// Modifier checks — walk the outer modifier chain
-// ---------------------------------------------------------------------------
 
 /**
  * Recursively unwrap modifiers until Check matches, or return false.
@@ -293,11 +280,11 @@ export type RewrapDeriveTable<T> =
  */
 type GetAutoIncrement<T extends ValibotSchema> =
   HasDbPk<T> extends true
-    ? HasDbType<T, "int32"> extends true
+    ? HasDbTypeCheck<T, "int32"> extends true
       ? true
-      : HasDbType<T, "int64"> extends true
+      : HasDbTypeCheck<T, "int64"> extends true
         ? true
-        : HasDbType<T, "uint64"> extends true
+        : HasDbTypeCheck<T, "uint64"> extends true
           ? true
           : never
     : never;

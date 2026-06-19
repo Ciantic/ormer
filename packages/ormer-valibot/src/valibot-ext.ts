@@ -170,16 +170,12 @@ const NAIVE_DATETIME_REGEX =
  * nanoseconds, which are used in SQL datetime formats.
  */
 export function naiveDatetime() {
-  return v.pipe(
-    v.string(),
-    v.regex(
-      NAIVE_DATETIME_REGEX,
-      "Invalid datetime format, expected YYYY-MM-DD HH:MM:SS[.SSS]",
-    ),
-    dbCheck(
-      "naiveDatetime",
-      (s) => NAIVE_DATETIME_REGEX.test(s),
-      "Value must be a naive datetime string (YYYY-MM-DD HH:MM:SS[.SSS])",
-    ),
+  const msgFn: DbTypeIssue<"naiveDatetime"> = Object.assign(
+    () => "Invalid datetime format, expected YYYY-MM-DD HH:MM:SS[.SSS]",
+    {
+      dbtype: "naiveDatetime",
+    } as const,
   );
+
+  return v.pipe(v.string(), v.regex(NAIVE_DATETIME_REGEX, msgFn));
 }

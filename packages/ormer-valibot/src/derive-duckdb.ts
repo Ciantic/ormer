@@ -21,7 +21,8 @@ import type {
   HasDbNavigation,
   DbTableName,
   DbMetadataOf,
-  HasDbType,
+  HasDbTypeCheck,
+  HasDbTypeRegex,
   HasBaseSchema,
 } from "./common.ts";
 
@@ -50,7 +51,7 @@ type DeriveBaseDuckDbColumn<T extends ValibotSchema> =
   : HasPipeItem<T, "mac"> extends true                     ? ColumnTypeSingualr<"text">
 
   // Datetime formats
-  : HasDbType<T, "naiveDatetime"> extends true              ? ColumnTypeSingualr<"timestamp">
+  : HasDbTypeRegex<T, "naiveDatetime"> extends true              ? ColumnTypeSingualr<"timestamp">
   : HasPipeItem<T, "iso_time"> extends true                ? { type: "ERROR" }
   : HasPipeItem<T, "iso_time_second"> extends true         ? ColumnTypeSingualr<"time">
   : HasPipeItem<T, "iso_date"> extends true                ? ColumnTypeSingualr<"date">
@@ -65,12 +66,12 @@ type DeriveBaseDuckDbColumn<T extends ValibotSchema> =
       : ColumnTypeSingualr<"text">
 
   // Number formats
-  : HasDbType<T, "int32"> extends true                   ? ColumnTypeSingualr<"int4">
-  : HasDbType<T, "uint32"> extends true                  ? ColumnTypeSingualr<"uinteger">
-  : HasDbType<T, "float32"> extends true                 ? ColumnTypeSingualr<"float4">
-  : HasDbType<T, "float64"> extends true                 ? ColumnTypeSingualr<"float8">
-  : HasDbType<T, "int64"> extends true                   ? ColumnTypeSingualr<"int8">
-  : HasDbType<T, "uint64"> extends true                  ? ColumnTypeSingualr<"ubigint">
+  : HasDbTypeCheck<T, "int32"> extends true                   ? ColumnTypeSingualr<"int4">
+  : HasDbTypeCheck<T, "uint32"> extends true                  ? ColumnTypeSingualr<"uinteger">
+  : HasDbTypeCheck<T, "float32"> extends true                 ? ColumnTypeSingualr<"float4">
+  : HasDbTypeCheck<T, "float64"> extends true                 ? ColumnTypeSingualr<"float8">
+  : HasDbTypeCheck<T, "int64"> extends true                   ? ColumnTypeSingualr<"int8">
+  : HasDbTypeCheck<T, "uint64"> extends true                  ? ColumnTypeSingualr<"ubigint">
   : HasPipeItem<T, "safe_integer"> extends true          ? ColumnTypeSingualr<"int4">
   : HasPipeItem<T, "integer"> extends true               ? ColumnTypeSingualr<"int4">
   : HasBaseSchema<T, NumberSchema<any>> extends true     ? ColumnTypeSingualr<"float8">
