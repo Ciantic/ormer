@@ -114,6 +114,51 @@ export function float32() {
   );
 }
 
+/*
+export interface Float32AsCustomIssue extends v.BaseIssue<number> {
+  readonly kind: "validation";
+  readonly type: "float32_as_custom";
+  readonly expected: null;
+  readonly received: `${number}`;
+  readonly requirement: (input: number) => boolean;
+}
+
+export interface Float32AsCustomAction extends v.BaseValidation<
+  number,
+  number,
+  Float32AsCustomIssue
+> {
+  readonly type: "float32_as_custom";
+  readonly reference: typeof float32ascustom;
+  readonly expects: null;
+  readonly requirement: (input: number) => boolean;
+  readonly message: undefined;
+}
+
+export function float32ascustom(): Float32AsCustomAction {
+  const requirement = (input: number) =>
+    Number.isFinite(input) &&
+    input >= -3.4028234663852886e38 &&
+    input <= 3.4028234663852886e38;
+
+  return {
+    kind: "validation",
+    type: "float32_as_custom",
+    reference: float32ascustom,
+    async: false,
+    expects: null,
+    requirement,
+    message: undefined,
+    "~run"(dataset, config) {
+      if (dataset.typed && !this.requirement(dataset.value as number)) {
+        v._addIssue(this, "float32_as_custom", dataset, config);
+      }
+      return dataset;
+    },
+  };
+}
+*/
+
 export function float64() {
   return v.pipe(
     v.number(),
