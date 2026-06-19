@@ -3,6 +3,7 @@ import * as v from "valibot";
 export type DbMetadata = {
   tableName?: string;
   primaryKey?: true;
+  autoIncrement?: true;
   foreignKeyTable?: string;
   foreignKeyColumn?: string;
   navigation?: {
@@ -46,18 +47,16 @@ function dbCheck<TInput, const Discriminant extends string>(
   return v.check(checker, msgFn);
 }
 
-function dbMetadata<TInput, TExt extends Record<string, unknown>>(
-  extension: TExt,
-) {
-  return v.metadata<TInput, { db: TExt }>({ db: extension });
-}
-
 export function table<TInput, const TName extends string>(tableName: TName) {
-  return dbMetadata<TInput, { tableName: TName }>({ tableName });
+  return v.metadata<TInput, { tableName: TName }>({ tableName });
 }
 
 export function primaryKey<TInput>() {
-  return dbMetadata<TInput, { primaryKey: true }>({ primaryKey: true });
+  return v.metadata<TInput, { primaryKey: true }>({ primaryKey: true });
+}
+
+export function autoIncrement<TInput>() {
+  return v.metadata<TInput, { autoIncrement: true }>({ autoIncrement: true });
 }
 
 export function foreignKey<
@@ -65,7 +64,7 @@ export function foreignKey<
   const TTable extends string,
   const TColumn extends string,
 >(foreignKeyTable: TTable, foreignKeyColumn: TColumn) {
-  return dbMetadata<
+  return v.metadata<
     TInput,
     { foreignKeyTable: TTable; foreignKeyColumn: TColumn }
   >({
@@ -78,25 +77,25 @@ export function navigation<TInput, TSchema, const TKey extends string>(
   schema: TSchema,
   key: TKey,
 ) {
-  return dbMetadata<TInput, { navigation: { schema: TSchema; key: TKey } }>({
+  return v.metadata<TInput, { navigation: { schema: TSchema; key: TKey } }>({
     navigation: { schema, key },
   });
 }
 
 export function pgColumnType<TInput, TColumnType>(columnType: TColumnType) {
-  return dbMetadata<TInput, { pgColumnType: TColumnType }>({
+  return v.metadata<TInput, { pgColumnType: TColumnType }>({
     pgColumnType: columnType,
   });
 }
 
 export function duckDbColumnType<TInput, TColumnType>(columnType: TColumnType) {
-  return dbMetadata<TInput, { duckDbColumnType: TColumnType }>({
+  return v.metadata<TInput, { duckDbColumnType: TColumnType }>({
     duckDbColumnType: columnType,
   });
 }
 
 export function sqliteColumnType<TInput, TColumnType>(columnType: TColumnType) {
-  return dbMetadata<TInput, { sqliteColumnType: TColumnType }>({
+  return v.metadata<TInput, { sqliteColumnType: TColumnType }>({
     sqliteColumnType: columnType,
   });
 }

@@ -8,6 +8,7 @@ import type {
   BooleanSchema,
   DateSchema,
   ArraySchema,
+  InferMetadata,
 } from "valibot";
 import { deriveColumn, extractDbMetadata } from "./derive.ts";
 import type {
@@ -19,7 +20,6 @@ import type {
   SafeParamDerivation,
   HasDbNavigation,
   DbTableName,
-  DbMetadataOf,
   HasDbTypeCheck,
   HasDbTypeRegex,
   HasBaseSchema,
@@ -103,15 +103,11 @@ type DeriveBaseSqliteColumn<T extends ValibotSchema> =
 
 /**
  * Derive a SQLite column type from a valibot schema.
- *
- * 1. Check for explicit .dbSqliteColumnType() override in pipe metadata.
- * 2. SQLite has no array types — error out.
- * 3. Otherwise, derive from the base type + modifier params (only if not ERROR).
  */
 // prettier-ignore
 export type DeriveSqliteColumn<T extends ValibotSchema> =
     // Explicit .dbSqliteColumnType() override — skip derivation entirely
-    DbMetadataOf<T> extends { sqliteColumnType: infer C } ? C
+    InferMetadata<T> extends { sqliteColumnType: infer C } ? C
 
   // SQLite has no array types — error out
   : SafeParamDerivation<T> extends { array: string }

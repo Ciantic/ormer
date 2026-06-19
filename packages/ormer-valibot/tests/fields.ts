@@ -3,7 +3,9 @@ import * as d from "../src/valibot-ext.ts";
 import { pg, duckdb, sqlite, type ColumnType } from "ormer";
 
 export const UserSchema = v.pipe(
-  v.object({ id: v.pipe(v.bigint(), d.int64(), d.primaryKey()) }),
+  v.object({
+    id: v.pipe(v.bigint(), d.int64(), d.primaryKey(), d.autoIncrement()),
+  }),
   d.table("users"),
 );
 const pkAutoInc = { primaryKey: true as true, autoIncrement: true as true };
@@ -20,7 +22,7 @@ export const ALL_VALIBOT_FIELDS = {
   c_f32:              { valibot: v.pipe(v.number(), d.float32()),                   example: 1.5 },
   c_f64:              { valibot: v.pipe(v.number(), d.float64()),                   example: 2.718281828 },
   c_int:              { valibot: v.pipe(v.number(), d.int32()),                     example: 100 },
-  c_int_pk:           { valibot: v.pipe(v.number(), d.int32(), d.primaryKey()),     example: 1 },
+  c_int_pk:           { valibot: v.pipe(v.number(), d.int32(), d.primaryKey(), d.autoIncrement()),     example: 1 },
   c_int32:            { valibot: v.pipe(v.number(), d.int32()),                     example: 200 },
   c_uint32:           { valibot: v.pipe(v.number(), d.uint32()),                    example: 300 },
   c_int8:             { valibot: v.pipe(v.number(), d.int8()),                      example: 100 },
@@ -31,7 +33,7 @@ export const ALL_VALIBOT_FIELDS = {
   // Bigint
   c_bigint:           { valibot: v.bigint(),                                        example: 9007199254740991n },
   c_int64:            { valibot: v.pipe(v.bigint(), d.int64()),                     example: 123456789n },
-  c_int64_pk:         { valibot: v.pipe(v.bigint(), d.int64(), d.primaryKey()),     example: 1n },
+  c_int64_pk:         { valibot: v.pipe(v.bigint(), d.int64(), d.primaryKey(), d.autoIncrement()),     example: 1n },
   c_uint64:           { valibot: v.pipe(v.bigint(), d.uint64()),                    example: 18446744073709551615n },
   c_int128:           { valibot: v.pipe(v.bigint(), d.int128()),                    example: 170141183460469231731687303715884105727n },
   c_uint128:          { valibot: v.pipe(v.bigint(), d.uint128()),                   example: 340282366920938463463374607431768211455n },

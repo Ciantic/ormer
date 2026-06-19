@@ -86,8 +86,8 @@ export function extractDbMetadata(
   while (true) {
     if (node.pipe) {
       for (const item of node.pipe) {
-        if (item.type === "metadata" && item.metadata?.db) {
-          result = { ...result, ...(item.metadata.db as DbMetadata) };
+        if (item.type === "metadata" && item.metadata) {
+          result = { ...result, ...(item.metadata as DbMetadata) };
           found = true;
         }
       }
@@ -114,12 +114,7 @@ export function extractDbMetadata(
 }
 
 /**
- * Core runtime derivation function.
- *
- * Unwraps valibot modifiers (nullable, optional, nullish, fallback, array,
- * nonNullable, nonOptional, nonNullish, exactOptional) and pipes, collects
- * metadata (db extensions via v.metadata), and dispatches to the chooser
- * with a tag + derived params.
+ * Derive a column type from a valibot schema
  */
 export function deriveColumn<
   F extends (t: ValibotSchemas) => ColumnType<string, (typeof t)[1]>,
@@ -129,6 +124,7 @@ export function deriveColumn<
   let optional: boolean | undefined = undefined;
   let defaultValue: unknown = undefined;
   let primaryKey = false;
+  let autoIncrement = false;
   let foreignKeyTable: string | undefined = undefined;
   let foreignKeyColumn: string | undefined = undefined;
   let arrayDimensions = "";
@@ -137,9 +133,10 @@ export function deriveColumn<
   while (true) {
     if (node.pipe) {
       for (const item of node.pipe) {
-        if (item.type === "metadata" && item.metadata?.db) {
-          const db = item.metadata.db as DbMetadata;
+        if (item.type === "metadata" && item.metadata) {
+          const db = item.metadata as DbMetadata;
           if (db.primaryKey === true) primaryKey = true;
+          if (db.autoIncrement === true) autoIncrement = true;
           if (db.foreignKeyTable && db.foreignKeyColumn) {
             foreignKeyTable = db.foreignKeyTable;
             foreignKeyColumn = db.foreignKeyColumn;
@@ -209,6 +206,9 @@ export function deriveColumn<
   if (typeof defaultValue !== "undefined") pgParamsBase.default = defaultValue;
   if (primaryKey) {
     pgParamsBase.primaryKey = true;
+  }
+  if (autoIncrement) {
+    pgParamsBase.autoIncrement = true;
   }
   if (foreignKeyTable && foreignKeyColumn) {
     pgParamsBase.foreignKeyTable = foreignKeyTable;
@@ -331,7 +331,6 @@ export function deriveColumn<
       case "int8":
       case "int16":
       case "int32":
-        if (primaryKey) pgParamsBase.autoIncrement = true;
         return chooser([dbtype, pgParamsBase] as any);
       case "uint8":
       case "uint16":

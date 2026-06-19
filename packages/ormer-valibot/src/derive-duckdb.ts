@@ -8,6 +8,7 @@ import type {
   BooleanSchema,
   DateSchema,
   ArraySchema,
+  InferMetadata,
 } from "valibot";
 import { deriveColumn, extractDbMetadata } from "./derive.ts";
 import type {
@@ -20,7 +21,6 @@ import type {
   SafeParamDerivation,
   HasDbNavigation,
   DbTableName,
-  DbMetadataOf,
   HasDbTypeCheck,
   HasDbTypeRegex,
   HasBaseSchema,
@@ -104,7 +104,7 @@ type DeriveBaseDuckDbColumn<T extends ValibotSchema> =
 // prettier-ignore
 export type DeriveDuckDbColumn<T extends ValibotSchema> =
     // Explicit .dbDuckDbColumnType() override — skip derivation entirely
-    DbMetadataOf<T> extends { duckDbColumnType: infer C } ? C
+    InferMetadata<T> extends { duckDbColumnType: infer C } ? C
   : DeriveBaseDuckDbColumn<T> extends { type: "ERROR" }
     ? { type: "ERROR" }
     : RewrapToColumnType<

@@ -21,7 +21,7 @@ describe("deriveDuckDbTable", () => {
   it("derives an invoice table with common DuckDB column types", () => {
     const InvoiceSchema = v.pipe(
       v.object({
-        id: v.pipe(v.bigint(), d.int64(), d.primaryKey()),
+        id: v.pipe(v.bigint(), d.int64(), d.primaryKey(), d.autoIncrement()),
         title: v.string(),
         description: v.nullable(v.string()),
         due_date: v.pipe(v.string(), d.naiveDatetime()),
@@ -32,6 +32,14 @@ describe("deriveDuckDbTable", () => {
       }),
       d.table("invoice"),
     );
+
+    const foo = v.pipe(
+      v.bigint(),
+      d.int64(),
+      d.primaryKey(),
+      d.autoIncrement(),
+    );
+    type Foo = v.InferMetadata<typeof foo>;
 
     const invoiceTable = deriveDuckDbTable(InvoiceSchema);
 

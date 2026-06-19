@@ -21,7 +21,7 @@ describe("deriveSqliteTable", () => {
   it("derives an invoice table with SQLite-compatible column types", () => {
     const InvoiceSchema = v.pipe(
       v.object({
-        id: v.pipe(v.number(), d.int32(), d.primaryKey()),
+        id: v.pipe(v.number(), d.int32(), d.primaryKey(), d.autoIncrement()),
         title: v.string(),
         description: v.nullable(v.string()),
         due_date: v.pipe(v.string(), d.naiveDatetime()),

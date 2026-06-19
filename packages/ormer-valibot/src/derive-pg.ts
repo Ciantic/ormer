@@ -8,6 +8,7 @@ import type {
   BooleanSchema,
   DateSchema,
   ArraySchema,
+  InferMetadata,
 } from "valibot";
 import { deriveColumn, extractDbMetadata } from "./derive.ts";
 import type {
@@ -20,7 +21,6 @@ import type {
   SafeParamDerivation,
   HasDbNavigation,
   DbTableName,
-  DbMetadataOf,
   HasDbTypeCheck,
   HasDbTypeRegex,
   HasBaseSchema,
@@ -28,10 +28,6 @@ import type {
 
 /**
  * Map a (possibly wrapped) valibot schema to a PostgreSQL ColumnType.
- *
- * Pipe actions (brands, validation, etc.) are checked via PipeUnion which
- * walks through modifier wrappers. Schema-type checks use UnwrapModifiers
- * to reach the base schema after pipe branches don't match.
  */
 // prettier-ignore
 type DeriveBasePgColumn<T extends ValibotSchema> =
@@ -89,29 +85,18 @@ type DeriveBasePgColumn<T extends ValibotSchema> =
   // Unsupported
   : never;
 
-// ---------------------------------------------------------------------------
-// Type-level: DerivePgColumn
-// ---------------------------------------------------------------------------
-
 /**
  * Derive a PgColumn type from a valibot schema.
- *
- * 1. Check for explicit .dbPgColumnType() override in pipe metadata.
- * 2. Otherwise, derive from the base type + modifier params.
  */
 // prettier-ignore
 export type DerivePgColumn<T extends ValibotSchema> =
     // Explicit .dbPgColumnType() override — skip derivation entirely
-    DbMetadataOf<T> extends { pgColumnType: infer C } ? C
+    InferMetadata<T> extends { pgColumnType: infer C } ? C
   : DeriveBasePgColumn<T> extends { type: "ERROR" }
     ? { type: "ERROR" }
     : RewrapToColumnType<
     DeriveBasePgColumn<T> & SafeParamDerivation<T>
   >;
-
-// ---------------------------------------------------------------------------
-// Type-level: DerivePgTable
-// ---------------------------------------------------------------------------
 
 /**
  * Derive a PgTable type from a valibot object schema with dbTable metadata.
@@ -137,10 +122,6 @@ export type DerivePgTable<
     }
   >
 >;
-
-// ---------------------------------------------------------------------------
-// Runtime implementation
-// ---------------------------------------------------------------------------
 
 /**
  * Derive a PgColumn from a valibot schema.
@@ -226,10 +207,6 @@ export function derivePgColumn<T extends ValibotSchema>(
     }
   }) as any;
 }
-
-// ---------------------------------------------------------------------------
-// derivePgTable
-// ---------------------------------------------------------------------------
 
 /**
  * Derive an ormer PgTable from a valibot object schema.

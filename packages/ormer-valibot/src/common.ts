@@ -198,41 +198,35 @@ type SchemaHasDefault<T> = T extends { fallback: infer F }
 // DB metadata extraction (via InferMetadata + modifier unwrap)
 // ---------------------------------------------------------------------------
 
-/**
- * Extract the merged metadata from a valibot schema, walking through
- * modifier wrappers (nullable, optional, etc.) to reach the inner schema.
- * Uses valibot's own InferMetadata for correct depth-first merge semantics.
- */
-// prettier-ignore
-export type DbMetadataOf<T extends ValibotSchema> =
-   InferMetadata<T> extends { db: infer D } ? D : {};
-
 type HasDbPk<T extends ValibotSchema> =
-  DbMetadataOf<T> extends { primaryKey: true } ? true : false;
+  InferMetadata<T> extends { primaryKey: true } ? true : false;
+
+type HasDbAutoIncrement<T extends ValibotSchema> =
+  InferMetadata<T> extends { autoIncrement: true } ? true : false;
 
 type DbFkTable<T extends ValibotSchema> =
-  DbMetadataOf<T> extends { foreignKeyTable: infer N }
+  InferMetadata<T> extends { foreignKeyTable: infer N }
     ? N extends string
       ? N
       : never
     : never;
 
 type DbFkColumn<T extends ValibotSchema> =
-  DbMetadataOf<T> extends { foreignKeyColumn: infer C }
+  InferMetadata<T> extends { foreignKeyColumn: infer C }
     ? C extends string
       ? C
       : never
     : never;
 
 export type DbTableName<T extends ValibotSchema> =
-  DbMetadataOf<T> extends { tableName: infer N }
+  InferMetadata<T> extends { tableName: infer N }
     ? N extends string
       ? N
       : never
     : never;
 
 export type HasDbNavigation<T extends ValibotSchema> =
-  DbMetadataOf<T> extends { navigation: infer _ } ? true : false;
+  InferMetadata<T> extends { navigation: infer _ } ? true : false;
 
 // ---------------------------------------------------------------------------
 // Array dimensions
@@ -274,29 +268,6 @@ export type RewrapDeriveTable<T> =
 // Safe param derivation — type-level params from valibot schema
 // ---------------------------------------------------------------------------
 
-/**
- * Determine autoIncrement: true if the unwrapped base has a brand name
- * matching int32, int64, or uint64 AND the schema has a primary key.
- */
-type GetAutoIncrement<T extends ValibotSchema> =
-  HasDbPk<T> extends true
-    ? HasDbTypeCheck<T, "int8"> extends true
-      ? true
-      : HasDbTypeCheck<T, "int16"> extends true
-        ? true
-        : HasDbTypeCheck<T, "int32"> extends true
-          ? true
-          : HasDbTypeCheck<T, "uint8"> extends true
-            ? true
-            : HasDbTypeCheck<T, "uint16"> extends true
-              ? true
-              : HasDbTypeCheck<T, "int64"> extends true
-                ? true
-                : HasDbTypeCheck<T, "uint64"> extends true
-                  ? true
-                  : never
-    : never;
-
 // prettier-ignore
 export type SafeParamDerivation<T extends ValibotSchema> = OmitNever<{
   primaryKey: HasDbPk<T> extends true ? true : never;
@@ -305,7 +276,7 @@ export type SafeParamDerivation<T extends ValibotSchema> = OmitNever<{
           : IsOptional<T> extends true ? true
           : never;
   default: HasDefaultValue<T> extends true ? v.InferOutput<T> : never;
-  autoIncrement: GetAutoIncrement<T>;
+  autoIncrement: HasDbAutoIncrement<T> extends true ? true : never;
   foreignKeyTable: DbFkTable<T>;
   foreignKeyColumn: DbFkColumn<T>;
   array: ArrayDimensions<T>;
