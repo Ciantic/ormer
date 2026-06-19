@@ -102,134 +102,99 @@ export function sqliteColumnType<TInput, TColumnType>(columnType: TColumnType) {
 }
 
 export function int8() {
-  return v.pipe(
-    v.number(),
-    dbCheck(
-      "int8",
-      (n) => Number.isInteger(n) && n >= INT8_MIN && n <= INT8_MAX,
-      `Value must be an integer between ${INT8_MIN} and ${INT8_MAX}`,
-    ),
+  return dbCheck(
+    "int8",
+    (n: number) => Number.isInteger(n) && n >= INT8_MIN && n <= INT8_MAX,
+    `Value must be an integer between ${INT8_MIN} and ${INT8_MAX}`,
   );
 }
 
 export function int16() {
-  return v.pipe(
-    v.number(),
-    dbCheck(
-      "int16",
-      (n) => Number.isInteger(n) && n >= INT16_MIN && n <= INT16_MAX,
-      `Value must be an integer between ${INT16_MIN} and ${INT16_MAX}`,
-    ),
+  return dbCheck(
+    "int16",
+    (n: number) => Number.isInteger(n) && n >= INT16_MIN && n <= INT16_MAX,
+    `Value must be an integer between ${INT16_MIN} and ${INT16_MAX}`,
   );
 }
 
 export function int32() {
-  return v.pipe(
-    v.number(),
-    dbCheck(
-      "int32",
-      (n) => Number.isInteger(n) && n >= INT32_MIN && n <= INT32_MAX,
-      `Value must be an integer between ${INT32_MIN} and ${INT32_MAX}`,
-    ),
+  return dbCheck(
+    "int32",
+    (n: number) => Number.isInteger(n) && n >= INT32_MIN && n <= INT32_MAX,
+    `Value must be an integer between ${INT32_MIN} and ${INT32_MAX}`,
   );
 }
 
 export function uint8() {
-  return v.pipe(
-    v.number(),
-    dbCheck(
-      "uint8",
-      (n) => Number.isInteger(n) && n >= 0 && n <= UINT8_MAX,
-      `Value must be an integer between 0 and ${UINT8_MAX}`,
-    ),
+  return dbCheck(
+    "uint8",
+    (n: number) => Number.isInteger(n) && n >= 0 && n <= UINT8_MAX,
+    `Value must be an integer between 0 and ${UINT8_MAX}`,
   );
 }
 
 export function uint16() {
-  return v.pipe(
-    v.number(),
-    dbCheck(
-      "uint16",
-      (n) => Number.isInteger(n) && n >= 0 && n <= UINT16_MAX,
-      `Value must be an integer between 0 and ${UINT16_MAX}`,
-    ),
+  return dbCheck(
+    "uint16",
+    (n: number) => Number.isInteger(n) && n >= 0 && n <= UINT16_MAX,
+    `Value must be an integer between 0 and ${UINT16_MAX}`,
   );
 }
 
 export function uint32() {
-  return v.pipe(
-    v.number(),
-    dbCheck(
-      "uint32",
-      (n) => Number.isInteger(n) && n >= 0 && n <= UINT32_MAX,
-      `Value must be an integer between 0 and ${UINT32_MAX}`,
-    ),
+  return dbCheck(
+    "uint32",
+    (n: number) => Number.isInteger(n) && n >= 0 && n <= UINT32_MAX,
+    `Value must be an integer between 0 and ${UINT32_MAX}`,
   );
 }
 
 export function float32() {
-  return v.pipe(
-    v.number(),
-    dbCheck(
-      "float32",
-      (n) => Number.isFinite(n) && n >= -3.4028235e38 && n <= 3.4028235e38,
-      "Value must be a finite number between -3.4028235e38 and 3.4028235e38",
-    ),
+  return dbCheck(
+    "float32",
+    (n: number) =>
+      Number.isFinite(n) && n >= -3.4028235e38 && n <= 3.4028235e38,
+    "Value must be a finite number between -3.4028235e38 and 3.4028235e38",
   );
 }
 
 export function float64() {
-  return v.pipe(
-    v.number(),
-    dbCheck(
-      "float64",
-      (n) => Number.isFinite(n),
-      "Value must be a finite number",
-    ),
+  return dbCheck(
+    "float64",
+    (n: number) => Number.isFinite(n),
+    "Value must be a finite number",
   );
 }
 
 export function int64() {
-  return v.pipe(
-    v.bigint(),
-    dbCheck(
-      "int64",
-      (n) => n >= INT64_MIN && n <= INT64_MAX,
-      `Value must be a bigint between ${INT64_MIN} and ${INT64_MAX}`,
-    ),
+  return dbCheck(
+    "int64",
+    (n: bigint) => n >= INT64_MIN && n <= INT64_MAX,
+    `Value must be a bigint between ${INT64_MIN} and ${INT64_MAX}`,
   );
 }
 
 export function uint64() {
-  return v.pipe(
-    v.bigint(),
-    dbCheck(
-      "uint64",
-      (n) => n >= 0n && n <= UINT64_MAX,
-      `Value must be a bigint between 0 and ${UINT64_MAX}`,
-    ),
+  return dbCheck(
+    "uint64",
+    (n: bigint) => n >= 0n && n <= UINT64_MAX,
+    `Value must be a bigint between 0 and ${UINT64_MAX}`,
   );
 }
 
 export function int128() {
-  return v.pipe(
-    v.bigint(),
-    dbCheck(
-      "int128",
-      (n) => n >= HUGEINT_MIN && n <= HUGEINT_MAX,
-      `Value must be a bigint between ${HUGEINT_MIN} and ${HUGEINT_MAX}`,
-    ),
+  return dbCheck(
+    "int128",
+    (n: bigint) => n >= HUGEINT_MIN && n <= HUGEINT_MAX,
+    `Value must be a bigint between ${HUGEINT_MIN} and ${HUGEINT_MAX}`,
   );
 }
 
 export function uint128() {
-  return v.pipe(
-    v.bigint(),
-    dbCheck(
-      "uint128",
-      (n) => n >= 0n && n <= UHUGEINT_MAX,
-      `Value must be a bigint between 0 and ${UHUGEINT_MAX}`,
-    ),
+  return dbCheck(
+    "uint128",
+    (n: bigint) => n >= 0n && n <= UHUGEINT_MAX,
+    `Value must be a bigint between 0 and ${UHUGEINT_MAX}`,
   );
 }
 
@@ -248,5 +213,5 @@ export function naiveDatetime() {
     } as const,
   );
 
-  return v.pipe(v.string(), v.regex(NAIVE_DATETIME_REGEX, msgFn));
+  return v.regex(NAIVE_DATETIME_REGEX, msgFn);
 }
