@@ -236,12 +236,14 @@ export function deriveColumn<
   const hasPipeItem = (type: string) =>
     allPipeItems.some((p) => p.type === type);
 
-  const getBrandName = (): string | undefined => {
-    const brand = allPipeItems.find(
-      (p): p is AnyValibotSchema & { name: string } =>
-        p.type === "brand" && typeof p.name === "string",
+  const getDbType = (): string | undefined => {
+    const check = allPipeItems.find(
+      (p): p is AnyValibotSchema & { message: { dbtype: string } } =>
+        p.type === "check" &&
+        typeof (p as any).message === "function" &&
+        typeof (p as any).message.dbtype === "string",
     );
-    return brand?.name;
+    return check?.message.dbtype;
   };
 
   const getMaxLength = (): number | undefined => {
@@ -315,19 +317,19 @@ export function deriveColumn<
     return chooser(["integer", pgParamsBase]);
   }
 
-  // --- Brand-based type detection ---
-  const brand = getBrandName();
-  if (brand) {
-    switch (brand) {
+  // --- dbCheck-based type detection ---
+  const dbtype = getDbType();
+  if (dbtype) {
+    switch (dbtype) {
       case "int64":
       case "int32":
         if (primaryKey) pgParamsBase.autoIncrement = true;
-        return chooser([brand, pgParamsBase] as any);
+        return chooser([dbtype, pgParamsBase] as any);
       case "uint64":
       case "uint32":
       case "float32":
       case "float64":
-        return chooser([brand, pgParamsBase] as any);
+        return chooser([dbtype, pgParamsBase] as any);
       case "naiveDatetime":
         return chooser(["naiveDatetime", pgParamsBase]);
     }

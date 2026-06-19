@@ -14,12 +14,28 @@ export type DbMetadata = {
   sqliteColumnType?: unknown;
 };
 
+export interface DbTypeIssue<T extends string> {
+  dbtype: T;
+  (): string;
+}
+
 const INT32_MIN = -2147483648;
 const INT32_MAX = 2147483647;
 const UINT32_MAX = 4294967295;
 const INT64_MIN = -9223372036854775808n;
 const INT64_MAX = 9223372036854775807n;
 const UINT64_MAX = 18446744073709551615n;
+
+function dbCheck<TInput, const Discriminant extends string>(
+  discriminant: Discriminant,
+  checker: (i: TInput) => boolean,
+  message: string,
+) {
+  const msgFn: DbTypeIssue<Discriminant> = Object.assign(() => message, {
+    dbtype: discriminant,
+  } as const);
+  return v.check(checker, msgFn);
+}
 
 function dbMetadata<TInput, TExt extends Record<string, unknown>>(
   extension: TExt,
@@ -83,103 +99,66 @@ export function dbSqliteColumnType<TInput, TColumnType>(
 export function int32() {
   return v.pipe(
     v.number(),
-    v.check(
-      (input) =>
-        Number.isInteger(input) && input >= INT32_MIN && input <= INT32_MAX,
+    dbCheck(
+      "int32",
+      (n) => Number.isInteger(n) && n >= INT32_MIN && n <= INT32_MAX,
+      `Value must be an integer between ${INT32_MIN} and ${INT32_MAX}`,
     ),
-    v.brand("int32"),
   );
 }
 
 export function uint32() {
   return v.pipe(
     v.number(),
-    v.check(
-      (input) => Number.isInteger(input) && input >= 0 && input <= UINT32_MAX,
+    dbCheck(
+      "uint32",
+      (n) => Number.isInteger(n) && n >= 0 && n <= UINT32_MAX,
+      `Value must be an integer between 0 and ${UINT32_MAX}`,
     ),
-    v.brand("uint32"),
   );
 }
 
 export function float32() {
   return v.pipe(
     v.number(),
-    v.check(
-      (input) =>
-        Number.isFinite(input) &&
-        input >= -3.4028234663852886e38 &&
-        input <= 3.4028234663852886e38,
+    dbCheck(
+      "float32",
+      (n) => Number.isFinite(n) && n >= -3.4028235e38 && n <= 3.4028235e38,
+      "Value must be a finite number between -3.4028235e38 and 3.4028235e38",
     ),
-    v.brand("float32"),
   );
 }
-
-/*
-export interface Float32AsCustomIssue extends v.BaseIssue<number> {
-  readonly kind: "validation";
-  readonly type: "float32_as_custom";
-  readonly expected: null;
-  readonly received: `${number}`;
-  readonly requirement: (input: number) => boolean;
-}
-
-export interface Float32AsCustomAction extends v.BaseValidation<
-  number,
-  number,
-  Float32AsCustomIssue
-> {
-  readonly type: "float32_as_custom";
-  readonly reference: typeof float32ascustom;
-  readonly expects: null;
-  readonly requirement: (input: number) => boolean;
-  readonly message: undefined;
-}
-
-export function float32ascustom(): Float32AsCustomAction {
-  const requirement = (input: number) =>
-    Number.isFinite(input) &&
-    input >= -3.4028234663852886e38 &&
-    input <= 3.4028234663852886e38;
-
-  return {
-    kind: "validation",
-    type: "float32_as_custom",
-    reference: float32ascustom,
-    async: false,
-    expects: null,
-    requirement,
-    message: undefined,
-    "~run"(dataset, config) {
-      if (dataset.typed && !this.requirement(dataset.value as number)) {
-        v._addIssue(this, "float32_as_custom", dataset, config);
-      }
-      return dataset;
-    },
-  };
-}
-*/
 
 export function float64() {
   return v.pipe(
     v.number(),
-    v.check((input) => Number.isFinite(input)),
-    v.brand("float64"),
+    dbCheck(
+      "float64",
+      (n) => Number.isFinite(n),
+      "Value must be a finite number",
+    ),
   );
 }
 
 export function int64() {
   return v.pipe(
     v.bigint(),
-    v.check((input) => input >= INT64_MIN && input <= INT64_MAX),
-    v.brand("int64"),
+    dbCheck(
+      "int64",
+      (n) => n >= INT64_MIN && n <= INT64_MAX,
+      `Value must be a bigint between ${INT64_MIN} and ${INT64_MAX}`,
+    ),
   );
 }
 
 export function uint64() {
   return v.pipe(
     v.bigint(),
-    v.check((input) => input >= 0n && input <= UINT64_MAX),
-    v.brand("uint64"),
+    dbCheck(
+      "uint64",
+      (n) => n >= 0n && n <= UINT64_MAX,
+      `Value must be a bigint between 0 and ${UINT64_MAX}`,
+    ),
   );
 }
 
@@ -197,6 +176,10 @@ export function naiveDatetime() {
       NAIVE_DATETIME_REGEX,
       "Invalid datetime format, expected YYYY-MM-DD HH:MM:SS[.SSS]",
     ),
-    v.brand("naiveDatetime"),
+    dbCheck(
+      "naiveDatetime",
+      (s) => NAIVE_DATETIME_REGEX.test(s),
+      "Value must be a naive datetime string (YYYY-MM-DD HH:MM:SS[.SSS])",
+    ),
   );
 }

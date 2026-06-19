@@ -9,23 +9,18 @@ import type {
   DateSchema,
   ArraySchema,
 } from "valibot";
-import {
-  deriveColumn,
-  extractDbMetadata,
-  type AnyValibotSchema,
-} from "./derive.ts";
+import { deriveColumn, extractDbMetadata } from "./derive.ts";
 import type {
   ValibotSchema,
   UnwrapModifiers,
   HasPipeItem,
-  GetPipeItemProp,
   RewrapToColumnType,
   RewrapDeriveTable,
   SafeParamDerivation,
   HasDbNavigation,
   DbTableName,
   DbMetadataOf,
-  HasBrand,
+  HasDbType,
   HasBaseSchema,
 } from "./common.ts";
 
@@ -45,19 +40,19 @@ import type {
  */
 // prettier-ignore
 type DeriveBaseSqliteColumn<T extends ValibotSchema> =
-  // Stringy formats — SQLite has no uuid/inet/macaddr, fall back to text
+  // Stringy formats
     HasPipeItem<T, "uuid"> extends true                    ? ColumnTypeSingualr<"text">
   : HasPipeItem<T, "email"> extends true                   ? ColumnType<"text", { check: (col: string) => string }>
   : HasPipeItem<T, "nanoid"> extends true                  ? ColumnType<"text", { check: (col: string) => string }>
   : HasPipeItem<T, "ulid"> extends true                    ? ColumnType<"text", { check: (col: string) => string }>
 
-  // Network types — SQLite has no inet/macaddr → fall back to text
+  // Network types
   : HasPipeItem<T, "ipv4"> extends true                    ? ColumnTypeSingualr<"text">
   : HasPipeItem<T, "ipv6"> extends true                    ? ColumnTypeSingualr<"text">
   : HasPipeItem<T, "mac"> extends true                     ? ColumnTypeSingualr<"text">
 
-  // Datetime formats — string-based work as TEXT, only Date can't round-trip
-  : HasBrand<T, "naiveDatetime"> extends true              ? ColumnTypeSingualr<"text">
+  // Datetime formats
+  : HasDbType<T, "naiveDatetime"> extends true             ? ColumnTypeSingualr<"text">
   : HasPipeItem<T, "iso_time"> extends true                ? ColumnTypeSingualr<"text">
   : HasPipeItem<T, "iso_time_second"> extends true         ? ColumnTypeSingualr<"text">
   : HasPipeItem<T, "iso_date"> extends true                ? ColumnTypeSingualr<"text">
@@ -72,19 +67,19 @@ type DeriveBaseSqliteColumn<T extends ValibotSchema> =
       : ColumnTypeSingualr<"text">
 
   // Number formats — SQLite INTEGER is always number, can't round-trip bigint
-  : HasBrand<T, "int32"> extends true                   ? ColumnTypeSingualr<"integer">
-  : HasBrand<T, "uint32"> extends true                  ? ColumnTypeSingualr<"integer">
-  : HasBrand<T, "float32"> extends true                 ? ColumnTypeSingualr<"real">
-  : HasBrand<T, "float64"> extends true                 ? ColumnTypeSingualr<"real">
-  : HasBrand<T, "int64"> extends true                   ? { type: "ERROR" }
-  : HasBrand<T, "uint64"> extends true                  ? { type: "ERROR" }
-  : HasPipeItem<T, "safe_integer"> extends true         ? ColumnTypeSingualr<"integer">
-  : HasPipeItem<T, "integer"> extends true              ? ColumnTypeSingualr<"integer">
-  : HasBaseSchema<T, NumberSchema<any>> extends true    ? ColumnTypeSingualr<"real">
-  : HasBaseSchema<T, BigintSchema<any>> extends true    ? { type: "ERROR" }
+  : HasDbType<T, "int32"> extends true                   ? ColumnTypeSingualr<"integer">
+  : HasDbType<T, "uint32"> extends true                  ? ColumnTypeSingualr<"integer">
+  : HasDbType<T, "float32"> extends true                 ? ColumnTypeSingualr<"real">
+  : HasDbType<T, "float64"> extends true                 ? ColumnTypeSingualr<"real">
+  : HasDbType<T, "int64"> extends true                   ? { type: "ERROR" }
+  : HasDbType<T, "uint64"> extends true                  ? { type: "ERROR" }
+  : HasPipeItem<T, "safe_integer"> extends true          ? ColumnTypeSingualr<"integer">
+  : HasPipeItem<T, "integer"> extends true               ? ColumnTypeSingualr<"integer">
+  : HasBaseSchema<T, NumberSchema<any>> extends true     ? ColumnTypeSingualr<"real">
+  : HasBaseSchema<T, BigintSchema<any>> extends true     ? { type: "ERROR" }
 
   // Boolean — SQLite has no boolean type, stores 0/1, can't round-trip
-  : HasBaseSchema<T, BooleanSchema<any>> extends true ?   { type: "ERROR" }
+  : HasBaseSchema<T, BooleanSchema<any>> extends true    ? { type: "ERROR" }
 
   // JSON — SQLite stores as text, can't round-trip
   : HasBaseSchema<T, ObjectSchema<any, any>> extends true ? { type: "ERROR" }

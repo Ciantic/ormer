@@ -9,11 +9,7 @@ import type {
   DateSchema,
   ArraySchema,
 } from "valibot";
-import {
-  deriveColumn,
-  extractDbMetadata,
-  type AnyValibotSchema,
-} from "./derive.ts";
+import { deriveColumn, extractDbMetadata } from "./derive.ts";
 import type {
   ValibotSchema,
   UnwrapModifiers,
@@ -25,7 +21,7 @@ import type {
   HasDbNavigation,
   DbTableName,
   DbMetadataOf,
-  HasBrand,
+  HasDbType,
   HasBaseSchema,
 } from "./common.ts";
 
@@ -54,7 +50,7 @@ type DeriveBaseDuckDbColumn<T extends ValibotSchema> =
   : HasPipeItem<T, "mac"> extends true                     ? ColumnTypeSingualr<"text">
 
   // Datetime formats
-  : HasBrand<T, "naiveDatetime"> extends true              ? ColumnTypeSingualr<"timestamp">
+  : HasDbType<T, "naiveDatetime"> extends true              ? ColumnTypeSingualr<"timestamp">
   : HasPipeItem<T, "iso_time"> extends true                ? { type: "ERROR" }
   : HasPipeItem<T, "iso_time_second"> extends true         ? ColumnTypeSingualr<"time">
   : HasPipeItem<T, "iso_date"> extends true                ? ColumnTypeSingualr<"date">
@@ -69,19 +65,19 @@ type DeriveBaseDuckDbColumn<T extends ValibotSchema> =
       : ColumnTypeSingualr<"text">
 
   // Number formats
-  : HasBrand<T, "int32"> extends true                   ? ColumnTypeSingualr<"int4">
-  : HasBrand<T, "uint32"> extends true                  ? ColumnTypeSingualr<"uinteger">
-  : HasBrand<T, "float32"> extends true                 ? ColumnTypeSingualr<"float4">
-  : HasBrand<T, "float64"> extends true                 ? ColumnTypeSingualr<"float8">
-  : HasBrand<T, "int64"> extends true                   ? ColumnTypeSingualr<"int8">
-  : HasBrand<T, "uint64"> extends true                  ? ColumnTypeSingualr<"ubigint">
-  : HasPipeItem<T, "safe_integer"> extends true         ? ColumnTypeSingualr<"int4">
-  : HasPipeItem<T, "integer"> extends true              ? ColumnTypeSingualr<"int4">
-  : HasBaseSchema<T, NumberSchema<any>> extends true    ? ColumnTypeSingualr<"float8">
-  : HasBaseSchema<T, BigintSchema<any>> extends true    ? ColumnTypeSingualr<"int8">
+  : HasDbType<T, "int32"> extends true                   ? ColumnTypeSingualr<"int4">
+  : HasDbType<T, "uint32"> extends true                  ? ColumnTypeSingualr<"uinteger">
+  : HasDbType<T, "float32"> extends true                 ? ColumnTypeSingualr<"float4">
+  : HasDbType<T, "float64"> extends true                 ? ColumnTypeSingualr<"float8">
+  : HasDbType<T, "int64"> extends true                   ? ColumnTypeSingualr<"int8">
+  : HasDbType<T, "uint64"> extends true                  ? ColumnTypeSingualr<"ubigint">
+  : HasPipeItem<T, "safe_integer"> extends true          ? ColumnTypeSingualr<"int4">
+  : HasPipeItem<T, "integer"> extends true               ? ColumnTypeSingualr<"int4">
+  : HasBaseSchema<T, NumberSchema<any>> extends true     ? ColumnTypeSingualr<"float8">
+  : HasBaseSchema<T, BigintSchema<any>> extends true     ? ColumnTypeSingualr<"int8">
 
   // Boolean 
-  : HasBaseSchema<T, BooleanSchema<any>> extends true ?   ColumnTypeSingualr<"boolean">
+  : HasBaseSchema<T, BooleanSchema<any>> extends true    ? ColumnTypeSingualr<"boolean">
   
   // JSON — DuckDB uses json, not jsonb
   : HasBaseSchema<T, ObjectSchema<any, any>> extends true ? ColumnType<"json", { schema: T }>
