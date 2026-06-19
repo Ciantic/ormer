@@ -52,6 +52,10 @@ type DeriveBaseColumn<T extends ZodType> =
   // Number formats
   : T extends ZodNumberFormatVal<"safeint"> ? ColumnTypeSingualr<"int4"> 
   : T extends ZodNumberFormatVal<"int32"> ? ColumnTypeSingualr<"int4">
+  : T extends ZodNumberFormatVal<"int8"> ? { type: "ERROR" } // No symmetric PG mapping
+  : T extends ZodNumberFormatVal<"uint8"> ? { type: "ERROR" } // No symmetric PG mapping
+  : T extends ZodNumberFormatVal<"int16"> ? ColumnTypeSingualr<"int2">
+  : T extends ZodNumberFormatVal<"uint16"> ? { type: "ERROR" } // No symmetric PG mapping
   : T extends ZodNumberFormatVal<"uint32"> ? { type: "ERROR" } // No symmetric PG mapping
   : T extends ZodNumberFormatVal<"float32"> ? ColumnTypeSingualr<"float4">
   : T extends ZodNumberFormatVal<"float64"> ? ColumnTypeSingualr<"float8">
@@ -59,6 +63,8 @@ type DeriveBaseColumn<T extends ZodType> =
   // Bigints
   : T extends ZodBigIntFormatVal<"int64"> ? ColumnTypeSingualr<"int8">
   : T extends ZodBigIntFormatVal<"uint64"> ? { type: "ERROR" } // No symmetric PG mapping
+  : T extends ZodBigIntFormatVal<"uint128"> ? { type: "ERROR" } // No symmetric PG mapping
+  : T extends ZodBigIntFormatVal<"int128"> ? { type: "ERROR" } // No symmetric PG mapping
 
   // JSON
   : T extends z.ZodObject ? ColumnType<"jsonb", { schema: T }>
@@ -151,11 +157,18 @@ export function derivePgColumn<
       case "bigint":
         return pg.int8(params);
       case "uint64":
-        throw new Error(`PG has no mapping for ZodBigIntFormat: uint64`);
+      case "uint128":
+      case "int128":
+        throw new Error(`PG has no mapping for ZodBigIntFormat: ${t}`);
       case "int32":
         return pg.int4(params);
+      case "int16":
+        return pg.int2(params);
       case "uint32":
-        throw new Error(`PG has no mapping for ZodNumberFormat: uint32`);
+      case "int8":
+      case "uint8":
+      case "uint16":
+        throw new Error(`PG has no mapping for ZodNumberFormat: ${t}`);
       case "float32":
         return pg.float4(params);
       case "float64":

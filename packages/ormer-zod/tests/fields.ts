@@ -19,7 +19,13 @@ export const ALL_ZOD_FIELDS = {
   c_int:              { zod: z.int(),              example: 100 },
   c_int_pk:           { zod: z.int().dbPk(),       example: 1 },
   c_int32:            { zod: z.int32(),            example: 200 },
+  c_int8:             { zod: z.number().int8(),     example: 50 },
+  c_uint8:            { zod: z.number().uint8(),    example: 200 },
+  c_int16:            { zod: z.number().int16(),    example: 15000 },
+  c_uint16:           { zod: z.number().uint16(),   example: 50000 },
   c_uint32:           { zod: z.uint32(),           example: 300 },
+  c_uint128:          { zod: z.bigint().uint128(),          example: 340282366920938463463374607431768211455n },
+  c_int128:           { zod: z.bigint().int128(),           example: 170141183460469231731687303715884105727n },
 
   // Bigint 
   c_bigint:           { zod: z.bigint(),           example: 9007199254740991n },
@@ -100,6 +106,10 @@ export const ALL_PG_FIELDS = {
   c_int: pg.int4(),
   c_int_pk: pg.int4(pkAutoInc),
   c_int32: pg.int4(),
+  c_int8: "ERROR" as const,
+  c_uint8: "ERROR" as const,
+  c_int16: pg.int2(),
+  c_uint16: "ERROR" as const,
   c_uint32: "ERROR" as const,
 
   // Bigint
@@ -107,6 +117,8 @@ export const ALL_PG_FIELDS = {
   c_int64: pg.int8(),
   c_int64_pk: pg.int8(pkAutoInc),
   c_uint64: "ERROR" as const,
+  c_uint128: "ERROR" as const,
+  c_int128: "ERROR" as const,
 
   // Boolean
   c_bool: pg.boolean(),
@@ -177,6 +189,10 @@ export const ALL_DUCKDB_FIELDS = {
   c_int: duckdb.int4(),
   c_int_pk: duckdb.int4(pkAutoInc),
   c_int32: duckdb.int4(),
+  c_int8: duckdb.int1(),
+  c_uint8: duckdb.utinyint(),
+  c_int16: duckdb.int2(),
+  c_uint16: duckdb.usmallint(),
   c_uint32: duckdb.uinteger(),
 
   // Bigint
@@ -184,6 +200,8 @@ export const ALL_DUCKDB_FIELDS = {
   c_int64: duckdb.int8(),
   c_int64_pk: duckdb.int8(pkAutoInc),
   c_uint64: duckdb.ubigint(),
+  c_uint128: duckdb.uhugeint(),
+  c_int128: duckdb.hugeint(),
 
   // Boolean
   c_bool: duckdb.boolean(),
@@ -256,6 +274,10 @@ export const ALL_SQLITE_FIELDS = {
   c_int: sqlite.integer(),
   c_int_pk: sqlite.integer(pkAutoInc),
   c_int32: sqlite.integer(),
+  c_int8: sqlite.integer(),
+  c_uint8: sqlite.integer(),
+  c_int16: sqlite.integer(),
+  c_uint16: sqlite.integer(),
   c_uint32: sqlite.integer(),
 
   // Bigint — SQLite INTEGER is always number, can't round-trip bigint
@@ -263,6 +285,8 @@ export const ALL_SQLITE_FIELDS = {
   c_int64: "ERROR" as const,
   c_int64_pk: "ERROR" as const,
   c_uint64: "ERROR" as const,
+  c_uint128: "ERROR" as const,
+  c_int128: "ERROR" as const,
 
   // Boolean — SQLite has no boolean, stores 0/1 in INTEGER, can't round-trip
   c_bool: "ERROR" as const,

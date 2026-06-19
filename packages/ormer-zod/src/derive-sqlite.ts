@@ -56,12 +56,18 @@ type DeriveBaseSqliteColumn<T extends ZodType> =
   : T extends ZodNumberFormatVal<"safeint"> ? ColumnTypeSingualr<"integer"> 
   : T extends ZodNumberFormatVal<"int32"> ? ColumnTypeSingualr<"integer">
   : T extends ZodNumberFormatVal<"uint32"> ? ColumnTypeSingualr<"integer">
+  : T extends ZodNumberFormatVal<"int8"> ? ColumnTypeSingualr<"integer">
+  : T extends ZodNumberFormatVal<"uint8"> ? ColumnTypeSingualr<"integer">
+  : T extends ZodNumberFormatVal<"int16"> ? ColumnTypeSingualr<"integer">
+  : T extends ZodNumberFormatVal<"uint16"> ? ColumnTypeSingualr<"integer">
   : T extends ZodNumberFormatVal<"float32"> ? ColumnTypeSingualr<"real">
   : T extends ZodNumberFormatVal<"float64"> ? ColumnTypeSingualr<"real">
 
   // Bigints — SQLite INTEGER is always number, can't round-trip bigint
   : T extends ZodBigIntFormatVal<"int64"> ? { type: "ERROR" }
   : T extends ZodBigIntFormatVal<"uint64"> ? { type: "ERROR" }
+  : T extends ZodBigIntFormatVal<"uint128"> ? { type: "ERROR" }
+  : T extends ZodBigIntFormatVal<"int128"> ? { type: "ERROR" }
 
   // JSON — SQLite stores as text, can't round-trip
   : T extends z.ZodObject ? { type: "ERROR" }
@@ -202,12 +208,18 @@ export function deriveSqliteColumn<
         return sqlite.text(p as Params);
       case "int64":
       case "uint64":
+      case "uint128":
+      case "int128":
       case "bigint":
         throw new Error(
           `ZodBigInt / ZodInt64 / ZodUInt64 is not supported by deriveSqliteColumn. SQLite INTEGER maps to number and cannot round-trip bigint values.`,
         );
       case "int32":
+      case "int8":
+      case "int16":
       case "uint32":
+      case "uint8":
+      case "uint16":
         return sqlite.integer(p as Params);
       case "float32":
       case "float64":

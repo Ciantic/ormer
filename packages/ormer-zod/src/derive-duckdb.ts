@@ -53,6 +53,10 @@ type DeriveBaseDuckDbColumn<T extends ZodType> =
   // Number formats
   : T extends ZodNumberFormatVal<"safeint"> ? ColumnTypeSingualr<"int4"> 
   : T extends ZodNumberFormatVal<"int32"> ? ColumnTypeSingualr<"int4">
+  : T extends ZodNumberFormatVal<"int8"> ? ColumnTypeSingualr<"int1">
+  : T extends ZodNumberFormatVal<"uint8"> ? ColumnTypeSingualr<"utinyint">
+  : T extends ZodNumberFormatVal<"int16"> ? ColumnTypeSingualr<"int2">
+  : T extends ZodNumberFormatVal<"uint16"> ? ColumnTypeSingualr<"usmallint">
   : T extends ZodNumberFormatVal<"uint32"> ? ColumnTypeSingualr<"uinteger"> // DuckDB has unsigned ints
   : T extends ZodNumberFormatVal<"float32"> ? ColumnTypeSingualr<"float4">
   : T extends ZodNumberFormatVal<"float64"> ? ColumnTypeSingualr<"float8">
@@ -60,6 +64,8 @@ type DeriveBaseDuckDbColumn<T extends ZodType> =
   // Bigints
   : T extends ZodBigIntFormatVal<"int64"> ? ColumnTypeSingualr<"int8">
   : T extends ZodBigIntFormatVal<"uint64"> ? ColumnTypeSingualr<"ubigint"> // DuckDB has unsigned bigints
+  : T extends ZodBigIntFormatVal<"uint128"> ? ColumnTypeSingualr<"uhugeint"> // DuckDB has unsigned hugeints
+  : T extends ZodBigIntFormatVal<"int128"> ? ColumnTypeSingualr<"hugeint">
 
   // JSON — DuckDB uses json, not jsonb
   : T extends z.ZodObject ? ColumnType<"json", { schema: T }>
@@ -145,10 +151,22 @@ export function deriveDuckDbColumn<
         return duckdb.int8(params);
       case "uint64":
         return duckdb.ubigint(params);
+      case "uint128":
+        return duckdb.uhugeint(params);
+      case "int128":
+        return duckdb.hugeint(params);
       case "int32":
         return duckdb.int4(params);
+      case "int16":
+        return duckdb.int2(params);
       case "uint32":
         return duckdb.uinteger(params);
+      case "uint16":
+        return duckdb.usmallint(params);
+      case "int8":
+        return duckdb.int1(params);
+      case "uint8":
+        return duckdb.utinyint(params);
       case "float32":
         return duckdb.float4(params);
       case "float64":

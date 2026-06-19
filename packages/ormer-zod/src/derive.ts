@@ -29,9 +29,15 @@ type ZodSchemas =
   | ["email", ParamsDerived]
   | ["string", ParamsDerived<{ maxLength: number }> | ParamsDerived]
   | ["int64", ParamsDerived]
+  | ["int128", ParamsDerived]
   | ["int32", ParamsDerived]
+  | ["int8", ParamsDerived]
+  | ["int16", ParamsDerived]
   | ["uint32", ParamsDerived]
+  | ["uint8", ParamsDerived]
+  | ["uint16", ParamsDerived]
   | ["uint64", ParamsDerived]
+  | ["uint128", ParamsDerived]
   | ["bigint", ParamsDerived]
   | ["float32", ParamsDerived]
   | ["float64", ParamsDerived]
@@ -268,6 +274,15 @@ export function deriveColumn<
   }
 
   if (node instanceof z.ZodBigInt) {
+    // This is custom extension to ZodBigint
+    const format = node.format;
+    if (format === "uint128") {
+      return chooser(["uint128", pgParamsBase]);
+    }
+    if (format === "int128") {
+      return chooser(["int128", pgParamsBase]);
+    }
+
     return chooser(["bigint", pgParamsBase]);
   }
 
@@ -295,9 +310,22 @@ export function deriveColumn<
 
   if (node instanceof z.ZodNumber) {
     // z.number().int() produces ZodNumber with format: 'safeint' directly
-    const format = (node as any).format as string | null;
+    // z.number().int8() / .uint8() / .int16() / .uint16() are custom extensions
+    const format = node.format as string | undefined;
     if (format === "safeint") {
       return chooser(["int32", pgParamsBase]);
+    }
+    if (format === "int8") {
+      return chooser(["int8", pgParamsBase]);
+    }
+    if (format === "uint8") {
+      return chooser(["uint8", pgParamsBase]);
+    }
+    if (format === "int16") {
+      return chooser(["int16", pgParamsBase]);
+    }
+    if (format === "uint16") {
+      return chooser(["uint16", pgParamsBase]);
     }
     return chooser(["float64", pgParamsBase]);
   }
