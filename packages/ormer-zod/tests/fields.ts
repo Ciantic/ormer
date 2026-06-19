@@ -27,14 +27,14 @@ export const ALL_ZOD_FIELDS = {
   c_int16:            { zod: z.number().int16(),                example: 15000 },
   c_uint16:           { zod: z.number().uint16(),               example: 50000 },
   c_uint32:           { zod: z.number().uint32(),               example: 300 },
-  c_uint128:          { zod: z.bigint().uint128(),              example: 340282366920938463463374607431768211455n },
-  c_int128:           { zod: z.bigint().int128(),               example: 170141183460469231731687303715884105727n },
 
   // Bigint 
   c_bigint:           { zod: z.bigint(),                        example: 9007199254740991n },
   c_int64:            { zod: z.bigint().int64(),                example: 123456789n },
   c_int64_pk:         { zod: z.bigint().int64().dbPk(),         example: 1n },
   c_uint64:           { zod: z.bigint().uint64(),               example: 18446744073709551615n },
+  c_uint128:          { zod: z.bigint().uint128(),              example: 340282366920938463463374607431768211455n },
+  c_int128:           { zod: z.bigint().int128(),               example: 170141183460469231731687303715884105727n },
 
   // Boolean
   c_bool:             { zod: z.boolean(),                       example: true },

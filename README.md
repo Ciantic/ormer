@@ -132,18 +132,6 @@ Notes:
 <td><code>INTEGER</code></td>
 </tr>
 <tr>
-<td><code>z.bigint().uint128()</code></td>
-<td><em>Not Available</em></td>
-<td><code>UHUGEINT</code></td>
-<td><em>Not Available</em></td>
-</tr>
-<tr>
-<td><code>z.bigint().int128()</code></td>
-<td><em>Not Available</em></td>
-<td><code>HUGEINT</code></td>
-<td><em>Not Available</em></td>
-</tr>
-<tr>
 <td colspan="4"><strong>Bigint</strong></td>
 </tr>
 <tr>
@@ -168,6 +156,18 @@ Notes:
 <td><code>z.bigint().uint64()</code></td>
 <td><em>Not Available</em></td>
 <td><code>UBIGINT</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>z.bigint().uint128()</code></td>
+<td><em>Not Available</em></td>
+<td><code>UHUGEINT</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>z.bigint().int128()</code></td>
+<td><em>Not Available</em></td>
+<td><code>HUGEINT</code></td>
 <td><em>Not Available</em></td>
 </tr>
 <tr>
