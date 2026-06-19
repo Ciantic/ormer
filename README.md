@@ -96,16 +96,52 @@ Notes:
 <td><code>INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
 </tr>
 <tr>
-<td><code>z.int32()</code></td>
+<td><code>z.number().int32()</code></td>
 <td><code>INT4</code></td>
 <td><code>INT4</code></td>
 <td><code>INTEGER</code></td>
 </tr>
 <tr>
-<td><code>z.uint32()</code></td>
+<td><code>z.number().int8()</code></td>
+<td><em>Not Available</em></td>
+<td><code>INT1</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>z.number().uint8()</code></td>
+<td><em>Not Available</em></td>
+<td><code>UTINYINT</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>z.number().int16()</code></td>
+<td><code>INT2</code></td>
+<td><code>INT2</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>z.number().uint16()</code></td>
+<td><em>Not Available</em></td>
+<td><code>USMALLINT</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>z.number().uint32()</code></td>
 <td><em>Not Available</em></td>
 <td><code>UINTEGER</code></td>
 <td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>z.bigint().uint128()</code></td>
+<td><em>Not Available</em></td>
+<td><code>UHUGEINT</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>z.bigint().int128()</code></td>
+<td><em>Not Available</em></td>
+<td><code>HUGEINT</code></td>
+<td><em>Not Available</em></td>
 </tr>
 <tr>
 <td colspan="4"><strong>Bigint</strong></td>
@@ -117,19 +153,19 @@ Notes:
 <td><em>Not Available</em></td>
 </tr>
 <tr>
-<td><code>z.int64()</code></td>
+<td><code>z.bigint().int64()</code></td>
 <td><code>INT8</code></td>
 <td><code>INT8</code></td>
 <td><em>Not Available</em></td>
 </tr>
 <tr>
-<td><code>z.int64().dbPk()</code></td>
+<td><code>z.bigint().int64().dbPk()</code></td>
 <td><code>SERIAL8 PRIMARY KEY</code></td>
 <td><code>INT8 PRIMARY KEY</code></td>
 <td><em>Not Available</em></td>
 </tr>
 <tr>
-<td><code>z.uint64()</code></td>
+<td><code>z.bigint().uint64()</code></td>
 <td><em>Not Available</em></td>
 <td><code>UBIGINT</code></td>
 <td><em>Not Available</em></td>
@@ -443,7 +479,7 @@ Notes:
 <td><code>INTEGER</code></td>
 </tr>
 <tr>
-<td><code>v.pipe(v.number(), d.int32(), d.dbPrimaryKey())</code></td>
+<td><code>v.pipe(v.number(), d.int32(), d.primaryKey(), d.autoIncrement())</code></td>
 <td><code>SERIAL4 PRIMARY KEY</code></td>
 <td><code>INT4 PRIMARY KEY</code></td>
 <td><code>INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
@@ -458,6 +494,30 @@ Notes:
 <td><code>v.pipe(v.number(), d.uint32())</code></td>
 <td><em>Not Available</em></td>
 <td><code>UINTEGER</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>v.pipe(v.number(), d.int8())</code></td>
+<td><em>Not Available</em></td>
+<td><code>INT1</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>v.pipe(v.number(), d.int16())</code></td>
+<td><code>INT2</code></td>
+<td><code>INT2</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>v.pipe(v.number(), d.uint8())</code></td>
+<td><em>Not Available</em></td>
+<td><code>UTINYINT</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>v.pipe(v.number(), d.uint16())</code></td>
+<td><em>Not Available</em></td>
+<td><code>USMALLINT</code></td>
 <td><code>INTEGER</code></td>
 </tr>
 <tr>
@@ -476,7 +536,7 @@ Notes:
 <td><em>Not Available</em></td>
 </tr>
 <tr>
-<td><code>v.pipe(v.bigint(), d.int64(), d.dbPrimaryKey())</code></td>
+<td><code>v.pipe(v.bigint(), d.int64(), d.primaryKey(), d.autoIncrement())</code></td>
 <td><code>SERIAL8 PRIMARY KEY</code></td>
 <td><code>INT8 PRIMARY KEY</code></td>
 <td><em>Not Available</em></td>
@@ -485,6 +545,18 @@ Notes:
 <td><code>v.pipe(v.bigint(), d.uint64())</code></td>
 <td><em>Not Available</em></td>
 <td><code>UBIGINT</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>v.pipe(v.bigint(), d.int128())</code></td>
+<td><em>Not Available</em></td>
+<td><code>HUGEINT</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>v.pipe(v.bigint(), d.uint128())</code></td>
+<td><em>Not Available</em></td>
+<td><code>UHUGEINT</code></td>
 <td><em>Not Available</em></td>
 </tr>
 <tr>
@@ -695,13 +767,13 @@ Notes:
 <td><code>TEXT DEFAULT hello</code></td>
 </tr>
 <tr>
-<td><code>v.pipe(v.string(), d.dbPrimaryKey())</code></td>
+<td><code>v.pipe(v.string(), d.primaryKey())</code></td>
 <td><code>TEXT PRIMARY KEY</code></td>
 <td><code>TEXT PRIMARY KEY</code></td>
 <td><code>TEXT PRIMARY KEY</code></td>
 </tr>
 <tr>
-<td><code>v.pipe(v.bigint(), d.int64(), d.dbForeignKey("users", "id"))</code></td>
+<td><code>v.pipe(v.bigint(), d.int64(), d.foreignKey("users", "id"))</code></td>
 <td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
 <td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
 <td><em>Not Available</em></td>
