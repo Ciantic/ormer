@@ -90,7 +90,7 @@ Notes:
 <td><code>INTEGER</code></td>
 </tr>
 <tr>
-<td><code>z.int().dbPk()</code></td>
+<td><code>z.int().dbPk().dbAutoInc()</code></td>
 <td><code>SERIAL4 PRIMARY KEY</code></td>
 <td><code>INT4 PRIMARY KEY</code></td>
 <td><code>INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
@@ -147,7 +147,7 @@ Notes:
 <td><em>Not Available</em></td>
 </tr>
 <tr>
-<td><code>z.bigint().int64().dbPk()</code></td>
+<td><code>z.bigint().int64().dbPk().dbAutoInc()</code></td>
 <td><code>SERIAL8 PRIMARY KEY</code></td>
 <td><code>INT8 PRIMARY KEY</code></td>
 <td><em>Not Available</em></td>
@@ -414,6 +414,18 @@ Notes:
 <td><code>z.int64().dbFk(UserSchema, "id")</code></td>
 <td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
 <td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>z.bigint().int128().refine(n => n % 2n === 0n, { message: "Must be an even number" })</code></td>
+<td><em>Not Available</em></td>
+<td><code>HUGEINT</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>z.uint64().refine(n => n % 2n === 0n, { message: "Must be an even number" })</code></td>
+<td><em>Not Available</em></td>
+<td><code>UBIGINT</code></td>
 <td><em>Not Available</em></td>
 </tr>
   </tbody>
