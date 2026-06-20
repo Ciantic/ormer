@@ -97,6 +97,10 @@ export const ALL_ZOD_FIELDS = {
   c_int64_refine:    {
     zod: z.bigint().int64().refine(n => n % 2n === 0n, { message: "Must be an even number" }),
     example: 42n,
+  },
+  c_int64_2_refine:    {
+    zod: z.int64().refine(n => n % 2n === 0n, { message: "Must be an even number" }),
+    example: 42n,
   }
 } as const
 
@@ -180,6 +184,7 @@ export const ALL_PG_FIELDS = {
   c_str_pk: pg.text({ primaryKey: true }),
   c_int64_fk: pg.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
   c_int64_refine: pg.int8(),
+  c_int64_2_refine: pg.int8(),
 } as const satisfies {
   [K in keyof typeof ALL_ZOD_FIELDS]: ColumnType<string, any> | "ERROR";
 };
@@ -264,6 +269,7 @@ export const ALL_DUCKDB_FIELDS = {
   c_str_pk: duckdb.text({ primaryKey: true }),
   c_int64_fk: duckdb.int8({ foreignKeyTable: "users", foreignKeyColumn: "id" }),
   c_int64_refine: pg.int8(),
+  c_int64_2_refine: pg.int8(),
 } as const satisfies {
   [K in keyof typeof ALL_ZOD_FIELDS]: ColumnType<string, any> | "ERROR";
 };
@@ -358,6 +364,7 @@ export const ALL_SQLITE_FIELDS = {
   c_str_pk: sqlite.text({ primaryKey: true }),
   c_int64_fk: "ERROR" as const,
   c_int64_refine: "ERROR" as const,
+  c_int64_2_refine: "ERROR" as const,
 } as const satisfies {
   [K in keyof typeof ALL_ZOD_FIELDS]: ColumnType<string, any> | "ERROR";
 };
