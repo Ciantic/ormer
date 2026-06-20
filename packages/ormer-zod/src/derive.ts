@@ -277,7 +277,7 @@ export function deriveColumn<
 
   if (node instanceof z.ZodBigInt) {
     // This is custom extension to ZodBigint
-    const format = node.format;
+    const format = (node as any).def.dbformat;
     if (format === "uint128") {
       return chooser(["uint128", pgParamsBase]);
     } else if (format === "int128") {
@@ -315,23 +315,26 @@ export function deriveColumn<
 
   if (node instanceof z.ZodNumber) {
     // z.number().int() produces ZodNumber with format: 'safeint' directly
+    // (Zod's built-in, stored on the instance as node.format)
     // z.number().int8() / .uint8() / .int16() / .uint16() are custom extensions
-    const format = node.format as string | undefined;
-    if (format === "safeint") {
+    // stored on node.def.dbformat so they survive .refine() / .pipe()
+    const dbformat = (node as any).def.dbformat as string | undefined;
+    const safefmt = node.format as string | undefined;
+    if (safefmt === "safeint") {
       return chooser(["int32", pgParamsBase]);
-    } else if (format === "int8") {
+    } else if (dbformat === "int8") {
       return chooser(["int8", pgParamsBase]);
-    } else if (format === "uint8") {
+    } else if (dbformat === "uint8") {
       return chooser(["uint8", pgParamsBase]);
-    } else if (format === "int16") {
+    } else if (dbformat === "int16") {
       return chooser(["int16", pgParamsBase]);
-    } else if (format === "uint16") {
+    } else if (dbformat === "uint16") {
       return chooser(["uint16", pgParamsBase]);
-    } else if (format === "int32") {
+    } else if (dbformat === "int32") {
       return chooser(["int32", pgParamsBase]);
-    } else if (format === "uint32") {
+    } else if (dbformat === "uint32") {
       return chooser(["uint32", pgParamsBase]);
-    } else if (format === "float32") {
+    } else if (dbformat === "float32") {
       return chooser(["float32", pgParamsBase]);
     }
     return chooser(["float64", pgParamsBase]);

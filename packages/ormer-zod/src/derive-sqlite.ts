@@ -11,8 +11,8 @@ import type {
   NaiveDatetime,
   ZodSafeInt,
   ZodMaxLengthVal,
-  ZodNumberProtoFormatVal,
-  ZodBigIntProtoFormatVal,
+  ZodNumberDbFormat,
+  ZodBigIntDbFormat,
 } from "./zod-ext.ts";
 import type {
   ZodType,
@@ -63,24 +63,24 @@ type DeriveBaseSqliteColumn<T extends ZodType> =
   : T extends ZodNumberFormatVal<"float64"> ? ColumnTypeSingualr<"real">
 
   // Number formats via z.number().int32()
-  : T extends ZodNumberProtoFormatVal<"int32"> ? ColumnTypeSingualr<"integer">
-  : T extends ZodNumberProtoFormatVal<"uint32"> ? ColumnTypeSingualr<"integer">
-  : T extends ZodNumberProtoFormatVal<"float32"> ? ColumnTypeSingualr<"real">
-  : T extends ZodNumberProtoFormatVal<"float64"> ? ColumnTypeSingualr<"real">
-  : T extends ZodNumberProtoFormatVal<"int8"> ? ColumnTypeSingualr<"integer">
-  : T extends ZodNumberProtoFormatVal<"uint8"> ? ColumnTypeSingualr<"integer">
-  : T extends ZodNumberProtoFormatVal<"int16"> ? ColumnTypeSingualr<"integer">
-  : T extends ZodNumberProtoFormatVal<"uint16"> ? ColumnTypeSingualr<"integer">
+  : T extends ZodNumberDbFormat<"int32"> ? ColumnTypeSingualr<"integer">
+  : T extends ZodNumberDbFormat<"uint32"> ? ColumnTypeSingualr<"integer">
+  : T extends ZodNumberDbFormat<"float32"> ? ColumnTypeSingualr<"real">
+  : T extends ZodNumberDbFormat<"float64"> ? ColumnTypeSingualr<"real">
+  : T extends ZodNumberDbFormat<"int8"> ? ColumnTypeSingualr<"integer">
+  : T extends ZodNumberDbFormat<"uint8"> ? ColumnTypeSingualr<"integer">
+  : T extends ZodNumberDbFormat<"int16"> ? ColumnTypeSingualr<"integer">
+  : T extends ZodNumberDbFormat<"uint16"> ? ColumnTypeSingualr<"integer">
 
   // Bigints (via z.int64() etc)
   : T extends ZodBigIntFormatVal<"int64"> ? { type: "ERROR" }
   : T extends ZodBigIntFormatVal<"uint64"> ? { type: "ERROR" }
   
   // Bigints (via z.bigint().int64() etc)
-  : T extends ZodBigIntProtoFormatVal<"int64"> ? { type: "ERROR" }
-  : T extends ZodBigIntProtoFormatVal<"uint64"> ? { type: "ERROR" }
-  : T extends ZodBigIntProtoFormatVal<"int128"> ? { type: "ERROR" }
-  : T extends ZodBigIntProtoFormatVal<"uint128"> ? { type: "ERROR" }
+  : T extends ZodBigIntDbFormat<"int64"> ? { type: "ERROR" }
+  : T extends ZodBigIntDbFormat<"uint64"> ? { type: "ERROR" }
+  : T extends ZodBigIntDbFormat<"int128"> ? { type: "ERROR" }
+  : T extends ZodBigIntDbFormat<"uint128"> ? { type: "ERROR" }
 
   // JSON — SQLite stores as text, can't round-trip
   : T extends z.ZodObject ? { type: "ERROR" }
