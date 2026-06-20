@@ -49,6 +49,30 @@ const InvoiceRowSchema = z
   })
   .dbTable("invoice_rows");
 
+// declare var superjson: any;
+// fetch("https://example.com/api/query", {
+//   body: superjson.stringify({
+//     organizationId: "1df408da-9f5f-40aa-8e0d-eec4921efc2c",
+//     pagination: {
+//       startAt: new Date(),
+//       count: 120,
+//     },
+
+//     // This would allow fully typed output, with shared schemas
+//     results: InvoiceSchema.pick({
+//       id: true,
+//       title: true,
+//       updated_at: true,
+//     }).extend({
+//       rows: InvoiceRowSchema.pick({
+//         id: true,
+//         title: true,
+//         price: true,
+//       }).array(),
+//     }),
+//   }),
+// });
+
 const PersonSchema = z
   .object({
     id: z.int64().brand("PersonId").dbPk().dbAutoInc(),
