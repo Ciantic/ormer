@@ -23,6 +23,7 @@ export type ZodDbParams = FinalTypeDb<
   ZodDbFk<any, string> &
     ZodDbNavigate<any, string> &
     ZodDbPrimaryKey &
+    ZodDbAutoIncrement &
     ZodDbTableName<string> &
     ZodDbPgColumnType<any> &
     ZodDbDuckDbColumnType<any> &
@@ -39,6 +40,10 @@ export type ZodDbTableName<T extends string> = {
 
 export type ZodDbPrimaryKey = {
   def: { db: { primaryKey: true } };
+};
+
+export type ZodDbAutoIncrement = {
+  def: { db: { autoIncrement: true } };
 };
 
 export type ZodDbNavigate<R, K> = {
@@ -121,6 +126,11 @@ function dbFk<
 function dbPk<T extends ZodTypeLite>(this: T): T & ZodDbPrimaryKey {
   this.def.db = { ...this.def.db, primaryKey: true };
   return this as T & ZodDbPrimaryKey;
+}
+
+function dbAutoInc<T extends ZodTypeLite>(this: T): T & ZodDbAutoIncrement {
+  this.def.db = { ...this.def.db, autoIncrement: true };
+  return this as T & ZodDbAutoIncrement;
 }
 
 function dbPg<
@@ -206,6 +216,7 @@ declare module "zod" {
     dbNavigateSelf: typeof dbNavigateSelf;
     dbFk: typeof dbFk;
     dbPk: typeof dbPk;
+    dbAutoInc: typeof dbAutoInc;
     dbPg: typeof dbPg;
     dbDuck: typeof dbDuck;
     dbSqlite: typeof dbSqlite;
@@ -284,6 +295,7 @@ z.ZodType.prototype.dbNavigate = dbNavigate;
 z.ZodObject.prototype.dbNavigateSelf = dbNavigateSelf;
 z.ZodType.prototype.dbFk = dbFk;
 z.ZodType.prototype.dbPk = dbPk;
+z.ZodType.prototype.dbAutoInc = dbAutoInc;
 z.ZodType.prototype.dbPg = dbPg;
 z.ZodType.prototype.dbDuck = dbDuck;
 z.ZodType.prototype.dbSqlite = dbSqlite;

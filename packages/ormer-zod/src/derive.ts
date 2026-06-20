@@ -55,6 +55,7 @@ export function deriveColumn<
   let optional: boolean | undefined = undefined;
   let defaultValue: unknown = undefined;
   let primaryKey = false;
+  let autoIncrement = false;
   let foreignKeyTable: string | undefined = undefined;
   let foreignKeyColumn: string | undefined = undefined;
   let arrayDimensions = "";
@@ -65,6 +66,7 @@ export function deriveColumn<
   while (true) {
     const ndb = node.def?.db;
     if (ndb?.primaryKey === true) primaryKey = true;
+    if (ndb?.autoIncrement === true) autoIncrement = true;
     if (ndb?.foreignKeyTable && ndb?.foreignKeyColumn) {
       foreignKeyTable = ndb.foreignKeyTable;
       foreignKeyColumn = ndb.foreignKeyColumn;
@@ -110,9 +112,9 @@ export function deriveColumn<
   if (typeof defaultValue !== "undefined") pgParamsBase.default = defaultValue;
   if (primaryKey) {
     pgParamsBase.primaryKey = true;
-    if (node instanceof z.ZodNumberFormat || node instanceof z.ZodBigInt) {
-      pgParamsBase.autoIncrement = true;
-    }
+  }
+  if (autoIncrement) {
+    pgParamsBase.autoIncrement = true;
   }
   if (foreignKeyTable && foreignKeyColumn) {
     pgParamsBase.foreignKeyTable = foreignKeyTable;

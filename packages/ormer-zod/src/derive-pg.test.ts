@@ -262,8 +262,8 @@ describe("derivePgColumn default types", () => {
     expect(col.default).toBe(0);
   });
 
-  it("z.int().default(1).dbPk() -> int4 + primaryKey + default", () => {
-    const col = derivePgColumn(z.int().default(1).dbPk());
+  it("z.int().default(1).dbPk().dbAutoInc() -> int4 + primaryKey + default", () => {
+    const col = derivePgColumn(z.int().default(1).dbPk().dbAutoInc());
     expectTypeOf<typeof col>().toEqualTypeOf<
       ColumnType<
         "int4",
@@ -282,8 +282,10 @@ describe("derivePgColumn default types", () => {
 });
 
 describe("test ordering doesn't break the behavior", () => {
-  it("z.int().dbPk().meta({ description: 'test' })", () => {
-    const col = derivePgColumn(z.int().dbPk().meta({ description: "test" }));
+  it("z.int().dbPk().dbAutoInc().meta({ description: 'test' })", () => {
+    const col = derivePgColumn(
+      z.int().dbPk().dbAutoInc().meta({ description: "test" }),
+    );
     expectTypeOf<typeof col>().toEqualTypeOf<
       ColumnType<"int4", { primaryKey: true; autoIncrement: true }>
     >();
@@ -293,7 +295,9 @@ describe("test ordering doesn't break the behavior", () => {
   });
 
   it("z.int().dbFk(...).meta({ description: 'test' })", () => {
-    const otherSchema = z.object({ id: z.int().dbPk() }).dbTable("other");
+    const otherSchema = z
+      .object({ id: z.int().dbPk().dbAutoInc() })
+      .dbTable("other");
     const col = derivePgColumn(
       z.int().dbFk(otherSchema, "id").meta({ description: "test" }),
     );
@@ -353,8 +357,8 @@ describe("derivePgColumn readonly wrapper", () => {
     expect(col.default).toBe("x");
   });
 
-  it("z.int().dbPk().readonly() → pg.int4({ primaryKey, autoIncrement })", () => {
-    const col = derivePgColumn(z.int().dbPk().readonly());
+  it("z.int().dbPk().dbAutoInc().readonly() → pg.int4({ primaryKey, autoIncrement })", () => {
+    const col = derivePgColumn(z.int().dbPk().dbAutoInc().readonly());
     expectTypeOf<typeof col>().toEqualTypeOf<
       ColumnType<"int4", { primaryKey: true; autoIncrement: true }>
     >();
@@ -402,8 +406,8 @@ describe("derivePgColumn prefault wrapper", () => {
     expect(col.nullable).toBe(true);
   });
 
-  it("z.int().prefault(1).dbPk() → pg.int4({ default: 1, primaryKey, autoIncrement })", () => {
-    const col = derivePgColumn(z.int().prefault(1).dbPk());
+  it("z.int().prefault(1).dbPk().dbAutoInc() → pg.int4({ default: 1, primaryKey, autoIncrement })", () => {
+    const col = derivePgColumn(z.int().prefault(1).dbPk().dbAutoInc());
     expectTypeOf<typeof col>().toEqualTypeOf<
       ColumnType<
         "int4",
@@ -487,7 +491,7 @@ describe("derivePgTable", () => {
   it("derives a simple table from a ZodObject", () => {
     const schema = z
       .object({
-        id: z.int().dbPk(),
+        id: z.int().dbPk().dbAutoInc(),
         title: z.string(),
         description: z.string().nullable(),
       })
@@ -507,14 +511,14 @@ describe("derivePgTable", () => {
   it("derives a table with foreign keys", () => {
     const invoiceSchema = z
       .object({
-        id: z.number().dbPk(),
+        id: z.number().dbPk().dbAutoInc(),
         title: z.string(),
       })
       .dbTable("invoice");
 
     const rowSchema = z
       .object({
-        id: z.number().dbPk(),
+        id: z.number().dbPk().dbAutoInc(),
         invoice_id: z.number().nullable().dbFk(invoiceSchema, "id"),
         amount: z.number(),
       })
@@ -535,14 +539,14 @@ describe("derivePgTable", () => {
   it("derives a table with foreign keys to PK", () => {
     const invoiceSchema = z
       .object({
-        id: z.int64().dbPk(),
+        id: z.int64().dbPk().dbAutoInc(),
         title: z.string(),
       })
       .dbTable("invoice");
 
     const rowSchema = z
       .object({
-        id: z.int().dbPk(),
+        id: z.int().dbPk().dbAutoInc(),
         invoice_id: z.int64().nullable().dbFk(invoiceSchema, "id"),
         amount: z.int(),
       })
@@ -551,7 +555,7 @@ describe("derivePgTable", () => {
     const tbl = derivePgTable(rowSchema);
 
     expect(tbl.table).toBe("invoice_row");
-    // PK from z.int().dbPk() -> int4
+    // PK from z.int().dbPk().dbAutoInc() -> int4
     expectTypeOf<typeof tbl.columns.id.type>().toEqualTypeOf<"int4">();
     expect(tbl.columns.id.type).toBe("int4");
     expect(tbl.columns.id.primaryKey).toBe(true);
@@ -587,7 +591,7 @@ describe("derivePgTable", () => {
   it("derives a self-referencing table with foreign key", () => {
     const personSchema = z
       .object({
-        id: z.int().dbPk(),
+        id: z.int().dbPk().dbAutoInc(),
         first_name: z.string(),
         get supervisor_id() {
           return z.int().nullable().dbFk(personSchema, "id");
@@ -626,7 +630,7 @@ describe("derivePgTable types", () => {
   it("returns correct Table type for simple schema", () => {
     const schema = z
       .object({
-        id: z.int().dbPk(),
+        id: z.int().dbPk().dbAutoInc(),
         title: z.string(),
       })
       .dbTable("items");
@@ -731,7 +735,7 @@ describe("derivePgTable types", () => {
 describe("derivePgTable with .extend()", () => {
   it("extend then dbTable produces correct column derivations", () => {
     const baseSchema = z.object({
-      id: z.int().dbPk(),
+      id: z.int().dbPk().dbAutoInc(),
       title: z.string(),
     });
 
@@ -761,13 +765,13 @@ describe("derivePgTable with .extend()", () => {
   it("extend carries FK field metadata to derived table", () => {
     const invoiceSchema = z
       .object({
-        id: z.int64().dbPk(),
+        id: z.int64().dbPk().dbAutoInc(),
         title: z.string(),
       })
       .dbTable("invoice");
 
     const baseRowSchema = z.object({
-      id: z.int().dbPk(),
+      id: z.int().dbPk().dbAutoInc(),
       invoice_id: z.int64().nullable().dbFk(invoiceSchema, "id"),
     });
 
@@ -789,7 +793,7 @@ describe("derivePgTable with .extend()", () => {
 describe("derivePgTable with .omit()", () => {
   it("omit then dbTable produces correct subset", () => {
     const fullSchema = z.object({
-      id: z.int().dbPk(),
+      id: z.int().dbPk().dbAutoInc(),
       title: z.string(),
       description: z.string().nullable(),
       created_at: z.date(),
@@ -819,13 +823,13 @@ describe("derivePgTable with .omit()", () => {
   it("omitted FK field is not present in derived table", () => {
     const invoiceSchema = z
       .object({
-        id: z.int64().dbPk(),
+        id: z.int64().dbPk().dbAutoInc(),
         title: z.string(),
       })
       .dbTable("invoice");
 
     const fullRowSchema = z.object({
-      id: z.int().dbPk(),
+      id: z.int().dbPk().dbAutoInc(),
       invoice_id: z.int64().nullable().dbFk(invoiceSchema, "id"),
       amount: z.float64(),
     });
@@ -844,7 +848,7 @@ describe("derivePgTable with .omit()", () => {
 
   it("omit + extend round-trip works", () => {
     const fullSchema = z.object({
-      id: z.int().dbPk(),
+      id: z.int().dbPk().dbAutoInc(),
       title: z.string(),
       description: z.string().nullable(),
       created_at: z.date(),

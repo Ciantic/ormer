@@ -16,7 +16,7 @@ import { PGlite } from "@electric-sql/pglite";
 
 const InvoiceSchema = z
   .object({
-    id: z.int64().brand("InvoiceId").dbPk(),
+    id: z.int64().brand("InvoiceId").dbPk().dbAutoInc(),
     title: z.string(),
     description: z.string().nullable(),
     due_date: z.string(),
@@ -32,7 +32,7 @@ const InvoiceSchema = z
 
 const InvoiceRowSchema = z
   .object({
-    id: z.int64().brand("InvoiceRowId").dbPk(),
+    id: z.int64().brand("InvoiceRowId").dbPk().dbAutoInc(),
     title: z.string(),
     price: z.number(),
     tax_percentage: z.number(),
@@ -51,7 +51,7 @@ const InvoiceRowSchema = z
 
 const PersonSchema = z
   .object({
-    id: z.int64().brand("PersonId").dbPk(),
+    id: z.int64().brand("PersonId").dbPk().dbAutoInc(),
     first_name: z.string(),
     last_name: z.string().nullable(),
     email: z.email(),
