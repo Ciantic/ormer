@@ -11,6 +11,8 @@ import type {
   NaiveDatetime,
   ZodSafeInt,
   ZodMaxLengthVal,
+  ZodNumberProtoFormatVal,
+  ZodBigIntProtoFormatVal,
 } from "./zod-ext.ts";
 import type {
   ZodType,
@@ -50,22 +52,32 @@ type DeriveBaseDuckDbColumn<T extends ZodType> =
   : T extends z.ZodISODateTime ? { type: "ERROR" } // Not supported, see test cases
 
   // Custom workarounds because of this: https://github.com/colinhacks/zod/issues/6045
-  // Number formats
-  : T extends ZodNumberFormatVal<"safeint"> ? ColumnTypeSingualr<"int4"> 
+  // Number formats via z.int32()
+  : T extends ZodNumberFormatVal<"safeint"> ? ColumnTypeSingualr<"int4">
   : T extends ZodNumberFormatVal<"int32"> ? ColumnTypeSingualr<"int4">
-  : T extends ZodNumberFormatVal<"int8"> ? ColumnTypeSingualr<"int1">
-  : T extends ZodNumberFormatVal<"uint8"> ? ColumnTypeSingualr<"utinyint">
-  : T extends ZodNumberFormatVal<"int16"> ? ColumnTypeSingualr<"int2">
-  : T extends ZodNumberFormatVal<"uint16"> ? ColumnTypeSingualr<"usmallint">
-  : T extends ZodNumberFormatVal<"uint32"> ? ColumnTypeSingualr<"uinteger"> // DuckDB has unsigned ints
+  : T extends ZodNumberFormatVal<"uint32"> ? ColumnTypeSingualr<"uinteger">
   : T extends ZodNumberFormatVal<"float32"> ? ColumnTypeSingualr<"float4">
   : T extends ZodNumberFormatVal<"float64"> ? ColumnTypeSingualr<"float8">
 
-  // Bigints
+  // Number formats via z.number().int32()
+  : T extends ZodNumberProtoFormatVal<"int32"> ? ColumnTypeSingualr<"int4">
+  : T extends ZodNumberProtoFormatVal<"uint32"> ? ColumnTypeSingualr<"uinteger">
+  : T extends ZodNumberProtoFormatVal<"float32"> ? ColumnTypeSingualr<"float4">
+  : T extends ZodNumberProtoFormatVal<"float64"> ? ColumnTypeSingualr<"float8">
+  : T extends ZodNumberProtoFormatVal<"int8"> ? ColumnTypeSingualr<"int1">
+  : T extends ZodNumberProtoFormatVal<"uint8"> ? ColumnTypeSingualr<"utinyint">
+  : T extends ZodNumberProtoFormatVal<"int16"> ? ColumnTypeSingualr<"int2">
+  : T extends ZodNumberProtoFormatVal<"uint16"> ? ColumnTypeSingualr<"usmallint">
+
+  // Bigints (via z.int64() etc)
   : T extends ZodBigIntFormatVal<"int64"> ? ColumnTypeSingualr<"int8">
-  : T extends ZodBigIntFormatVal<"uint64"> ? ColumnTypeSingualr<"ubigint"> // DuckDB has unsigned bigints
-  : T extends ZodBigIntFormatVal<"uint128"> ? ColumnTypeSingualr<"uhugeint"> // DuckDB has unsigned hugeints
-  : T extends ZodBigIntFormatVal<"int128"> ? ColumnTypeSingualr<"hugeint">
+  : T extends ZodBigIntFormatVal<"uint64"> ? ColumnTypeSingualr<"ubigint">
+  
+  // Bigints (via z.bigint().int64() etc)
+  : T extends ZodBigIntProtoFormatVal<"int64"> ? ColumnTypeSingualr<"int8">
+  : T extends ZodBigIntProtoFormatVal<"uint64"> ? ColumnTypeSingualr<"ubigint">
+  : T extends ZodBigIntProtoFormatVal<"int128"> ? ColumnTypeSingualr<"hugeint">
+  : T extends ZodBigIntProtoFormatVal<"uint128"> ? ColumnTypeSingualr<"uhugeint">
 
   // JSON — DuckDB uses json, not jsonb
   : T extends z.ZodObject ? ColumnType<"json", { schema: T }>

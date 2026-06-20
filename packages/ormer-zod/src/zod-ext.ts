@@ -147,9 +147,8 @@ function dbSqlite<
   return this as T & ZodDbSqliteColumnType<C>;
 }
 
-export type ZodNumberFormatVal<
+export type ZodNumberProtoFormatVal<
   F extends
-    | "safeint"
     | "int32"
     | "uint32"
     | "float32"
@@ -159,12 +158,22 @@ export type ZodNumberFormatVal<
     | "int16"
     | "uint16",
 > = {
+  format: F;
+};
+
+export type ZodBigIntProtoFormatVal<
+  F extends "int64" | "uint64" | "int128" | "uint128",
+> = {
+  format: F;
+};
+
+export type ZodNumberFormatVal<
+  F extends "safeint" | "int32" | "uint32" | "float32" | "float64",
+> = {
   _zod: { def: { format: F } };
 };
 
-export type ZodBigIntFormatVal<
-  F extends "int64" | "uint64" | "uint128" | "int128",
-> = {
+export type ZodBigIntFormatVal<F extends "int64" | "uint64"> = {
   _zod: { def: { format: F } };
 };
 
@@ -218,22 +227,22 @@ declare module "zod" {
     int(params?: string | z.core.$ZodNumberFormatParams): this & ZodSafeInt;
 
     // Custom properties
-    int32(): this & ZodNumberFormatVal<"int32">;
-    uint32(): this & ZodNumberFormatVal<"uint32">;
-    float32(): this & ZodNumberFormatVal<"float32">;
-    float64(): this & ZodNumberFormatVal<"float64">;
-    int8(): this & ZodNumberFormatVal<"int8">;
-    uint8(): this & ZodNumberFormatVal<"uint8">;
-    int16(): this & ZodNumberFormatVal<"int16">;
-    uint16(): this & ZodNumberFormatVal<"uint16">;
+    int32(): this & ZodNumberProtoFormatVal<"int32">;
+    uint32(): this & ZodNumberProtoFormatVal<"uint32">;
+    float32(): this & ZodNumberProtoFormatVal<"float32">;
+    float64(): this & ZodNumberProtoFormatVal<"float64">;
+    int8(): this & ZodNumberProtoFormatVal<"int8">;
+    uint8(): this & ZodNumberProtoFormatVal<"uint8">;
+    int16(): this & ZodNumberProtoFormatVal<"int16">;
+    uint16(): this & ZodNumberProtoFormatVal<"uint16">;
   }
 
   interface _ZodBigInt {
     // Custom properties
-    int64(): this & ZodBigIntFormatVal<"int64">;
-    uint64(): this & ZodBigIntFormatVal<"uint64">;
-    uint128(): this & ZodBigIntFormatVal<"uint128">;
-    int128(): this & ZodBigIntFormatVal<"int128">;
+    int64(): this & ZodBigIntProtoFormatVal<"int64">;
+    uint64(): this & ZodBigIntProtoFormatVal<"uint64">;
+    uint128(): this & ZodBigIntProtoFormatVal<"uint128">;
+    int128(): this & ZodBigIntProtoFormatVal<"int128">;
   }
 
   namespace z {
@@ -279,10 +288,22 @@ z.ZodType.prototype.dbPg = dbPg;
 z.ZodType.prototype.dbDuck = dbDuck;
 z.ZodType.prototype.dbSqlite = dbSqlite;
 
-z.ZodNumber.prototype.int32 = z.int32;
-z.ZodNumber.prototype.uint32 = z.uint32;
-z.ZodNumber.prototype.float32 = z.float32;
-z.ZodNumber.prototype.float64 = z.float64;
+z.ZodNumber.prototype.int32 = function () {
+  this.format = "int32";
+  return this;
+};
+z.ZodNumber.prototype.uint32 = function () {
+  this.format = "uint32";
+  return this;
+};
+z.ZodNumber.prototype.float32 = function () {
+  this.format = "float32";
+  return this;
+};
+z.ZodNumber.prototype.float64 = function () {
+  this.format = "float64";
+  return this;
+};
 z.ZodNumber.prototype.int8 = function () {
   this.format = "int8";
   return this;
@@ -300,8 +321,14 @@ z.ZodNumber.prototype.uint16 = function () {
   return this;
 };
 
-z.ZodBigInt.prototype.int64 = z.int64;
-z.ZodBigInt.prototype.uint64 = z.uint64;
+z.ZodBigInt.prototype.int64 = function () {
+  this.format = "int64";
+  return this;
+};
+z.ZodBigInt.prototype.uint64 = function () {
+  this.format = "uint64";
+  return this;
+};
 z.ZodBigInt.prototype.uint128 = function () {
   this.format = "uint128";
   return this;

@@ -1,9 +1,11 @@
 import { z } from "zod";
 import type {
   ZodBigIntFormatVal,
+  ZodBigIntProtoFormatVal,
   ZodDbFk,
   ZodDbPrimaryKey,
   ZodNumberFormatVal,
+  ZodNumberProtoFormatVal,
 } from "./zod-ext.ts";
 import type { ColumnType, ColumnTypeSingualr, Table } from "ormer";
 
@@ -133,8 +135,12 @@ export type SafeParamDerivation<T extends ZodType> =
     autoIncrement: HasDbPk<T> extends true ? 
         UnwrapModifiers<T> extends ZodNumberFormatVal<"safeint"> ? true 
       : UnwrapModifiers<T> extends ZodNumberFormatVal<"int32"> ? true 
+      : UnwrapModifiers<T> extends ZodNumberProtoFormatVal<"int32"> ? true
+      : UnwrapModifiers<T> extends ZodNumberProtoFormatVal<"int8"> ? true
       : UnwrapModifiers<T> extends ZodBigIntFormatVal<"uint64"> ? true 
       : UnwrapModifiers<T> extends ZodBigIntFormatVal<"int64"> ? true 
+      : UnwrapModifiers<T> extends ZodBigIntProtoFormatVal<"int64"> ? true
+      : UnwrapModifiers<T> extends ZodBigIntProtoFormatVal<"uint64"> ? true
       : never
       : never;
     foreignKeyTable: T extends ZodDbFk<infer N extends string, infer _> ? N : never;

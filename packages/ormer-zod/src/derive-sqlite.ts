@@ -11,6 +11,8 @@ import type {
   NaiveDatetime,
   ZodSafeInt,
   ZodMaxLengthVal,
+  ZodNumberProtoFormatVal,
+  ZodBigIntProtoFormatVal,
 } from "./zod-ext.ts";
 import type {
   ZodType,
@@ -51,23 +53,34 @@ type DeriveBaseSqliteColumn<T extends ZodType> =
   : T extends NaiveDatetime ? ColumnTypeSingualr<"text">
   : T extends z.ZodISODateTime ? ColumnTypeSingualr<"text">
 
+
   // Custom workarounds because of this: https://github.com/colinhacks/zod/issues/6045
-  // Number formats
-  : T extends ZodNumberFormatVal<"safeint"> ? ColumnTypeSingualr<"integer"> 
+  // Number formats via z.int32()
+  : T extends ZodNumberFormatVal<"safeint"> ? ColumnTypeSingualr<"integer">
   : T extends ZodNumberFormatVal<"int32"> ? ColumnTypeSingualr<"integer">
   : T extends ZodNumberFormatVal<"uint32"> ? ColumnTypeSingualr<"integer">
-  : T extends ZodNumberFormatVal<"int8"> ? ColumnTypeSingualr<"integer">
-  : T extends ZodNumberFormatVal<"uint8"> ? ColumnTypeSingualr<"integer">
-  : T extends ZodNumberFormatVal<"int16"> ? ColumnTypeSingualr<"integer">
-  : T extends ZodNumberFormatVal<"uint16"> ? ColumnTypeSingualr<"integer">
   : T extends ZodNumberFormatVal<"float32"> ? ColumnTypeSingualr<"real">
   : T extends ZodNumberFormatVal<"float64"> ? ColumnTypeSingualr<"real">
 
-  // Bigints — SQLite INTEGER is always number, can't round-trip bigint
+  // Number formats via z.number().int32()
+  : T extends ZodNumberProtoFormatVal<"int32"> ? ColumnTypeSingualr<"integer">
+  : T extends ZodNumberProtoFormatVal<"uint32"> ? ColumnTypeSingualr<"integer">
+  : T extends ZodNumberProtoFormatVal<"float32"> ? ColumnTypeSingualr<"real">
+  : T extends ZodNumberProtoFormatVal<"float64"> ? ColumnTypeSingualr<"real">
+  : T extends ZodNumberProtoFormatVal<"int8"> ? ColumnTypeSingualr<"integer">
+  : T extends ZodNumberProtoFormatVal<"uint8"> ? ColumnTypeSingualr<"integer">
+  : T extends ZodNumberProtoFormatVal<"int16"> ? ColumnTypeSingualr<"integer">
+  : T extends ZodNumberProtoFormatVal<"uint16"> ? ColumnTypeSingualr<"integer">
+
+  // Bigints (via z.int64() etc)
   : T extends ZodBigIntFormatVal<"int64"> ? { type: "ERROR" }
   : T extends ZodBigIntFormatVal<"uint64"> ? { type: "ERROR" }
-  : T extends ZodBigIntFormatVal<"uint128"> ? { type: "ERROR" }
-  : T extends ZodBigIntFormatVal<"int128"> ? { type: "ERROR" }
+  
+  // Bigints (via z.bigint().int64() etc)
+  : T extends ZodBigIntProtoFormatVal<"int64"> ? { type: "ERROR" }
+  : T extends ZodBigIntProtoFormatVal<"uint64"> ? { type: "ERROR" }
+  : T extends ZodBigIntProtoFormatVal<"int128"> ? { type: "ERROR" }
+  : T extends ZodBigIntProtoFormatVal<"uint128"> ? { type: "ERROR" }
 
   // JSON — SQLite stores as text, can't round-trip
   : T extends z.ZodObject ? { type: "ERROR" }

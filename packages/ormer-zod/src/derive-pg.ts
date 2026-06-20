@@ -11,6 +11,8 @@ import type {
   NaiveDatetime,
   ZodSafeInt,
   ZodMaxLengthVal,
+  ZodNumberProtoFormatVal,
+  ZodBigIntProtoFormatVal,
 } from "./zod-ext.ts";
 import type {
   ZodType,
@@ -49,22 +51,32 @@ type DeriveBaseColumn<T extends ZodType> =
   : T extends z.ZodISODateTime ? { type: "ERROR" } // Not supported, see test cases
 
   // Custom workarounds because of this: https://github.com/colinhacks/zod/issues/6045
-  // Number formats
+  // Number formats via z.int32()
   : T extends ZodNumberFormatVal<"safeint"> ? ColumnTypeSingualr<"int4"> 
   : T extends ZodNumberFormatVal<"int32"> ? ColumnTypeSingualr<"int4">
-  : T extends ZodNumberFormatVal<"int8"> ? { type: "ERROR" } // No symmetric PG mapping
-  : T extends ZodNumberFormatVal<"uint8"> ? { type: "ERROR" } // No symmetric PG mapping
-  : T extends ZodNumberFormatVal<"int16"> ? ColumnTypeSingualr<"int2">
-  : T extends ZodNumberFormatVal<"uint16"> ? { type: "ERROR" } // No symmetric PG mapping
   : T extends ZodNumberFormatVal<"uint32"> ? { type: "ERROR" } // No symmetric PG mapping
   : T extends ZodNumberFormatVal<"float32"> ? ColumnTypeSingualr<"float4">
   : T extends ZodNumberFormatVal<"float64"> ? ColumnTypeSingualr<"float8">
 
-  // Bigints
+  // Number formats via z.number().int32()
+  : T extends ZodNumberProtoFormatVal<"int32"> ? ColumnTypeSingualr<"int4">
+  : T extends ZodNumberProtoFormatVal<"uint32"> ? { type: "ERROR" } // No symmetric PG mapping
+  : T extends ZodNumberProtoFormatVal<"float32"> ? ColumnTypeSingualr<"float4">
+  : T extends ZodNumberProtoFormatVal<"float64"> ? ColumnTypeSingualr<"float8">
+  : T extends ZodNumberProtoFormatVal<"int8"> ? { type: "ERROR" } // No symmetric PG mapping
+  : T extends ZodNumberProtoFormatVal<"uint8"> ? { type: "ERROR" } // No symmetric PG mapping
+  : T extends ZodNumberProtoFormatVal<"int16"> ? ColumnTypeSingualr<"int2">
+  : T extends ZodNumberProtoFormatVal<"uint16"> ? { type: "ERROR" } // No symmetric PG mapping
+
+  // Bigints (via z.int64() etc)
   : T extends ZodBigIntFormatVal<"int64"> ? ColumnTypeSingualr<"int8">
   : T extends ZodBigIntFormatVal<"uint64"> ? { type: "ERROR" } // No symmetric PG mapping
-  : T extends ZodBigIntFormatVal<"uint128"> ? { type: "ERROR" } // No symmetric PG mapping
-  : T extends ZodBigIntFormatVal<"int128"> ? { type: "ERROR" } // No symmetric PG mapping
+  
+  // Bigints (via z.bigint().int64() etc)
+  : T extends ZodBigIntProtoFormatVal<"int64"> ? ColumnTypeSingualr<"int8">
+  : T extends ZodBigIntProtoFormatVal<"uint64"> ? { type: "ERROR" } // No symmetric PG mapping
+  : T extends ZodBigIntProtoFormatVal<"int128"> ? { type: "ERROR" } // No symmetric PG mapping
+  : T extends ZodBigIntProtoFormatVal<"uint128"> ? { type: "ERROR" } // No symmetric PG mapping
 
   // JSON
   : T extends z.ZodObject ? ColumnType<"jsonb", { schema: T }>

@@ -278,9 +278,12 @@ export function deriveColumn<
     const format = node.format;
     if (format === "uint128") {
       return chooser(["uint128", pgParamsBase]);
-    }
-    if (format === "int128") {
+    } else if (format === "int128") {
       return chooser(["int128", pgParamsBase]);
+    } else if (format === "int64") {
+      return chooser(["int64", pgParamsBase]);
+    } else if (format === "uint64") {
+      return chooser(["uint64", pgParamsBase]);
     }
 
     return chooser(["bigint", pgParamsBase]);
@@ -314,18 +317,20 @@ export function deriveColumn<
     const format = node.format as string | undefined;
     if (format === "safeint") {
       return chooser(["int32", pgParamsBase]);
-    }
-    if (format === "int8") {
+    } else if (format === "int8") {
       return chooser(["int8", pgParamsBase]);
-    }
-    if (format === "uint8") {
+    } else if (format === "uint8") {
       return chooser(["uint8", pgParamsBase]);
-    }
-    if (format === "int16") {
+    } else if (format === "int16") {
       return chooser(["int16", pgParamsBase]);
-    }
-    if (format === "uint16") {
+    } else if (format === "uint16") {
       return chooser(["uint16", pgParamsBase]);
+    } else if (format === "int32") {
+      return chooser(["int32", pgParamsBase]);
+    } else if (format === "uint32") {
+      return chooser(["uint32", pgParamsBase]);
+    } else if (format === "float32") {
+      return chooser(["float32", pgParamsBase]);
     }
     return chooser(["float64", pgParamsBase]);
   }
