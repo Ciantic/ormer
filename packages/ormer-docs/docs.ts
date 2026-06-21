@@ -443,36 +443,39 @@ function generateReadmeMd() {
   readme.push(md`
 <details>
 <summary>Field type mapping table</summary>
-`);
+  `);
   readme.push(makeZodTestCaseTableHtml());
   readme.push(md`
-</details>`);
+</details>
+  `);
   readme.push("");
 
   readme.push(md`
 ## Ormer-Valibot package
-`);
+  `);
 
   readme.push(md`
 <details>
 <summary>Field type mapping table</summary>
-`);
+  `);
   readme.push(makeValibotTestCaseTableHtml());
   readme.push(md`
-</details>`);
+</details>
+  `);
   readme.push("");
 
   readme.push(md`
 ## Ormer-Arktype package
-`);
+  `);
 
   readme.push(md`
 <details>
 <summary>Field type mapping table</summary>
-`);
+  `);
   readme.push(makeArktypeTestCaseTableHtml());
   readme.push(md`
-</details>`);
+</details>
+  `);
 
   return readme.join("\n");
 }
