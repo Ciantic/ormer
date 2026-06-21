@@ -15,22 +15,23 @@ Supported are SQLite, Postgres (pg, pglite) and DuckDB.
 To make schemas useful with databases, the input and output types should match with the schema. For example Zod schema input should match with Postgres SELECT (output) value. Likewise Zod schema output value should be usable in Postgres UPDATE and INSERT (input) value:
 
 Database SELECT -> Zod input -> Zod output -> Database INSERT or UPDATE.
-## Ormer-Zod package
+<details>
+<summary>## Ormer-Zod package</summary>
 
-The table below is generated from the test cases in `packages/ormer-zod/examples/fields.ts`.
+    The table below is generated from the test cases in `packages/ormer-zod/examples/fields.ts`.
 
-I have patched the Zod namespace to add first `dbPk()` and `dbFk()`, etc modifiers, and make `ZodNumberFormat` and `ZodBigIntFormat` retain the format at type-level, see this [feature request](https://github.com/colinhacks/zod/issues/6045).
+    I have patched the Zod namespace to add first `dbPk()` and `dbFk()`, etc modifiers, and make `ZodNumberFormat` and `ZodBigIntFormat` retain the format at type-level, see this [feature request](https://github.com/colinhacks/zod/issues/6045).
 
-To use these extension one must import the `zod-ext.ts` file. (To be determined how this work in practice)
+    To use these extension one must import the `zod-ext.ts` file. (To be determined how this work in practice)
 
-Notes:
+    Notes:
 
-- Optional Zod schemas, e.g. `z.string().optional()`, are not supported for now. Suppose I mapped it to be nullable column, then INSERT and UPDATE would work correctly, because PG/PGLite and DuckDB converts the undefined to null on INSERT and UPDATE. Problem is when you SELECT a field with null values. They are not then assignable to Zod schema, because null doesn't validate against optional schema.
-- `z.uint64()` and `z.uint32()` have no good mapping in the Postgres.
-- `z.bigint()` is mapped to be INT8 in postgres, this might be incorrect for arbitrary sized bigints. If you need that use custom mapping.
-- `z.int()` is mapped to be INT4 in postgres, and thus not all of the IEEE 754 safe integers are valid values.
-- `z.iso.datetime()` can't be used, it does not allow timestamp format without a T divider. Postgres returns TIMESTAMP values as YYYY-MM-DD HH:MM:SS without the T.
-- SQLite only ha primitive datatypes, and it would need a custom serialization layer for bigint/boolean/date/array/object types, which I haven't found a good way to do yet. One idea involves using column names as a hint for custom serialization. This half-baked idea is in ormer-experiments as Kysely transformer.
+    - Optional Zod schemas, e.g. `z.string().optional()`, are not supported for now. Suppose I mapped it to be nullable column, then INSERT and UPDATE would work correctly, because PG/PGLite and DuckDB converts the undefined to null on INSERT and UPDATE. Problem is when you SELECT a field with null values. They are not then assignable to Zod schema, because null doesn't validate against optional schema.
+    - `z.uint64()` and `z.uint32()` have no good mapping in the Postgres.
+    - `z.bigint()` is mapped to be INT8 in postgres, this might be incorrect for arbitrary sized bigints. If you need that use custom mapping.
+    - `z.int()` is mapped to be INT4 in postgres, and thus not all of the IEEE 754 safe integers are valid values.
+    - `z.iso.datetime()` can't be used, it does not allow timestamp format without a T divider. Postgres returns TIMESTAMP values as YYYY-MM-DD HH:MM:SS without the T.
+    - SQLite only ha primitive datatypes, and it would need a custom serialization layer for bigint/boolean/date/array/object types, which I haven't found a good way to do yet. One idea involves using column names as a hint for custom serialization. This half-baked idea is in ormer-experiments as Kysely transformer.
 <table>
   <thead>
     <tr>
@@ -430,8 +431,10 @@ Notes:
 </tr>
   </tbody>
 </table>
+</details>
 
-## Ormer-Valibot package
+<details>
+<summary>## Ormer-Valibot package</summary>
 <table>
   <thead>
     <tr>
@@ -798,8 +801,10 @@ Notes:
 </tr>
   </tbody>
 </table>
+</details>
 
-## Ormer-Arktype package
+<details>
+<summary>## Ormer-Arktype package</summary>
 <table>
   <thead>
     <tr>
@@ -1103,3 +1108,4 @@ Notes:
 </tr>
   </tbody>
 </table>
+</details>

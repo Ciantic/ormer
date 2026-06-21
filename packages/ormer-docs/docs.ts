@@ -422,7 +422,8 @@ function generateReadmeMd() {
   `);
 
   readme.push(md`
-    ## Ormer-Zod package
+<details>
+<summary>## Ormer-Zod package</summary>
 
     The table below is generated from the test cases in \`packages/ormer-zod/examples/fields.ts\`.
 
@@ -441,20 +442,28 @@ function generateReadmeMd() {
   `);
 
   readme.push(makeZodTestCaseTableHtml());
+  readme.push(md`
+</details>`);
   readme.push("");
 
   readme.push(md`
-## Ormer-Valibot package
+<details>
+<summary>## Ormer-Valibot package</summary>
   `);
 
   readme.push(makeValibotTestCaseTableHtml());
+  readme.push(md`
+</details>`);
   readme.push("");
 
   readme.push(md`
-## Ormer-Arktype package
+<details>
+<summary>## Ormer-Arktype package</summary>
   `);
 
   readme.push(makeArktypeTestCaseTableHtml());
+  readme.push(md`
+</details>`);
 
   return readme.join("\n");
 }
