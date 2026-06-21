@@ -422,8 +422,7 @@ function generateReadmeMd() {
   `);
 
   readme.push(md`
-<details>
-<summary>## Ormer-Zod package</summary>
+    ## Ormer-Zod package
 
     The table below is generated from the test cases in \`packages/ormer-zod/examples/fields.ts\`.
 
@@ -441,26 +440,36 @@ function generateReadmeMd() {
     - SQLite only ha primitive datatypes, and it would need a custom serialization layer for bigint/boolean/date/array/object types, which I haven't found a good way to do yet. One idea involves using column names as a hint for custom serialization. This half-baked idea is in ormer-experiments as Kysely transformer.
   `);
 
+  readme.push(md`
+<details>
+<summary>Field type mapping table</summary>
+`);
   readme.push(makeZodTestCaseTableHtml());
   readme.push(md`
 </details>`);
   readme.push("");
 
   readme.push(md`
-<details>
-<summary>## Ormer-Valibot package</summary>
-  `);
+## Ormer-Valibot package
+`);
 
+  readme.push(md`
+<details>
+<summary>Field type mapping table</summary>
+`);
   readme.push(makeValibotTestCaseTableHtml());
   readme.push(md`
 </details>`);
   readme.push("");
 
   readme.push(md`
-<details>
-<summary>## Ormer-Arktype package</summary>
-  `);
+## Ormer-Arktype package
+`);
 
+  readme.push(md`
+<details>
+<summary>Field type mapping table</summary>
+`);
   readme.push(makeArktypeTestCaseTableHtml());
   readme.push(md`
 </details>`);
