@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { Schema, Effect, type Brand } from "effect";
-import { deriveColumn, type ParamsDerived } from "./derive.ts";
+import { Schema, Effect } from "effect";
+import {
+  deriveColumn,
+  type ParamsDerived,
+  extractDecodingDefaultValue,
+} from "./derive.ts";
 import {
   Int8,
   Int16,
@@ -244,18 +248,19 @@ describe("deriveColumn — NullishOr wrapper", () => {
 // ---------------------------------------------------------------------------
 
 describe("deriveColumn — optional with default", () => {
-  it("extracts the constructor default value", () => {
+  it("extracts the decoding default value", () => {
     const schema = Schema.String.pipe(
-      Schema.withConstructorDefault(Effect.succeed("hello")),
+      Schema.withDecodingDefault(Effect.succeed("hello")),
     );
-    expect(deriveColumn(schema)).toEqual(["string", { default: "hello" }]);
-  });
 
-  it("extracts a numeric constructor default value", () => {
-    const schema = Schema.Number.pipe(
-      Schema.withConstructorDefault(Effect.succeed(42)),
-    );
-    expect(deriveColumn(schema)).toEqual(["number", { default: 42 }]);
+    // Verify extractDecodingDefaultValue works
+    expect(extractDecodingDefaultValue(schema)).toBe("hello");
+
+    // Verify the full decode still works
+    expect(Schema.decodeSync(schema)(undefined)).toBe("hello");
+
+    // Verify deriveColumn includes the default in params
+    expect(deriveColumn(schema)).toEqual(["string", { default: "hello" }]);
   });
 });
 

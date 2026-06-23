@@ -1,5 +1,5 @@
 import type { ColumnType } from "ormer";
-import { Schema, SchemaAST } from "effect";
+import { Schema, SchemaAST, Effect, Option } from "effect";
 import type { Param } from "effect/unstable/ai/McpSchema";
 import type { Union } from "effect/Schema";
 
@@ -55,6 +55,44 @@ export type EffectSchemas =
   | ["boolean", ParamsDerived]
   | ["date", ParamsDerived]
   | ["object", ParamsDerived<{ schema: { ast: SchemaAST.AST } }>];
+
+/**
+ * Extract the decoding default value from a schema created with
+ * Schema.withDecodingDefault / Schema.withDecodingDefaultKey.
+ *
+ * Walks the AST encoding chain and runs the decode getter with
+ * `Option.some(undefined)` to trigger the default value closure.
+ * Returns `undefined` if no decoding default is configured.
+ */
+export function extractDecodingDefaultValue<T extends Schema.Top>(schema: {
+  ast: T["ast"];
+}): unknown {
+  const encoding = (schema.ast as any).encoding as any[] | undefined;
+  if (!encoding || encoding.length === 0) return undefined;
+
+  for (const link of encoding) {
+    const transformation = link.transformation;
+    if (!transformation) continue;
+    // The decode getter from SchemaGetter.withDefault runs the closure
+    // and falls back to the defaultValue when input is undefined.
+    const decodeGetter = transformation.decode;
+    if (!decodeGetter || typeof decodeGetter.run !== "function") continue;
+
+    try {
+      const effect = decodeGetter.run(Option.some(undefined), {});
+      const resultOption = Effect.runSync(effect) as Option.Option<unknown>;
+      if (Option.isSome(resultOption)) {
+        return resultOption.value;
+      }
+    } catch {
+      // Running the Effect may fail if the schema has complex requirements.
+      // In that case, we simply can't extract the default value.
+      return undefined;
+    }
+  }
+
+  return undefined;
+}
 
 /**
  * Derive column from Effect schema AST.
@@ -117,6 +155,12 @@ export function deriveColumn<T extends Schema.Top>(schema: {
 
   if (schema.ast.context?.isOptional) {
     optional = true;
+  }
+
+  // Try to extract decoding default from the encoding chain
+  defaultValue = extractDecodingDefaultValue(schema as any);
+  if (defaultValue !== undefined) {
+    hasDefault = true;
   }
 
   if (SchemaAST.isArrays(schema.ast) && schema.ast.rest.length > 0) {
