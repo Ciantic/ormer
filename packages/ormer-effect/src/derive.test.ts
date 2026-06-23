@@ -19,7 +19,7 @@ import {
   IsoTimeSecond,
   IsoDate,
   IsoDateTime,
-  DbUuid,
+  UuidString,
   UrlString,
   EmailString,
 } from "./effect-ext.ts";
@@ -209,7 +209,7 @@ describe("deriveColumn — bigint brands", () => {
 
 describe("deriveColumn — string brands", () => {
   it("derives uuid", () => {
-    expect(deriveColumn(DbUuid, capture)).toEqual({
+    expect(deriveColumn(UuidString, capture)).toEqual({
       type: "uuid",
       tag: "uuid",
       params: {},
@@ -303,7 +303,7 @@ describe("deriveColumn — NullOr wrapper", () => {
   });
 
   it("marks branded string | null as nullable", () => {
-    expect(deriveColumn(Schema.NullOr(DbUuid), capture)).toEqual({
+    expect(deriveColumn(Schema.NullOr(UuidString), capture)).toEqual({
       type: "uuid",
       tag: "uuid",
       params: { nullable: true },
@@ -672,7 +672,7 @@ describe("deriveColumn — integration with pg chooser", () => {
   });
 
   it("derives pg column for uuid", () => {
-    const col = deriveColumn(DbUuid, pgChooser);
+    const col = deriveColumn(UuidString, pgChooser);
     expect(col.type).toBe("uuid");
   });
 

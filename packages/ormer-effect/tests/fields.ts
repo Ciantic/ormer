@@ -21,7 +21,7 @@ import {
   IsoTimeSecond,
   IsoDate,
   IsoDateTime,
-  DbUuid,
+  UuidString,
   UrlString,
   EmailString,
 } from "../src/effect-ext.ts";
@@ -79,7 +79,7 @@ export const ALL_EFFECT_FIELDS = {
   c_timestamp:        { effect: NaiveDatetime,                               example: "2024-01-15 10:30:00" },
 
   // UUID
-  c_uuid:             { effect: DbUuid,                                      example: "550e8400-e29b-41d4-a716-446655440000" },
+  c_uuid:             { effect: UuidString,                                      example: "550e8400-e29b-41d4-a716-446655440000" },
 
   // Various string formats
   c_url:              { effect: UrlString,                                   example: "https://example.com" },

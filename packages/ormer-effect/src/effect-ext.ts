@@ -164,7 +164,7 @@ export const IsoDateTime = Schema.String.pipe(
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export const DbUuid = Schema.String.pipe(
+export const UuidString = Schema.String.check(Schema.isUUID()).pipe(
   withDbformat("uuid"),
   Schema.refine((s): s is typeof s => UUID_REGEX.test(s), {
     message: "Invalid UUID format, expected 8-4-4-4-12 hex digits",
@@ -202,6 +202,8 @@ Uses an optional never-property to tag the schema at the type level only.
 At runtime, stores the identifier as an AST annotation (via annotate).
 */
 
+export type DbFormat<R, T extends string> = R & { readonly ___dbformat?: T };
+
 // Type-level extractor for DbFormat marker
 export type GetDbFormat<T> = T extends { readonly ___dbformat?: infer B }
   ? B extends string
@@ -210,14 +212,6 @@ export type GetDbFormat<T> = T extends { readonly ___dbformat?: infer B }
   : never;
 
 export function withDbformat<B extends string>(identifier: B) {
-  return <S extends Top>(
-    schema: S,
-  ): S["Rebuild"] & { readonly ___dbformat?: B } =>
+  return <S extends Top>(schema: S): DbFormat<S["Rebuild"], B> =>
     schema.annotate({ dbformat: identifier }) as any;
 }
-
-// const UUIDString = Schema.String.check(Schema.isUUID()).pipe(
-//   withDbformat("uuid"),
-// );
-
-// console.log("UUIDString", UUIDString);
