@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { annotate, type Top } from "effect/Schema";
+import { annotate, type Bottom, type Top } from "effect/Schema";
 
 export const Int8 = Schema.Number.check(
   Schema.makeFilter(
@@ -168,22 +168,39 @@ export const Table = <T extends string, S extends Schema.Struct<any>>(
   return shape.annotate({ dbTable: name });
 };
 
-/*
-DbFormat: a brand-like phantom type marker that does NOT change Type/Encoded.
-Uses an optional never-property to tag the schema at the type level only.
-At runtime, stores the identifier as an AST annotation (via annotate).
-*/
-
-export type DbFormat<R, T extends string> = R & { readonly ___dbformat?: T };
-
-// Type-level extractor for DbFormat marker
-export type GetDbFormat<T> = T extends { readonly ___dbformat?: infer B }
-  ? B extends string
-    ? B
-    : never
-  : never;
-
-export function withDbformat<B extends string>(identifier: B) {
-  return <S extends Top>(schema: S): DbFormat<S["Rebuild"], B> =>
-    schema.annotate({ dbformat: identifier }) as any;
+// Acts like branding but without changing the Type
+export interface DbFormat<S extends Top, B> extends Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  DbFormat<S, B>,
+  S["~type.make.in"],
+  S["Type"],
+  S["~type.parameters"],
+  S["Type"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
+  readonly dbformat: B;
 }
+
+export function withDbformat<B extends string>(dbformat: B) {
+  return <S extends Top>(schema: S): DbFormat<S, B> => {
+    const result = schema.annotate({ dbformat }) as any;
+    Object.assign(result, { dbformat });
+    return result;
+  };
+}
+
+// const test = UuidString;
+// const test2 = UuidString.pipe(Schema.brand("MyId"));
+
+// console.log("test", test);
+// console.log("test2", test2);
+// console.log("test", test.dbformat);
+// console.log("test2", test2.schema.dbformat);
