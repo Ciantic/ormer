@@ -103,12 +103,8 @@ export function deriveColumn<T extends Schema.Top>(schema: {
   const annotations = Schema.resolveAnnotations(schema as T);
   const primaryKey = annotations?.primaryKey as boolean | undefined;
   const autoIncrement = annotations?.autoIncrement as boolean | undefined;
-  const foreignKeyTable: string | undefined = annotations?.foreignKeyTable as
-    | string
-    | undefined;
-  const foreignKeyColumn: string | undefined = annotations?.foreignKeyColumn as
-    | string
-    | undefined;
+  const foreignKeyTable = annotations?.foreignKeyTable as string | undefined;
+  const foreignKeyColumn = annotations?.foreignKeyColumn as string | undefined;
   const dbformat = annotations?.dbformat as string | undefined;
   const checks = schema.ast.checks ?? [];
   const tag = schema.ast._tag;
