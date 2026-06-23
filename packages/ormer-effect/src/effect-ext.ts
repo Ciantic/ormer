@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { annotate, type Bottom, type Top } from "effect/Schema";
+import { type Bottom, type Top } from "effect/Schema";
 
 export const Int8 = Schema.Number.check(
   Schema.makeFilter(
@@ -186,21 +186,66 @@ export interface DbFormat<S extends Top, B> extends Bottom<
   S["~encoded.mutability"],
   S["~encoded.optionality"]
 > {
+  readonly schema: S;
   readonly dbformat: B;
 }
 
 export function withDbformat<B extends string>(dbformat: B) {
   return <S extends Top>(schema: S): DbFormat<S, B> => {
-    const result = schema.annotate({ dbformat }) as any;
-    Object.assign(result, { dbformat });
-    return result;
+    return Schema.make(schema.ast, {
+      schema,
+      dbformat,
+    } as const).annotate({ dbformat }) as DbFormat<S, B>;
   };
 }
 
-// const test = UuidString;
-// const test2 = UuidString.pipe(Schema.brand("MyId"));
+export interface PrimaryKey<S extends Top> extends Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  PrimaryKey<S>,
+  S["~type.make.in"],
+  S["Type"],
+  S["~type.parameters"],
+  S["Type"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
+  readonly schema: S;
+  readonly primaryKey: true;
+}
+
+export function PrimaryKey() {
+  return <S extends Top>(schema: S): PrimaryKey<S> => {
+    return Schema.make(schema.ast, {
+      schema,
+      primaryKey: true,
+    } as const).annotate({ primaryKey: true }) as PrimaryKey<S>;
+  };
+}
+
+// export const UuidString2 = Schema.String.check(Schema.isUUID()).pipe(
+//   withDbformat("uuid"),
+// );
+
+// const test = UuidString2;
+// const test2 = UuidString2.pipe(Schema.brand("MyId"), PrimaryKey());
+// const test3 = UuidString2.pipe(Schema.brand("MyId"), PrimaryKey()).annotate({
+//   foo: 1,
+// });
 
 // console.log("test", test);
 // console.log("test2", test2);
 // console.log("test", test.dbformat);
-// console.log("test2", test2.schema.dbformat);
+// console.log("test", test.rebuild(test.ast).dbformat);
+// console.log("test2", test2.primaryKey);
+// console.log("test3 pk", test3.primaryKey);
+// console.log("test3 id", test3.schema.identifier);
+
+// // console.log("test3", test3.dbformat);
+// console.log(Schema.resolveAnnotations(test3));
