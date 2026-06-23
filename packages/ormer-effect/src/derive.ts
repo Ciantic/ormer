@@ -1,5 +1,7 @@
 import type { ColumnType } from "ormer";
-import { SchemaAST } from "effect";
+import { Schema, SchemaAST } from "effect";
+import type { Param } from "effect/unstable/ai/McpSchema";
+import type { Union } from "effect/Schema";
 
 // ---------------------------------------------------------------------------
 // Runtime helper types
@@ -54,315 +56,154 @@ export type EffectSchemas =
   | ["date", ParamsDerived]
   | ["object", ParamsDerived<{ schema: { ast: SchemaAST.AST } }>];
 
-// ---------------------------------------------------------------------------
-// Runtime AST helpers
-// ---------------------------------------------------------------------------
-
-/** Accumulated column metadata collected during AST traversal. */
-interface ColumnState {
-  nullable: boolean;
-  hasDefault: boolean;
-  default: unknown;
-  primaryKey: boolean;
-  autoIncrement: boolean;
-  foreignKeyTable: string | undefined;
-  foreignKeyColumn: string | undefined;
-  arrayDimensions: string;
-}
-
-// ---------------------------------------------------------------------------
-// deriveColumn
-// ---------------------------------------------------------------------------
-
 /**
- * Extract the literal default value from a `Schema.withConstructorDefault`
- * entry.
- *
- * Effect stores constructor defaults in `ast.context.defaultValue` as an
- * array of `Link` objects. Each link has a `transformation.decode` Getter;
- * running it with a placeholder input yields an `Exit.Success` wrapping an
- * `Option.Some(<value>)` (or `Option.None` when no default applies).
- *
- * Returns `{ found: true, value }` when a concrete default value can be
- * resolved, or `{ found: false }` otherwise.
+ * Derive column from Effect schema AST.
  */
-function extractConstructorDefault(
-  defaultValue: unknown[],
-): { found: true; value: unknown } | { found: false } {
-  for (const link of defaultValue) {
-    if (!link || typeof link !== "object") continue;
-    const transformation = (link as any).transformation;
-    const decode = transformation?.decode;
-    if (!decode || typeof decode.run !== "function") continue;
-    try {
-      // The decode Getter expects a value of the input type. We pass a
-      // placeholder; the constructor default branch ignores the input and
-      // returns the configured default.
-      const exit = decode.run("");
-      // Expecting Exit.Success(Option.Some(value))
-      if (
-        exit &&
-        typeof exit === "object" &&
-        (exit as any)._tag === "Success"
-      ) {
-        const option = (exit as any).value;
-        if (
-          option &&
-          typeof option === "object" &&
-          (option as any)._tag === "Some"
-        ) {
-          return { found: true, value: (option as any).value };
-        }
-        // Option.None → no default for this branch; try next link
-      }
-    } catch {
-      // decode threw (e.g. needs a real input) — skip this link
-    }
+export function deriveColumn<T extends Schema.Top>(schema: {
+  ast: T["ast"];
+}): EffectSchemas {
+  const annotations = Schema.resolveAnnotations(schema as T);
+  const primaryKey = annotations?.primaryKey as boolean | undefined;
+  const autoIncrement = annotations?.autoIncrement as boolean | undefined;
+  const foreignKeyTable: string | undefined = annotations?.foreignKeyTable as
+    | string
+    | undefined;
+  const foreignKeyColumn: string | undefined = annotations?.foreignKeyColumn as
+    | string
+    | undefined;
+  const dbformat = annotations?.dbformat as string | undefined;
+  const checks = schema.ast.checks ?? [];
+  const tag = schema.ast._tag;
+  let nullable = false;
+  let optional = false;
+  let arrayDimensions = "";
+  let defaultValue: unknown = undefined;
+  let hasDefault = false;
+
+  if ("schema" in schema && !dbformat) {
+    // This is super sketchy! I noticed that Schema.refine() wraps a type to a
+    // schema, so that it doesn't preserve the annotations, this is a workaround
+    // to get Schema.refine()'d types to work.
+    return deriveColumn({ ast: (schema.schema as T).ast });
   }
-  return { found: false };
-}
 
-/**
- * Recursively strip union wrappers (Null/Undefined sentinels) from an AST,
- * collecting nullable and optional flags.
- *
- * Also strips array wrappers, collecting dimension suffixes.
- *
- * Returns the innermost non-union, non-array AST and the accumulated
- * {@link ColumnState}.
- */
-function peelModifiers(
-  ast: SchemaAST.AST,
-  state: ColumnState,
-): ColumnState & { ast: SchemaAST.AST } {
-  // --- Union wrappers: NullOr, UndefinedOr, NullishOr, optional ---
-  if (SchemaAST.isUnion(ast)) {
-    const hasNull = ast.types.some((t) => SchemaAST.isNull(t));
-    const hasUndefined = ast.types.some((t) => SchemaAST.isUndefined(t));
-
-    // Find the non-sentinel base type (not Null, not Undefined)
-    for (const t of ast.types) {
-      if (!SchemaAST.isNull(t) && !SchemaAST.isUndefined(t)) {
-        if (hasNull) state.nullable = true;
-        if (hasUndefined) state.nullable = true;
-        return peelModifiers(t, state);
+  if (SchemaAST.isUnion(schema.ast)) {
+    let choice: EffectSchemas | undefined = undefined;
+    for (const t of schema.ast.types) {
+      if (SchemaAST.isNull(t)) {
+        nullable = true;
+      } else if (SchemaAST.isUndefined(t)) {
+        optional = true;
+      } else {
+        choice = deriveColumn({ ast: t });
       }
     }
-    // Union of _only_ Null and/or Undefined — should not happen in practice
-    return { ast, ...state };
-  }
-
-  // --- Optional wrapper ---
-  if (ast.context?.isOptional) {
-    state.nullable = true;
-  }
-
-  // --- Array wrapper ---
-  if (SchemaAST.isArrays(ast) && ast.rest.length > 0) {
-    state.arrayDimensions += "[]";
-    return peelModifiers(ast.rest[0]!, state);
-  }
-
-  // --- Transform (NumberFromString, etc.) — follow the encoding to get the input (from) type ---
-  if (ast.encoding) {
-    return peelModifiers(SchemaAST.toEncoded(ast), state);
-  }
-
-  return { ast, ...state };
-}
-
-/**
- * Collect DB annotations (primaryKey, autoIncrement, foreignKey) and brands
- * from an AST node's annotations and checks.
- */
-function collectAnnotations(
-  ast: SchemaAST.AST,
-  state: ColumnState,
-): { dbformats: string[]; checks: SchemaAST.Check<unknown>[] } {
-  const dbformats: string[] = [];
-  const checks: SchemaAST.Check<unknown>[] = [];
-
-  const collect = (ann: Record<string, unknown> | undefined) => {
-    if (!ann) return;
-    if (ann.primaryKey === true) state.primaryKey = true;
-    if (ann.autoIncrement === true) state.autoIncrement = true;
-    if (
-      typeof ann.foreignKeyTable === "string" &&
-      typeof ann.foreignKeyColumn === "string"
-    ) {
-      state.foreignKeyTable = ann.foreignKeyTable;
-      state.foreignKeyColumn = ann.foreignKeyColumn;
+    if (choice) {
+      return [
+        choice[0],
+        {
+          ...choice[1],
+          ...(nullable || optional ? { nullable: true } : {}),
+        },
+      ] as EffectSchemas;
     }
-    if (typeof ann.dbformat === "string") {
-      dbformats.push(ann.dbformat);
-    }
-  };
 
-  collect(ast.annotations as Record<string, unknown> | undefined);
-  if (ast.checks) {
-    for (const c of ast.checks) {
-      collect(c.annotations as Record<string, unknown> | undefined);
-    }
-    checks.push(...ast.checks);
-  }
-
-  return { dbformats, checks };
-}
-
-/**
- * Walk an Effect Schema at runtime, collecting nullable/optional/default/etc.
- * flags, and dispatch a tagged tuple to `chooser`.
- *
- * `chooser` is a callback that receives a discriminated union of
- * `[tag, params]` and returns a database-specific `ColumnType`.
- *
- * @example
- * ```ts
- * const col = deriveColumn(userSchema.fields.age, (t) => {
- *   switch (t[0]) {
- *     case "number": return pg.float8(t[1]);
- *     case "int32":  return pg.int4(t[1]);
- *     // ...
- *   }
- * });
- * ```
- */
-export function deriveColumn<
-  F extends (t: EffectSchemas) => ColumnType<string, (typeof t)[1]>,
->(
-  schema: { readonly ast: SchemaAST.AST },
-  chooser: F,
-): ColumnType<string, any> {
-  const state: ColumnState = {
-    nullable: false,
-    hasDefault: false,
-    default: undefined,
-    primaryKey: false,
-    autoIncrement: false,
-    foreignKeyTable: undefined,
-    foreignKeyColumn: undefined,
-    arrayDimensions: "",
-  };
-
-  // ---- Step 1: Peel union/array/transform wrappers ----
-  const peeled = peelModifiers(schema.ast, state);
-  let ast = peeled.ast;
-
-  // ---- Step 2: Extract constructor default ----
-  if (
-    Array.isArray(ast.context?.defaultValue) &&
-    ast.context!.defaultValue.length > 0
-  ) {
-    const extracted = extractConstructorDefault(
-      ast.context!.defaultValue as unknown[],
+    throw new Error(
+      `deriveColumn: Union type has no non-null/undefined branches: ${JSON.stringify(
+        schema.ast,
+      )}`,
     );
-    if (extracted.found) {
-      state.default = extracted.value;
-      state.hasDefault = true;
-    } else {
-      // Constructor default declared but not resolvable → optional
-      state.nullable = true;
-    }
   }
 
-  // ---- Step 3: Collect annotations, dbformats, checks ----
-  const { dbformats, checks } = collectAnnotations(ast, state);
-
-  // ---- Step 4: Build params ----
-  const params: Partial<ParamsDerived> = {};
-  if (state.nullable) params.nullable = true;
-  if (state.hasDefault) params.default = state.default;
-  if (state.primaryKey) params.primaryKey = true;
-  if (state.autoIncrement) params.autoIncrement = true;
-  if (state.foreignKeyTable && state.foreignKeyColumn) {
-    params.foreignKeyTable = state.foreignKeyTable;
-    params.foreignKeyColumn = state.foreignKeyColumn;
+  if (schema.ast.context?.isOptional) {
+    optional = true;
   }
-  if (state.arrayDimensions) params.array = state.arrayDimensions;
 
-  // ---- Step 5: Dispatch based on AST tag, brands, and checks ----
-  const tag = ast._tag;
+  if (SchemaAST.isArrays(schema.ast) && schema.ast.rest.length > 0) {
+    // TODO: Handle multi-dimensional arrays
+    arrayDimensions = "[]";
+  }
+
+  const params: ParamsDerived = {};
+  if (nullable || optional) params.nullable = true;
+  if (hasDefault) params.default = defaultValue;
+  if (primaryKey) params.primaryKey = true;
+  if (autoIncrement) params.autoIncrement = true;
+  if (foreignKeyTable) params.foreignKeyTable = foreignKeyTable;
+  if (foreignKeyColumn) params.foreignKeyColumn = foreignKeyColumn;
+  if (arrayDimensions) params.array = arrayDimensions;
 
   // --- String fields with dbformat/check refinements ---
   if (tag === "String") {
-    if (dbformats.includes("uuid")) {
-      return chooser([
-        "uuid",
-        params as ParamsDerived<{ default?: "generate" }>,
-      ]);
-    }
-    if (checks.some((c) => (c.annotations?.meta as any)?._tag === "isUUID")) {
-      return chooser([
-        "uuid",
-        params as ParamsDerived<{ default?: "generate" }>,
-      ]);
-    }
-    if (dbformats.includes("url")) return chooser(["url", params]);
-    if (dbformats.includes("email"))
-      return chooser(["email", { ...params, maxLength: 320 }]);
-    if (dbformats.includes("naiveDatetime"))
-      return chooser(["naiveDatetime", params]);
-    if (dbformats.includes("isoTime")) return chooser(["isoTime", params]);
-    if (dbformats.includes("isoTimeSecond"))
-      return chooser(["isoTimeSecond", params]);
-    if (dbformats.includes("isoDate")) return chooser(["isoDate", params]);
-    if (dbformats.includes("isoDateTime"))
-      return chooser(["isoDateTime", params]);
+    if (dbformat === "uuid")
+      return ["uuid", params as ParamsDerived<{ default?: "generate" }>];
+    if (dbformat === "url") return ["url", params];
+    if (dbformat === "email") return ["email", { ...params, maxLength: 320 }];
+    if (dbformat === "naiveDatetime") return ["naiveDatetime", params];
+    if (dbformat === "isoTime") return ["isoTime", params];
+    if (dbformat === "isoTimeSecond") return ["isoTimeSecond", params];
+    if (dbformat === "isoDate") return ["isoDate", params];
+    if (dbformat === "isoDateTime") return ["isoDateTime", params];
 
     const maxLenCheck = checks.find(
       (c) => (c.annotations?.meta as any)?._tag === "isMaxLength",
     );
     if (maxLenCheck) {
       const maxLen = (maxLenCheck.annotations!.meta as any).maxLength as number;
-      return chooser(["string", { ...params, maxLength: maxLen }]);
+      return ["string", { ...params, maxLength: maxLen }];
     }
-    return chooser(["string", params]);
+    return ["string", params];
   }
 
   // --- Number fields ---
   if (tag === "Number") {
-    if (dbformats.includes("int8")) return chooser(["int8", params]);
-    if (dbformats.includes("int16")) return chooser(["int16", params]);
-    if (dbformats.includes("int32")) return chooser(["int32", params]);
-    if (dbformats.includes("uint8")) return chooser(["uint8", params]);
-    if (dbformats.includes("uint16")) return chooser(["uint16", params]);
-    if (dbformats.includes("uint32")) return chooser(["uint32", params]);
-    if (dbformats.includes("float32")) return chooser(["float32", params]);
-    if (dbformats.includes("float64")) return chooser(["float64", params]);
+    if (dbformat === "int8") return ["int8", params];
+    if (dbformat === "int16") return ["int16", params];
+    if (dbformat === "int32") return ["int32", params];
+    if (dbformat === "uint8") return ["uint8", params];
+    if (dbformat === "uint16") return ["uint16", params];
+    if (dbformat === "uint32") return ["uint32", params];
+    if (dbformat === "float32") return ["float32", params];
+    if (dbformat === "float64") return ["float64", params];
     if (checks.some((c) => (c.annotations?.meta as any)?._tag === "isInt32")) {
-      return chooser(["int32", params]);
+      return ["int32", params];
     }
     if (checks.some((c) => (c.annotations?.meta as any)?._tag === "isInt")) {
-      return chooser(["int32", params]);
+      return ["int32", params];
     }
-    return chooser(["number", params]);
+    return ["number", params];
   }
 
   // --- BigInt ---
   if (tag === "BigInt") {
-    if (dbformats.includes("int64")) return chooser(["int64", params]);
-    if (dbformats.includes("uint64")) return chooser(["uint64", params]);
-    if (dbformats.includes("int128")) return chooser(["int128", params]);
-    if (dbformats.includes("uint128")) return chooser(["uint128", params]);
-    return chooser(["bigint", params]);
+    if (dbformat === "int64") return ["int64", params];
+    if (dbformat === "uint64") return ["uint64", params];
+    if (dbformat === "int128") return ["int128", params];
+    if (dbformat === "uint128") return ["uint128", params];
+    return ["bigint", params];
   }
 
   // --- Boolean ---
-  if (tag === "Boolean") return chooser(["boolean", params]);
+  if (tag === "Boolean") return ["boolean", params];
 
   // --- Date ---
   if (
     tag === "Declaration" &&
-    (ast.annotations as any)?.typeConstructor?._tag === "Date"
+    (schema.ast.annotations?.typeConstructor as { _tag?: string })?._tag ===
+      "Date"
   ) {
-    return chooser(["date", params]);
+    return ["date", params];
   }
 
   // --- Object / Struct ---
   if (tag === "Objects") {
-    return chooser(["object", { ...params, schema: { ast } }]);
+    return ["object", { ...params, schema: schema }];
   }
 
-  // --- Fallback ---
-  return chooser(["string", params]);
+  throw new Error(
+    `deriveColumn: Unsupported schema tag "${tag}" with dbformat "${dbformat}"`,
+  );
+
+  // // --- Fallback ---
+  // return chooser(["string", params]);
 }

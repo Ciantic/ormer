@@ -199,6 +199,36 @@ export function withDbformat<B extends string>(dbformat: B) {
   };
 }
 
+export interface AutoIncrement<S extends Top> extends Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  AutoIncrement<S>,
+  S["~type.make.in"],
+  S["Type"],
+  S["~type.parameters"],
+  S["Type"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
+  readonly schema: S;
+  readonly autoIncrement: true;
+}
+
+export function AutoIncrement() {
+  return <S extends Top>(schema: S): AutoIncrement<S> => {
+    return Schema.make(schema.ast, {
+      schema,
+      autoIncrement: true,
+    } as const).annotate({ autoIncrement: true }) as AutoIncrement<S>;
+  };
+}
+
 export interface PrimaryKey<S extends Top> extends Bottom<
   S["Type"],
   S["Encoded"],

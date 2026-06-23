@@ -22,24 +22,10 @@ import {
   UuidString,
   UrlString,
   EmailString,
+  PrimaryKey,
+  AutoIncrement,
 } from "./effect-ext.ts";
 import { pg } from "ormer";
-
-// ---------------------------------------------------------------------------
-// Minimal chooser that captures [tag, params] for assertion
-// ---------------------------------------------------------------------------
-
-type Tagged = { type: string; tag: string; params: Record<string, unknown> };
-
-const capture = (t: readonly [string, ParamsDerived]): Tagged => {
-  const [tag, params] = t;
-  const copy: Record<string, unknown> = {
-    ...(params as Record<string, unknown>),
-  };
-  // schema is an object and messy to compare — just note its presence
-  if ("schema" in copy) copy.schema = "(schema)";
-  return { type: tag, tag, params: copy };
-};
 
 // ---------------------------------------------------------------------------
 // Basic types
@@ -47,51 +33,30 @@ const capture = (t: readonly [string, ParamsDerived]): Tagged => {
 
 describe("deriveColumn — basic types", () => {
   it("derives string", () => {
-    expect(deriveColumn(Schema.String, capture)).toEqual({
-      type: "string",
-      tag: "string",
-      params: {},
-    });
+    expect(deriveColumn(Schema.String)).toEqual(["string", {}]);
   });
 
   it("derives number", () => {
-    expect(deriveColumn(Schema.Number, capture)).toEqual({
-      type: "number",
-      tag: "number",
-      params: {},
-    });
+    expect(deriveColumn(Schema.Number)).toEqual(["number", {}]);
   });
 
   it("derives bigint", () => {
-    expect(deriveColumn(Schema.BigInt, capture)).toEqual({
-      type: "bigint",
-      tag: "bigint",
-      params: {},
-    });
+    expect(deriveColumn(Schema.BigInt)).toEqual(["bigint", {}]);
   });
 
   it("derives boolean", () => {
-    expect(deriveColumn(Schema.Boolean, capture)).toEqual({
-      type: "boolean",
-      tag: "boolean",
-      params: {},
-    });
+    expect(deriveColumn(Schema.Boolean)).toEqual(["boolean", {}]);
   });
 
   it("derives Date", () => {
-    expect(deriveColumn(Schema.Date, capture)).toEqual({
-      type: "date",
-      tag: "date",
-      params: {},
-    });
+    expect(deriveColumn(Schema.Date)).toEqual(["date", {}]);
   });
 
   it("derives object (Struct)", () => {
-    expect(deriveColumn(Schema.Struct({ a: Schema.String }), capture)).toEqual({
-      type: "object",
-      tag: "object",
-      params: { schema: "(schema)" },
-    });
+    expect(deriveColumn(Schema.Struct({ a: Schema.String }))).toEqual([
+      "object",
+      { schema: expect.objectContaining({ ast: expect.anything() }) },
+    ]);
   });
 });
 
@@ -101,67 +66,35 @@ describe("deriveColumn — basic types", () => {
 
 describe("deriveColumn — number brands", () => {
   it("derives int8", () => {
-    expect(deriveColumn(Int8, capture)).toEqual({
-      type: "int8",
-      tag: "int8",
-      params: {},
-    });
+    expect(deriveColumn(Int8)).toEqual(["int8", {}]);
   });
 
   it("derives int16", () => {
-    expect(deriveColumn(Int16, capture)).toEqual({
-      type: "int16",
-      tag: "int16",
-      params: {},
-    });
+    expect(deriveColumn(Int16)).toEqual(["int16", {}]);
   });
 
   it("derives int32", () => {
-    expect(deriveColumn(Int32, capture)).toEqual({
-      type: "int32",
-      tag: "int32",
-      params: {},
-    });
+    expect(deriveColumn(Int32)).toEqual(["int32", {}]);
   });
 
   it("derives uint8", () => {
-    expect(deriveColumn(Uint8, capture)).toEqual({
-      type: "uint8",
-      tag: "uint8",
-      params: {},
-    });
+    expect(deriveColumn(Uint8)).toEqual(["uint8", {}]);
   });
 
   it("derives uint16", () => {
-    expect(deriveColumn(Uint16, capture)).toEqual({
-      type: "uint16",
-      tag: "uint16",
-      params: {},
-    });
+    expect(deriveColumn(Uint16)).toEqual(["uint16", {}]);
   });
 
   it("derives uint32", () => {
-    expect(deriveColumn(Uint32, capture)).toEqual({
-      type: "uint32",
-      tag: "uint32",
-      params: {},
-    });
+    expect(deriveColumn(Uint32)).toEqual(["uint32", {}]);
   });
 
   it("derives float32", () => {
-    expect(deriveColumn(Float32, capture)).toEqual({
-      type: "float32",
-      tag: "float32",
-      params: {},
-    });
+    expect(deriveColumn(Float32)).toEqual(["float32", {}]);
   });
 
   it("derives float64", () => {
-    expect(deriveColumn(Float64, capture)).toEqual({
-      type: "float64",
-      tag: "float64",
-      params: {},
-    });
+    expect(deriveColumn(Float64)).toEqual(["float64", {}]);
   });
 });
 
@@ -171,35 +104,19 @@ describe("deriveColumn — number brands", () => {
 
 describe("deriveColumn — bigint brands", () => {
   it("derives int64", () => {
-    expect(deriveColumn(Int64, capture)).toEqual({
-      type: "int64",
-      tag: "int64",
-      params: {},
-    });
+    expect(deriveColumn(Int64)).toEqual(["int64", {}]);
   });
 
   it("derives uint64", () => {
-    expect(deriveColumn(Uint64, capture)).toEqual({
-      type: "uint64",
-      tag: "uint64",
-      params: {},
-    });
+    expect(deriveColumn(Uint64)).toEqual(["uint64", {}]);
   });
 
   it("derives int128", () => {
-    expect(deriveColumn(Int128, capture)).toEqual({
-      type: "int128",
-      tag: "int128",
-      params: {},
-    });
+    expect(deriveColumn(Int128)).toEqual(["int128", {}]);
   });
 
   it("derives uint128", () => {
-    expect(deriveColumn(Uint128, capture)).toEqual({
-      type: "uint128",
-      tag: "uint128",
-      params: {},
-    });
+    expect(deriveColumn(Uint128)).toEqual(["uint128", {}]);
   });
 });
 
@@ -209,67 +126,35 @@ describe("deriveColumn — bigint brands", () => {
 
 describe("deriveColumn — string brands", () => {
   it("derives uuid", () => {
-    expect(deriveColumn(UuidString, capture)).toEqual({
-      type: "uuid",
-      tag: "uuid",
-      params: {},
-    });
+    expect(deriveColumn(UuidString)).toEqual(["uuid", {}]);
   });
 
   it("derives url", () => {
-    expect(deriveColumn(UrlString, capture)).toEqual({
-      type: "url",
-      tag: "url",
-      params: {},
-    });
+    expect(deriveColumn(UrlString)).toEqual(["url", {}]);
   });
 
   it("derives email", () => {
-    expect(deriveColumn(EmailString, capture)).toEqual({
-      type: "email",
-      tag: "email",
-      params: { maxLength: 320 },
-    });
+    expect(deriveColumn(EmailString)).toEqual(["email", { maxLength: 320 }]);
   });
 
   it("derives naiveDatetime", () => {
-    expect(deriveColumn(NaiveDatetime, capture)).toEqual({
-      type: "naiveDatetime",
-      tag: "naiveDatetime",
-      params: {},
-    });
+    expect(deriveColumn(NaiveDatetime)).toEqual(["naiveDatetime", {}]);
   });
 
   it("derives isoTime", () => {
-    expect(deriveColumn(IsoTime, capture)).toEqual({
-      type: "isoTime",
-      tag: "isoTime",
-      params: {},
-    });
+    expect(deriveColumn(IsoTime)).toEqual(["isoTime", {}]);
   });
 
   it("derives isoTimeSecond", () => {
-    expect(deriveColumn(IsoTimeSecond, capture)).toEqual({
-      type: "isoTimeSecond",
-      tag: "isoTimeSecond",
-      params: {},
-    });
+    expect(deriveColumn(IsoTimeSecond)).toEqual(["isoTimeSecond", {}]);
   });
 
   it("derives isoDate", () => {
-    expect(deriveColumn(IsoDate, capture)).toEqual({
-      type: "isoDate",
-      tag: "isoDate",
-      params: {},
-    });
+    expect(deriveColumn(IsoDate)).toEqual(["isoDate", {}]);
   });
 
   it("derives isoDateTime", () => {
-    expect(deriveColumn(IsoDateTime, capture)).toEqual({
-      type: "isoDateTime",
-      tag: "isoDateTime",
-      params: {},
-    });
+    expect(deriveColumn(IsoDateTime)).toEqual(["isoDateTime", {}]);
   });
 });
 
@@ -279,35 +164,31 @@ describe("deriveColumn — string brands", () => {
 
 describe("deriveColumn — NullOr wrapper", () => {
   it("marks string | null as nullable", () => {
-    expect(deriveColumn(Schema.NullOr(Schema.String), capture)).toEqual({
-      type: "string",
-      tag: "string",
-      params: { nullable: true },
-    });
+    expect(deriveColumn(Schema.NullOr(Schema.String))).toEqual([
+      "string",
+      { nullable: true },
+    ]);
   });
 
   it("marks number | null as nullable", () => {
-    expect(deriveColumn(Schema.NullOr(Schema.Number), capture)).toEqual({
-      type: "number",
-      tag: "number",
-      params: { nullable: true },
-    });
+    expect(deriveColumn(Schema.NullOr(Schema.Number))).toEqual([
+      "number",
+      { nullable: true },
+    ]);
   });
 
   it("marks branded number | null as nullable", () => {
-    expect(deriveColumn(Schema.NullOr(Int32), capture)).toEqual({
-      type: "int32",
-      tag: "int32",
-      params: { nullable: true },
-    });
+    expect(deriveColumn(Schema.NullOr(Int32))).toEqual([
+      "int32",
+      { nullable: true },
+    ]);
   });
 
   it("marks branded string | null as nullable", () => {
-    expect(deriveColumn(Schema.NullOr(UuidString), capture)).toEqual({
-      type: "uuid",
-      tag: "uuid",
-      params: { nullable: true },
-    });
+    expect(deriveColumn(Schema.NullOr(UuidString))).toEqual([
+      "uuid",
+      { nullable: true },
+    ]);
   });
 });
 
@@ -317,27 +198,24 @@ describe("deriveColumn — NullOr wrapper", () => {
 
 describe("deriveColumn — optional wrapper", () => {
   it("marks optional string as nullable (no default)", () => {
-    expect(deriveColumn(Schema.optional(Schema.String), capture)).toEqual({
-      type: "string",
-      tag: "string",
-      params: { nullable: true },
-    });
+    expect(deriveColumn(Schema.optional(Schema.String))).toEqual([
+      "string",
+      { nullable: true },
+    ]);
   });
 
   it("marks optional number as nullable (no default)", () => {
-    expect(deriveColumn(Schema.optional(Schema.Number), capture)).toEqual({
-      type: "number",
-      tag: "number",
-      params: { nullable: true },
-    });
+    expect(deriveColumn(Schema.optional(Schema.Number))).toEqual([
+      "number",
+      { nullable: true },
+    ]);
   });
 
   it("marks optional branded number as nullable", () => {
-    expect(deriveColumn(Schema.optional(Int32), capture)).toEqual({
-      type: "int32",
-      tag: "int32",
-      params: { nullable: true },
-    });
+    expect(deriveColumn(Schema.optional(Int32))).toEqual([
+      "int32",
+      { nullable: true },
+    ]);
   });
 });
 
@@ -347,19 +225,17 @@ describe("deriveColumn — optional wrapper", () => {
 
 describe("deriveColumn — NullishOr wrapper", () => {
   it("marks nullish string as nullable", () => {
-    expect(deriveColumn(Schema.NullishOr(Schema.String), capture)).toEqual({
-      type: "string",
-      tag: "string",
-      params: { nullable: true },
-    });
+    expect(deriveColumn(Schema.NullishOr(Schema.String))).toEqual([
+      "string",
+      { nullable: true },
+    ]);
   });
 
   it("marks nullish branded number as nullable", () => {
-    expect(deriveColumn(Schema.NullishOr(Int32), capture)).toEqual({
-      type: "int32",
-      tag: "int32",
-      params: { nullable: true },
-    });
+    expect(deriveColumn(Schema.NullishOr(Int32))).toEqual([
+      "int32",
+      { nullable: true },
+    ]);
   });
 });
 
@@ -372,22 +248,14 @@ describe("deriveColumn — optional with default", () => {
     const schema = Schema.String.pipe(
       Schema.withConstructorDefault(Effect.succeed("hello")),
     );
-    expect(deriveColumn(schema, capture)).toEqual({
-      type: "string",
-      tag: "string",
-      params: { default: "hello" },
-    });
+    expect(deriveColumn(schema)).toEqual(["string", { default: "hello" }]);
   });
 
   it("extracts a numeric constructor default value", () => {
     const schema = Schema.Number.pipe(
       Schema.withConstructorDefault(Effect.succeed(42)),
     );
-    expect(deriveColumn(schema, capture)).toEqual({
-      type: "number",
-      tag: "number",
-      params: { default: 42 },
-    });
+    expect(deriveColumn(schema)).toEqual(["number", { default: 42 }]);
   });
 });
 
@@ -397,37 +265,31 @@ describe("deriveColumn — optional with default", () => {
 
 describe("deriveColumn — array", () => {
   it("derives string array", () => {
-    expect(deriveColumn(Schema.Array(Schema.String), capture)).toEqual({
-      type: "string",
-      tag: "string",
-      params: { array: "[]" },
-    });
+    expect(deriveColumn(Schema.Array(Schema.String))).toEqual([
+      "string",
+      { array: "[]" },
+    ]);
   });
 
   it("derives number array", () => {
-    expect(deriveColumn(Schema.Array(Schema.Number), capture)).toEqual({
-      type: "number",
-      tag: "number",
-      params: { array: "[]" },
-    });
+    expect(deriveColumn(Schema.Array(Schema.Number))).toEqual([
+      "number",
+      { array: "[]" },
+    ]);
   });
 
   it("derives branded array", () => {
-    expect(deriveColumn(Schema.Array(Int32), capture)).toEqual({
-      type: "int32",
-      tag: "int32",
-      params: { array: "[]" },
-    });
+    expect(deriveColumn(Schema.Array(Int32))).toEqual([
+      "int32",
+      { array: "[]" },
+    ]);
   });
 
   it("derives nullable array", () => {
-    expect(
-      deriveColumn(Schema.NullOr(Schema.Array(Schema.String)), capture),
-    ).toEqual({
-      type: "string",
-      tag: "string",
-      params: { nullable: true, array: "[]" },
-    });
+    expect(deriveColumn(Schema.NullOr(Schema.Array(Schema.String)))).toEqual([
+      "string",
+      { nullable: true, array: "[]" },
+    ]);
   });
 });
 
@@ -438,11 +300,7 @@ describe("deriveColumn — array", () => {
 describe("deriveColumn — isMaxLength", () => {
   it("derives maxLength from isMaxLength check", () => {
     const schema = Schema.String.pipe(Schema.check(Schema.isMaxLength(255)));
-    expect(deriveColumn(schema, capture)).toEqual({
-      type: "string",
-      tag: "string",
-      params: { maxLength: 255 },
-    });
+    expect(deriveColumn(schema)).toEqual(["string", { maxLength: 255 }]);
   });
 });
 
@@ -452,56 +310,37 @@ describe("deriveColumn — isMaxLength", () => {
 
 describe("deriveColumn — refines and constrained schemas", () => {
   it("derives NonEmptyString as plain string", () => {
-    expect(deriveColumn(Schema.NonEmptyString, capture)).toEqual({
-      type: "string",
-      tag: "string",
-      params: {},
-    });
+    expect(deriveColumn(Schema.NonEmptyString)).toEqual(["string", {}]);
   });
 
   it("derives custom refine on string as plain string", () => {
     const schema = Schema.String.pipe(
       Schema.refine((s): s is string => s.length > 0, { message: "non-empty" }),
     );
-    expect(deriveColumn(schema, capture)).toEqual({
-      type: "string",
-      tag: "string",
-      params: {},
-    });
+    expect(deriveColumn(schema)).toEqual(["string", {}]);
   });
 
   it("derives custom refine on number as plain number", () => {
     const schema = Schema.Number.pipe(
       Schema.refine((n): n is number => n > 0, { message: "positive" }),
     );
-    expect(deriveColumn(schema, capture)).toEqual({
-      type: "number",
-      tag: "number",
-      params: {},
-    });
+    expect(deriveColumn(schema)).toEqual(["number", {}]);
   });
 
   it("derives nullable NonEmptyString as nullable string", () => {
-    expect(deriveColumn(Schema.NullOr(Schema.NonEmptyString), capture)).toEqual(
-      {
-        type: "string",
-        tag: "string",
-        params: { nullable: true },
-      },
-    );
+    expect(deriveColumn(Schema.NullOr(Schema.NonEmptyString))).toEqual([
+      "string",
+      { nullable: true },
+    ]);
   });
 
   it("derives refined + branded as the brand type", () => {
     const schema = Int32.pipe(
-      Schema.refine((n): n is number & Brand.Brand<"int32"> => n > 0, {
+      Schema.refine((n): n is number => n > 0, {
         message: "positive",
       }),
     );
-    expect(deriveColumn(schema, capture)).toEqual({
-      type: "int32",
-      tag: "int32",
-      params: {},
-    });
+    expect(deriveColumn(schema)).toEqual(["int32", {}]);
   });
 
   it("derives refined boolean as plain boolean", () => {
@@ -510,11 +349,7 @@ describe("deriveColumn — refines and constrained schemas", () => {
         message: "must be true",
       }),
     );
-    expect(deriveColumn(schema, capture)).toEqual({
-      type: "boolean",
-      tag: "boolean",
-      params: {},
-    });
+    expect(deriveColumn(schema)).toEqual(["boolean", {}]);
   });
 });
 
@@ -525,22 +360,27 @@ describe("deriveColumn — refines and constrained schemas", () => {
 describe("deriveColumn — annotations", () => {
   it("derives primaryKey", () => {
     const schema = Int64.pipe(Schema.annotate({ primaryKey: true }));
-    expect(deriveColumn(schema, capture)).toEqual({
-      type: "int64",
-      tag: "int64",
-      params: { primaryKey: true },
-    });
+    expect(deriveColumn(schema)).toEqual(["int64", { primaryKey: true }]);
+  });
+
+  it("derives primaryKey via PrimaryKey helper", () => {
+    const schema = Int64.pipe(PrimaryKey());
+    expect(deriveColumn(schema)).toEqual(["int64", { primaryKey: true }]);
+  });
+
+  it("derives autoIncrement via AutoIncrement helper", () => {
+    const schema = Int32.pipe(AutoIncrement());
+    expect(deriveColumn(schema)).toEqual(["int32", { autoIncrement: true }]);
   });
 
   it("derives primaryKey + autoIncrement", () => {
     const schema = Int32.pipe(
       Schema.annotate({ primaryKey: true, autoIncrement: true }),
     );
-    expect(deriveColumn(schema, capture)).toEqual({
-      type: "int32",
-      tag: "int32",
-      params: { primaryKey: true, autoIncrement: true },
-    });
+    expect(deriveColumn(schema)).toEqual([
+      "int32",
+      { primaryKey: true, autoIncrement: true },
+    ]);
   });
 
   it("derives foreignKey", () => {
@@ -550,14 +390,13 @@ describe("deriveColumn — annotations", () => {
         foreignKeyColumn: "id",
       }),
     );
-    expect(deriveColumn(schema, capture)).toEqual({
-      type: "int64",
-      tag: "int64",
-      params: {
+    expect(deriveColumn(schema)).toEqual([
+      "int64",
+      {
         foreignKeyTable: "users",
         foreignKeyColumn: "id",
       },
-    });
+    ]);
   });
 
   it("derives nullable + annotations", () => {
@@ -569,15 +408,14 @@ describe("deriveColumn — annotations", () => {
         }),
       ),
     );
-    expect(deriveColumn(schema, capture)).toEqual({
-      type: "int64",
-      tag: "int64",
-      params: {
+    expect(deriveColumn(schema)).toEqual([
+      "int64",
+      {
         nullable: true,
         foreignKeyTable: "users",
         foreignKeyColumn: "id",
       },
-    });
+    ]);
   });
 });
 
@@ -646,44 +484,46 @@ describe("deriveColumn — integration with pg chooser", () => {
       case "object":
         return pg.jsonb(baseParams as any);
       default:
-        return pg.text(baseParams as any);
+        throw new Error(
+          `pgChooser: Unhandled tag ${tag} with params ${JSON.stringify(params)}`,
+        );
     }
   };
 
   it("derives pg column for string", () => {
-    const col = deriveColumn(Schema.String, pgChooser);
+    const col = pgChooser(deriveColumn(Schema.String));
     expect(col.type).toBe("text");
   });
 
   it("derives pg column for int32", () => {
-    const col = deriveColumn(Int32, pgChooser);
+    const col = pgChooser(deriveColumn(Int32));
     expect(col.type).toBe("int4");
   });
 
   it("derives pg column for int64", () => {
-    const col = deriveColumn(Int64, pgChooser);
+    const col = pgChooser(deriveColumn(Int64));
     expect(col.type).toBe("int8");
   });
 
   it("derives pg column for nullable string", () => {
-    const col = deriveColumn(Schema.NullOr(Schema.String), pgChooser);
+    const col = pgChooser(deriveColumn(Schema.NullOr(Schema.String)));
     expect(col.type).toBe("text");
     expect((col as any).nullable).toBe(true);
   });
 
   it("derives pg column for uuid", () => {
-    const col = deriveColumn(UuidString, pgChooser);
+    const col = pgChooser(deriveColumn(UuidString));
     expect(col.type).toBe("uuid");
   });
 
   it("derives pg column for struct as jsonb", () => {
-    const col = deriveColumn(Schema.Struct({ v: Schema.String }), pgChooser);
+    const col = pgChooser(deriveColumn(Schema.Struct({ v: Schema.String })));
     expect(col.type).toBe("jsonb");
   });
 
   it("derives pg column with maxLength from check", () => {
     const schema = Schema.String.pipe(Schema.check(Schema.isMaxLength(255)));
-    const col = deriveColumn(schema, pgChooser);
+    const col = pgChooser(deriveColumn(schema));
     expect(col.type).toBe("varchar");
     expect((col as any).maxLength).toBe(255);
   });
@@ -692,19 +532,19 @@ describe("deriveColumn — integration with pg chooser", () => {
     const schema = Int32.pipe(
       Schema.annotate({ primaryKey: true, autoIncrement: true }),
     );
-    const col = deriveColumn(schema, pgChooser);
+    const col = pgChooser(deriveColumn(schema));
     expect(col.type).toBe("int4");
     expect((col as any).primaryKey).toBe(true);
     expect((col as any).autoIncrement).toBe(true);
   });
 
   it("derives pg column for Date as timestamptz", () => {
-    const col = deriveColumn(Schema.Date, pgChooser);
+    const col = pgChooser(deriveColumn(Schema.Date));
     expect(col.type).toBe("timestamptz");
   });
 
   it("derives pg column for boolean", () => {
-    const col = deriveColumn(Schema.Boolean, pgChooser);
+    const col = pgChooser(deriveColumn(Schema.Boolean));
     expect(col.type).toBe("boolean");
   });
 });
