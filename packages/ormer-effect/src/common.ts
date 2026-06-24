@@ -11,6 +11,8 @@ export type UnwrapUntilReturnTrue<T, Check> =
   : T extends { readonly value:  infer Inner } ? UnwrapUntilReturnTrue<Inner, Check> 
   : false;
 
+export type RemoveReadOnly<T> = { -readonly [K in keyof T]: T[K] };
+
 // prettier-ignore
 export type GetBaseTypeWithoutArrays<T> =
     T extends { readonly members: readonly [infer First, ...infer _] } ? GetBaseTypeWithoutArrays<First>

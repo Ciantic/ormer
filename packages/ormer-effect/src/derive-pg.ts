@@ -1,5 +1,5 @@
 import { pg, table } from "ormer";
-import type { ColumnType, ColumnTypeSingualr, Table } from "ormer";
+import type { ColumnType, Table } from "ormer";
 import { Schema } from "effect";
 import {
   deriveColumn,
@@ -11,6 +11,7 @@ import type {
   GetBaseTypeWithoutArrays,
   GetDbFormat,
   GetMaxLength,
+  RemoveReadOnly,
   RewrapToColumnType,
   SafeParamDerivation,
 } from "./common.ts";
@@ -55,34 +56,31 @@ export type DeriveBasePgColumn<T> =
   : "object" extends DomainOfType<T> ? { type: "jsonb"; schema: T }
   : { type: "ERROR" };
 
-/** Derive a PostgreSQL ColumnType from an Effect schema. */
 export type DerivePgColumn<T> = RewrapToColumnType<
   DeriveBasePgColumn<GetBaseTypeWithoutArrays<T>> & SafeParamDerivation<T>
 >;
 
-/**
- * Derive an ormer PgTable type from an Effect Struct schema annotated with
- * `Table("name", ...)` or `dbTable` annotation.
- */
-export type DerivePgTable<T extends Schema.Struct<any>> =
-  T extends Schema.Struct<any>
-    ? T["ast"]["annotations"] extends { dbTable: infer Name extends string }
-      ? Table<
-          Name,
-          {
-            [K in keyof T["fields"]]: DerivePgColumn<T["fields"][K]>;
-          }
-        >
-      : never
-    : never;
+export type DerivePgTable<T> = T extends {
+  readonly tableName: infer Name extends string;
+  readonly shape: infer S;
+}
+  ? S extends Schema.Struct<any>
+    ? Table<
+        Name,
+        RemoveReadOnly<{
+          [K in keyof S["fields"]]: DerivePgColumn<S["fields"][K]>;
+        }>
+      >
+    : never
+  : never;
 
 /**
  * Map a generic Effect schema choice (returned by deriveColumn) to a
  * PostgreSQL ColumnType.
  */
-export function derivePgColumn<T extends Schema.Top>(schema: {
-  ast: T["ast"];
-}): DerivePgColumn<T> {
+export function derivePgColumn<T extends Schema.Top>(
+  schema: T,
+): DerivePgColumn<T> {
   return chooser(deriveColumn(schema)) as any;
 }
 
@@ -167,20 +165,14 @@ function chooser([tag, params]: EffectSchemas): ColumnType<string, any> {
 }
 
 /**
- * Derive an ormer PgTable from an Effect Struct schema annotated with
- * `Table("name", ...)` or `dbTable` annotation.
+ * Derive an ormer PgTable from an Effect TableWrapper schema
+ * created with `Table("name", ...)`.
  */
-export function derivePgTable<S extends Schema.Struct<any>>(
-  schema: S,
-): DerivePgTable<S> {
-  const tableName = (schema.ast.annotations as any)?.dbTable as
-    | string
-    | undefined;
-  if (typeof tableName !== "string") {
-    throw new Error(
-      "Effect Struct must be annotated with Table('name', schema) or dbTable annotation.",
-    );
-  }
+export function derivePgTable<
+  T extends { readonly tableName: string; readonly shape: Schema.Struct<any> },
+>(wrapper: T): DerivePgTable<T> {
+  const tableName: string = wrapper.tableName;
+  const schema: Schema.Struct<any> = wrapper.shape;
 
   const properties =
     (schema.ast as any)?.propertySignatures ??
@@ -195,7 +187,7 @@ export function derivePgTable<S extends Schema.Struct<any>>(
         ? (schema.ast as any)?.propertySignatures?.[prop]
         : (prop.type ?? prop.value ?? prop.schema);
     if (key && propSchema) {
-      columns[key] = derivePgColumn({ ast: propSchema });
+      columns[key] = derivePgColumn({ ast: propSchema } as any);
     }
   }
 

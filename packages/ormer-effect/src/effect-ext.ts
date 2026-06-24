@@ -185,12 +185,39 @@ export const MacString = Schema.String.check(
   }),
 ).pipe(withDbformat("mac"));
 
-export const Table = <T extends string, S extends Schema.Struct<any>>(
+export interface TableWrapper<
+  T extends string,
+  S extends Schema.Struct<any>,
+> extends Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  TableWrapper<T, S>,
+  S["~type.make.in"],
+  S["Type"],
+  S["~type.parameters"],
+  S["Type"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
+  readonly tableName: T;
+  readonly shape: S;
+}
+
+export function Table<T extends string, S extends Schema.Struct<any>>(
   name: T,
   shape: S,
-) => {
-  return shape.annotate({ dbTable: name });
-};
+): TableWrapper<T, S> {
+  return Schema.make(shape.ast, {
+    tableName: name,
+    shape,
+  } as const).annotate({ dbTable: name }) as TableWrapper<T, S>;
+}
 
 // Acts like branding but without changing the Type
 export interface DbFormat<S extends Top, B> extends Bottom<
