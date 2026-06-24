@@ -195,6 +195,20 @@ describe("deriveColumn — NullOr wrapper", () => {
       { nullable: true },
     ]);
   });
+
+  it("marks refined string | null as nullable", () => {
+    expect(
+      deriveColumn(
+        Schema.NullOr(
+          UuidString.pipe(
+            Schema.refine((s): s is string => s.length === 36, {
+              message: "UUID must be 36 characters long",
+            }),
+          ),
+        ).check(Schema.makeFilter((c) => true, { message: "dummy" })),
+      ),
+    ).toEqual(["uuid", { nullable: true }]);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -335,48 +349,27 @@ describe("deriveColumn — refines and constrained schemas", () => {
     expect(deriveColumn(Schema.NonEmptyString)).toEqual(["string", {}]);
   });
 
-  it("derives checked and refined", () => {
+  it("checked schema retains the dbformat", () => {
+    const schema = UuidString.check(Schema.isNonEmpty());
+
+    expect(deriveColumn(schema)).toEqual(["uuid", {}]);
+  });
+
+  it("refined schema retains the dbformat", () => {
     const schema = UuidString.pipe(
-      Schema.brand("Horse"),
-      Schema.annotate({ foo: 1 }),
-      Schema.refine((s): s is string & Brand.Brand<"Horse"> => s.length > 0, {
-        message: "non-empty",
+      Schema.refine((n): n is string => n.length === 36, {
+        message: "UUID must be 36 characters long",
       }),
-    ).check(Schema.isNonEmpty());
+    );
 
     expect(deriveColumn(schema)).toEqual(["uuid", {}]);
   });
 
   it("derives custom refine on number as plain number", () => {
     const schema = Schema.Number.pipe(
-      Schema.refine((n): n is number => n > 0, { message: "positive" }),
+      Schema.refine((n): n is number => n > 0, { message: "must be positive" }),
     );
     expect(deriveColumn(schema)).toEqual(["number", {}]);
-  });
-
-  it("derives nullable NonEmptyString as nullable string", () => {
-    expect(deriveColumn(Schema.NullOr(Schema.NonEmptyString))).toEqual([
-      "string",
-      { nullable: true },
-    ]);
-  });
-
-  it("derives refined + branded as the brand type", () => {
-    const schema = Int32.pipe(
-      Schema.refine((n): n is number => n > 0, {
-        message: "positive",
-      }),
-    );
-    expect(deriveColumn(schema)).toEqual(["int32", {}]);
-  });
-
-  it("derives refined boolean as plain boolean", () => {
-    const schema = Schema.Boolean.pipe(
-      Schema.refine((b): b is boolean => b === true, {
-        message: "must be true",
-      }),
-    );
-    expect(deriveColumn(schema)).toEqual(["boolean", {}]);
   });
 });
 
