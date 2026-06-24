@@ -92,9 +92,7 @@ function chooser([tag, params]: EffectSchemas): ColumnType<string, any> {
   const p = params as ParamsDerived & Record<string, unknown>;
 
   switch (tag) {
-    // -----------------------------------------------------------------------
     // String variants
-    // -----------------------------------------------------------------------
     case "uuid":
       return pg.uuid(params);
     case "url":
@@ -116,18 +114,14 @@ function chooser([tag, params]: EffectSchemas): ColumnType<string, any> {
       }
       return pg.text(params);
 
-    // -----------------------------------------------------------------------
-    // Network types (treated as string by deriveColumn, dispatched here)
-    // -----------------------------------------------------------------------
+    // Network types
     case "ipv4":
     case "ipv6":
       return pg.inet(params);
     case "mac":
       return pg.macaddr(params);
 
-    // -----------------------------------------------------------------------
     // Number variants
-    // -----------------------------------------------------------------------
     case "int8":
     case "uint8":
     case "uint16":
@@ -144,9 +138,7 @@ function chooser([tag, params]: EffectSchemas): ColumnType<string, any> {
     case "number":
       return pg.float8(params);
 
-    // -----------------------------------------------------------------------
     // BigInt variants
-    // -----------------------------------------------------------------------
     case "bigint":
       return pg.int8(params);
     case "int64":
@@ -156,27 +148,19 @@ function chooser([tag, params]: EffectSchemas): ColumnType<string, any> {
     case "uint128":
       throw new Error(`PG has no symmetric mapping for bigint format: ${tag}`);
 
-    // -----------------------------------------------------------------------
     // Boolean
-    // -----------------------------------------------------------------------
     case "boolean":
       return pg.boolean(params);
 
-    // -----------------------------------------------------------------------
     // Date
-    // -----------------------------------------------------------------------
     case "date":
       return pg.timestamptz(params as any);
 
-    // -----------------------------------------------------------------------
     // Object / JSON
-    // -----------------------------------------------------------------------
     case "object":
       return pg.jsonb(params as any);
 
-    // -----------------------------------------------------------------------
     // Fallback
-    // -----------------------------------------------------------------------
     default:
       throw new Error(
         `derivePgColumn: Unhandled tag "${tag}" with params ${JSON.stringify(params)}`,
