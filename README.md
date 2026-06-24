@@ -1152,9 +1152,9 @@ Notes:
 </tr>
 <tr>
 <td><code>Schema.Number.check(Schema.isInt())</code></td>
-<td><code>INT4</code></td>
-<td><code>INT4</code></td>
-<td><code>INTEGER</code></td>
+<td><code>FLOAT8</code></td>
+<td><code>FLOAT8</code></td>
+<td><code>REAL</code></td>
 </tr>
 <tr>
 <td><code>Float32</code></td>
@@ -1169,39 +1169,27 @@ Notes:
 <td><code>REAL</code></td>
 </tr>
 <tr>
-<td><code>Int32</code></td>
-<td><code>INT4</code></td>
-<td><code>INT4</code></td>
-<td><code>INTEGER</code></td>
-</tr>
-<tr>
-<td><code>Int32.pipe(PrimaryKey(), AutoIncrement())</code></td>
-<td><code>SERIAL4 PRIMARY KEY</code></td>
-<td><code>INT4 PRIMARY KEY</code></td>
-<td><code>INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
-</tr>
-<tr>
-<td><code>Int32</code></td>
-<td><code>INT4</code></td>
-<td><code>INT4</code></td>
-<td><code>INTEGER</code></td>
-</tr>
-<tr>
 <td><code>Int8</code></td>
 <td><em>Not Available</em></td>
 <td><code>INT1</code></td>
 <td><code>INTEGER</code></td>
 </tr>
 <tr>
-<td><code>Uint8</code></td>
-<td><em>Not Available</em></td>
-<td><code>UTINYINT</code></td>
-<td><code>INTEGER</code></td>
-</tr>
-<tr>
 <td><code>Int16</code></td>
 <td><code>INT2</code></td>
 <td><code>INT2</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>Int32</code></td>
+<td><code>INT4</code></td>
+<td><code>INT4</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>Uint8</code></td>
+<td><em>Not Available</em></td>
+<td><code>UTINYINT</code></td>
 <td><code>INTEGER</code></td>
 </tr>
 <tr>
@@ -1215,6 +1203,12 @@ Notes:
 <td><em>Not Available</em></td>
 <td><code>UINTEGER</code></td>
 <td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>Int32.pipe(PrimaryKey(), AutoIncrement())</code></td>
+<td><code>SERIAL4 PRIMARY KEY</code></td>
+<td><code>INT4 PRIMARY KEY</code></td>
+<td><code>INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
 </tr>
 <tr>
 <td colspan="4"><strong>Bigint</strong></td>
