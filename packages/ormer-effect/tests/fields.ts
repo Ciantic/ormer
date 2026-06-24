@@ -286,9 +286,7 @@ export const ALL_DUCKDB_FIELDS = {
 export const ALL_SQLITE_FIELDS = {
   // String values
   c_str: sqlite.text(),
-  c_str_max255: sqlite.text({
-    check: (c: string) => `length(${c}) <= 255`,
-  }),
+  c_str_max255: sqlite.text(),
 
   // Number types
   c_num: sqlite.real(),
@@ -330,15 +328,11 @@ export const ALL_SQLITE_FIELDS = {
 
   // Various string formats
   c_url: sqlite.text(),
-  c_email: sqlite.text({ check: (c: string) => `length(${c}) <= 320` }),
+  c_email: sqlite.text(),
   c_emoji: sqlite.text(),
-  c_nanoid: sqlite.text({
-    check: (c: string) => `length(${c}) <= 21`,
-  }),
+  c_nanoid: sqlite.text(),
   c_cuid2: sqlite.text(),
-  c_ulid: sqlite.text({
-    check: (c: string) => `length(${c}) <= 26`,
-  }),
+  c_ulid: sqlite.text(),
   c_base64: sqlite.text(),
   c_isbn: sqlite.text(),
 
