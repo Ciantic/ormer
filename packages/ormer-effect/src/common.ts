@@ -69,8 +69,8 @@ export type GetMaxLength<T> =
   ]
     ? M extends { readonly maxLength: infer N extends number }
       ? N
-      : never
-    : never;
+      : false
+    : false;
 
 export type GetDbFormat<T> =
   UnwrapUntilReturnTrue<T, { readonly dbformat: unknown }> extends [

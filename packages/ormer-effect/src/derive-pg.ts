@@ -10,9 +10,9 @@ import type {
   DomainOfType,
   GetBaseTypeWithoutArrays,
   GetDbFormat,
+  GetMaxLength,
   RewrapToColumnType,
   SafeParamDerivation,
-  UnwrapUntilReturnTrue,
 } from "./common.ts";
 
 // prettier-ignore
@@ -29,9 +29,7 @@ export type DeriveBasePgColumn<T> =
       : "ipv4"          extends GetDbFormat<T> ? { type: "inet" }
       : "ipv6"          extends GetDbFormat<T> ? { type: "inet" }
       : "mac"           extends GetDbFormat<T> ? { type: "macaddr" }
-      : UnwrapUntilReturnTrue<T, { readonly maxLength: unknown }> extends [true, infer M]
-        ? M extends { readonly maxLength: infer N extends number } ? { type: "varchar"; maxLength: N } 
-        : { type: "text" }
+      : GetMaxLength<T> extends number         ? { type: "varchar"; maxLength: GetMaxLength<T> }
       : { type: "text" }
   )
   : "number" extends DomainOfType<T> ? (
