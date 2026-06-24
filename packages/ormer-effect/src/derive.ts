@@ -161,7 +161,8 @@ export function deriveColumn<T extends Schema.Top>(
   }
 
   if (schema.ast.context?.isOptional) {
-    throw new Error("What is this?");
+    // Schema.optionalKey(...) triggers this, but how to handle?
+    throw new Error("How to handle?");
   }
 
   const params: ParamsDerived = { ...acc };
