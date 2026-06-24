@@ -1,8 +1,9 @@
-import { duckdb, table } from "ormer";
+import { duckdb } from "ormer";
 import type { ColumnType, Table } from "ormer";
 import { Schema } from "effect";
 import {
   deriveColumn,
+  deriveTable,
   type EffectSchemas,
   type ParamsDerived,
 } from "./derive.ts";
@@ -176,25 +177,5 @@ function chooser([tag, params]: EffectSchemas): ColumnType<string, any> {
 export function deriveDuckDbTable<
   T extends { readonly tableName: string; readonly shape: Schema.Struct<any> },
 >(wrapper: T): DeriveDuckDbTable<T> {
-  const tableName: string = wrapper.tableName;
-  const schema: Schema.Struct<any> = wrapper.shape;
-
-  const properties =
-    (schema.ast as any)?.propertySignatures ??
-    (schema.ast as any)?.fields ??
-    [];
-
-  const columns: Record<string, ColumnType<string, any>> = {};
-  for (const prop of properties) {
-    const key = typeof prop === "string" ? prop : (prop.name ?? prop.key);
-    const propSchema =
-      typeof prop === "string"
-        ? (schema.ast as any)?.propertySignatures?.[prop]
-        : (prop.type ?? prop.value ?? prop.schema);
-    if (key && propSchema) {
-      columns[key] = deriveDuckDbColumn({ ast: propSchema } as any);
-    }
-  }
-
-  return table(tableName as never, columns) as any;
+  return deriveTable(wrapper, deriveDuckDbColumn) as any;
 }

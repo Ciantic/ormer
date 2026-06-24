@@ -1,4 +1,5 @@
 import { Schema, SchemaAST, Effect, Option } from "effect";
+import { table, type ColumnType } from "ormer";
 
 // ---------------------------------------------------------------------------
 // Runtime helper types
@@ -230,4 +231,36 @@ export function deriveColumn<T extends Schema.Top>(
 
   // // --- Fallback ---
   // return chooser(["string", params]);
+}
+
+/**
+ * Derive an ormer Table from an Effect TableWrapper schema.
+ *
+ * Each database adapter calls this with its own `deriveColumnFn`
+ * (e.g. `derivePgColumn`, `deriveDuckDbColumn`, `deriveSqliteColumn`).
+ */
+export function deriveTable<
+  T extends { readonly tableName: string; readonly shape: Schema.Struct<any> },
+>(wrapper: T, deriveColumnFn: (schema: Schema.Top) => ColumnType<string, any>) {
+  const tableName: string = wrapper.tableName;
+  const schema: Schema.Struct<any> = wrapper.shape;
+
+  const properties =
+    (schema.ast as any)?.propertySignatures ??
+    (schema.ast as any)?.fields ??
+    [];
+
+  const columns: Record<string, ColumnType<string, any>> = {};
+  for (const prop of properties) {
+    const key = typeof prop === "string" ? prop : (prop.name ?? prop.key);
+    const propSchema =
+      typeof prop === "string"
+        ? (schema.ast as any)?.propertySignatures?.[prop]
+        : (prop.type ?? prop.value ?? prop.schema);
+    if (key && propSchema) {
+      columns[key] = deriveColumnFn({ ast: propSchema } as any);
+    }
+  }
+
+  return table(tableName as never, columns) as any;
 }
