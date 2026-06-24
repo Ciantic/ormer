@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, expectTypeOf } from "vitest";
 import { Schema } from "effect";
-import { derivePgColumn } from "../src/derive-pg.ts";
+import { derivePgColumn, type DerivePgColumn } from "../src/derive-pg.ts";
 import { ALL_EFFECT_FIELDS, ALL_PG_FIELDS } from "./fields.ts";
 import {
   database,
@@ -44,6 +44,36 @@ describe("ALL_EFFECT_FIELDS derivePgColumn runtime", () => {
       runtimeTest(effectSchema, expectedColumn);
     });
   }
+
+  it("ALL_EFFECT_FIELDS type-level tests", () => {
+    type Equal<X, Y> =
+      (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2
+        ? true
+        : false;
+
+    type TestAll = {
+      [K in keyof typeof ALL_EFFECT_FIELDS]: Equal<
+        DerivePgColumn<(typeof ALL_EFFECT_FIELDS)[K]["effect"]>,
+        (typeof ALL_PG_FIELDS)[K] extends "ERROR"
+          ? { type: "ERROR" }
+          : (typeof ALL_PG_FIELDS)[K]
+      >;
+    };
+
+    // Hover over FailedTests to see any failed test cases, if it is `never`
+    // then all test cases passed
+    type FailedTests = {
+      [K in keyof TestAll]: TestAll[K] extends true
+        ? never
+        : {
+            key: K;
+            derived: DerivePgColumn<(typeof ALL_EFFECT_FIELDS)[K]["effect"]>;
+            expected: (typeof ALL_PG_FIELDS)[K];
+          };
+    }[keyof TestAll];
+
+    expectTypeOf<never>().toEqualTypeOf<FailedTests>();
+  });
 });
 
 describe("ALL_EFFECT_FIELDS pglite round-trip", () => {

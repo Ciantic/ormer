@@ -1,11 +1,82 @@
 import { pg, table } from "ormer";
 import type { ColumnType, ColumnTypeSingualr, Table } from "ormer";
-import type { Schema } from "effect";
+import { Schema } from "effect";
 import {
   deriveColumn,
   type EffectSchemas,
   type ParamsDerived,
 } from "./derive.ts";
+import type {
+  DomainOfType,
+  GetBaseTypeWithoutArrays,
+  GetDbFormat,
+  RewrapToColumnType,
+  SafeParamDerivation,
+  UnwrapUntilReturnTrue,
+} from "./common.ts";
+
+// prettier-ignore
+export type DeriveBasePgColumn<T> =
+  "string" extends DomainOfType<T> ? (
+        "uuid"          extends GetDbFormat<T> ? { type: "uuid" }
+      : "url"           extends GetDbFormat<T> ? { type: "text" }
+      : "email"         extends GetDbFormat<T> ? { type: "varchar"; maxLength: 320 }
+      : "isoTime"       extends GetDbFormat<T> ? { type: "ERROR" }
+      : "isoDateTime"   extends GetDbFormat<T> ? { type: "ERROR" }
+      : "isoTimeSecond" extends GetDbFormat<T> ? { type: "time" }
+      : "isoDate"       extends GetDbFormat<T> ? { type: "date" }
+      : "naiveDatetime" extends GetDbFormat<T> ? { type: "timestamp" }
+      : "ipv4"          extends GetDbFormat<T> ? { type: "inet" }
+      : "ipv6"          extends GetDbFormat<T> ? { type: "inet" }
+      : "mac"           extends GetDbFormat<T> ? { type: "macaddr" }
+      : UnwrapUntilReturnTrue<T, { readonly maxLength: unknown }> extends [true, infer M]
+        ? M extends { readonly maxLength: infer N extends number } ? { type: "varchar"; maxLength: N } 
+        : { type: "text" }
+      : { type: "text" }
+  )
+  : "number" extends DomainOfType<T> ? (
+      "int8"       extends GetDbFormat<T> ? { type: "ERROR" }
+    : "int16"      extends GetDbFormat<T> ? { type: "int2" }
+    : "int32"      extends GetDbFormat<T> ? { type: "int4" }
+    : "uint8"      extends GetDbFormat<T> ? { type: "ERROR" }
+    : "uint16"     extends GetDbFormat<T> ? { type: "ERROR" }
+    : "uint32"     extends GetDbFormat<T> ? { type: "ERROR" }
+    : "float32"    extends GetDbFormat<T> ? { type: "float4" }
+    : "float64"    extends GetDbFormat<T> ? { type: "float8" }
+    : { type: "float8" }
+  )
+  : "bigint" extends DomainOfType<T> ? (
+      "int64"      extends GetDbFormat<T> ? { type: "int8" }
+    : "uint64"     extends GetDbFormat<T> ? { type: "ERROR" }
+    : "int128"     extends GetDbFormat<T> ? { type: "ERROR" }
+    : "uint128"    extends GetDbFormat<T> ? { type: "ERROR" }
+    : { type: "int8" }
+  )
+  : "boolean" extends DomainOfType<T> ? { type: "boolean" }
+  : "Date" extends DomainOfType<T> ? { type: "timestamptz" }
+  : "object" extends DomainOfType<T> ? { type: "jsonb"; schema: T }
+  : { type: "ERROR" };
+
+/** Derive a PostgreSQL ColumnType from an Effect schema. */
+export type DerivePgColumn<T> = RewrapToColumnType<
+  DeriveBasePgColumn<GetBaseTypeWithoutArrays<T>> & SafeParamDerivation<T>
+>;
+
+/**
+ * Derive an ormer PgTable type from an Effect Struct schema annotated with
+ * `Table("name", ...)` or `dbTable` annotation.
+ */
+export type DerivePgTable<T extends Schema.Struct<any>> =
+  T extends Schema.Struct<any>
+    ? T["ast"]["annotations"] extends { dbTable: infer Name extends string }
+      ? Table<
+          Name,
+          {
+            [K in keyof T["fields"]]: DerivePgColumn<T["fields"][K]>;
+          }
+        >
+      : never
+    : never;
 
 /**
  * Map a generic Effect schema choice (returned by deriveColumn) to a
@@ -13,8 +84,8 @@ import {
  */
 export function derivePgColumn<T extends Schema.Top>(schema: {
   ast: T["ast"];
-}): ColumnType<string, any> {
-  return chooser(deriveColumn(schema));
+}): DerivePgColumn<T> {
+  return chooser(deriveColumn(schema)) as any;
 }
 
 function chooser([tag, params]: EffectSchemas): ColumnType<string, any> {
@@ -119,7 +190,7 @@ function chooser([tag, params]: EffectSchemas): ColumnType<string, any> {
  */
 export function derivePgTable<S extends Schema.Struct<any>>(
   schema: S,
-): Table<string, Record<string, ColumnType<string, any>>> {
+): DerivePgTable<S> {
   const tableName = (schema.ast.annotations as any)?.dbTable as
     | string
     | undefined;
