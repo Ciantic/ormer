@@ -54,44 +54,6 @@ export type EffectSchemas =
   | ["object", ParamsDerived<{ schema: { ast: SchemaAST.AST } }>];
 
 /**
- * Extract the decoding default value from a schema created with
- * Schema.withDecodingDefault / Schema.withDecodingDefaultKey.
- *
- * Walks the AST encoding chain and runs the decode getter with
- * `Option.some(undefined)` to trigger the default value closure.
- * Returns `undefined` if no decoding default is configured.
- */
-// function extractDecodingDefaultValue<T extends Schema.Top>(schema: {
-//   ast: T["ast"];
-// }): unknown {
-//   const encoding = (schema.ast as any).encoding as any[] | undefined;
-//   if (!encoding || encoding.length === 0) return undefined;
-
-//   for (const link of encoding) {
-//     const transformation = link.transformation;
-//     if (!transformation) continue;
-//     // The decode getter from SchemaGetter.withDefault runs the closure
-//     // and falls back to the defaultValue when input is undefined.
-//     const decodeGetter = transformation.decode;
-//     if (!decodeGetter || typeof decodeGetter.run !== "function") continue;
-
-//     try {
-//       const effect = decodeGetter.run(Option.some(undefined), {});
-//       const resultOption = Effect.runSync(effect) as Option.Option<unknown>;
-//       if (Option.isSome(resultOption)) {
-//         return resultOption.value;
-//       }
-//     } catch {
-//       // Running the Effect may fail if the schema has complex requirements.
-//       // In that case, we simply can't extract the default value.
-//       return undefined;
-//     }
-//   }
-
-//   return undefined;
-// }
-
-/**
  * Recursively resolve annotations from the schema AST and its checks.
  *
  * Default implementation uses only last check:
