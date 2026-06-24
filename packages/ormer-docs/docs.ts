@@ -21,6 +21,12 @@ import {
   ALL_DUCKDB_FIELDS as ALL_DUCKDB_FIELDS_ARKTYPE,
   ALL_SQLITE_FIELDS as ALL_SQLITE_FIELDS_ARKTYPE,
 } from "../ormer-arktype/tests/fields.ts";
+import {
+  ALL_EFFECT_FIELDS,
+  ALL_PG_FIELDS as ALL_PG_FIELDS_EFFECT,
+  ALL_DUCKDB_FIELDS as ALL_DUCKDB_FIELDS_EFFECT,
+  ALL_SQLITE_FIELDS as ALL_SQLITE_FIELDS_EFFECT,
+} from "../ormer-effect/tests/fields.ts";
 
 /** Collapse multiline expressions into single-line for clean table display */
 function compact(expr: string): string {
@@ -114,6 +120,105 @@ function valibotSrcToDisplay(src: string): string {
 
 function arktypeSrcToDisplay(src: string): string {
   return `<code>${compact(src)}</code>`;
+}
+
+function effectSrcToDisplay(src: string): string {
+  return `<code>${compact(src)}</code>`;
+}
+
+function makeEffectTestCaseTableHtml() {
+  const project = new Project();
+  const sf = project.addSourceFileAtPath("../ormer-effect/tests/fields.ts");
+  if (!sf) throw new Error("Could not load effect fields.ts");
+
+  const decl = sf.getVariableDeclarationOrThrow("ALL_EFFECT_FIELDS");
+  let initializer = decl.getInitializerOrThrow();
+  // Unwrap `as const` if present
+  if (initializer.isKind(SyntaxKind.AsExpression)) {
+    initializer = initializer
+      .asKindOrThrow(SyntaxKind.AsExpression)
+      .getExpression();
+  }
+
+  const objectLiteral = initializer.asKindOrThrow(
+    SyntaxKind.ObjectLiteralExpression,
+  );
+
+  const rows = objectLiteral
+    .getProperties()
+    .flatMap((prop) => {
+      const fullText = prop.getFullText();
+      const text = prop.getText();
+      const leadingTrivia = fullText.substring(0, fullText.indexOf(text));
+      const commentMatch = leadingTrivia.match(/\/\/\s*(.+?)\s*$/m);
+
+      const result: string[] = [];
+      if (commentMatch) {
+        result.push(md`
+          <tr>
+            <td colspan="4"><strong>${commentMatch[1]}</strong></td>
+          </tr>
+        `);
+      }
+
+      if (!prop.isKind(SyntaxKind.PropertyAssignment)) return result;
+      const assignment = prop.asKindOrThrow(SyntaxKind.PropertyAssignment);
+      const value = assignment.getInitializerOrThrow();
+
+      if (!value.isKind(SyntaxKind.ObjectLiteralExpression)) return result;
+      const inner = value.asKindOrThrow(SyntaxKind.ObjectLiteralExpression);
+
+      const effectProp = inner.getProperty("effect");
+
+      if (!effectProp || !effectProp.isKind(SyntaxKind.PropertyAssignment))
+        return result;
+
+      const effectExpr = effectProp
+        .asKindOrThrow(SyntaxKind.PropertyAssignment)
+        .getInitializerOrThrow();
+
+      const propName = assignment.getName();
+      const effectDisplay = effectSrcToDisplay(effectExpr.getText());
+      const pgCol =
+        ALL_PG_FIELDS_EFFECT[propName as keyof typeof ALL_PG_FIELDS_EFFECT];
+      const pgDisplay = pgColumnToSqlDisplay(pgCol);
+      const duckCol =
+        ALL_DUCKDB_FIELDS_EFFECT[
+          propName as keyof typeof ALL_DUCKDB_FIELDS_EFFECT
+        ];
+      const duckDisplay = duckdbColumnToSqlDisplay(duckCol);
+      const sqliteCol =
+        ALL_SQLITE_FIELDS_EFFECT[
+          propName as keyof typeof ALL_SQLITE_FIELDS_EFFECT
+        ];
+      const sqliteDisplay = sqliteColumnToSqlDisplay(sqliteCol);
+      result.push(md`
+        <tr>
+          <td>${effectDisplay}</td>
+          <td>${pgDisplay}</td>
+          <td>${duckDisplay}</td>
+          <td>${sqliteDisplay}</td>
+        </tr>
+      `);
+      return result;
+    })
+    .join("\n");
+
+  return md`
+      <table>
+        <thead>
+          <tr>
+            <th>Effect Schema</th>
+            <th>Postgres</th>
+            <th>DuckDB</th>
+            <th>SQLite</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    `;
 }
 
 function makeZodTestCaseTableHtml() {
@@ -408,7 +513,7 @@ function generateReadmeMd() {
 
     This is Work In Progress!
 
-    Made of three packages \`packages/ormer\`, \`packages/ormer-zod\` and \`packages/ormer-valibot\`. There is also old \`packages/ormer-experiments\` which is not used for other than ideas.
+    Made of these packages: \`packages/ormer\`, \`packages/ormer-zod\`, \`packages/ormer-valibot\`, \`packages/ormer-arktype\` and \`packages/ormer-effect\`. There is also old \`packages/ormer-experiments\` which is not used for other than ideas.
 
     ## Ormer package
 
@@ -473,6 +578,20 @@ function generateReadmeMd() {
 <summary>Field type mapping table</summary>
   `);
   readme.push(makeArktypeTestCaseTableHtml());
+  readme.push(md`
+</details>
+  `);
+  readme.push("");
+
+  readme.push(md`
+## Ormer-Effect package
+  `);
+
+  readme.push(md`
+<details>
+<summary>Field type mapping table</summary>
+  `);
+  readme.push(makeEffectTestCaseTableHtml());
   readme.push(md`
 </details>
   `);

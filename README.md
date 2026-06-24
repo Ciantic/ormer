@@ -4,7 +4,7 @@
 
 This is Work In Progress!
 
-Made of three packages `packages/ormer`, `packages/ormer-zod` and `packages/ormer-valibot`. There is also old `packages/ormer-experiments` which is not used for other than ideas.
+Made of these packages: `packages/ormer`, `packages/ormer-zod`, `packages/ormer-valibot`, `packages/ormer-arktype` and `packages/ormer-effect`. There is also old `packages/ormer-experiments` which is not used for other than ideas.
 
 ## Ormer package
 
@@ -1108,6 +1108,377 @@ Notes:
 <td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
 <td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
 <td><em>Not Available</em></td>
+</tr>
+  </tbody>
+</table>
+</details>
+
+## Ormer-Effect package
+<details>
+<summary>Field type mapping table</summary>
+<table>
+  <thead>
+    <tr>
+      <th>Effect Schema</th>
+      <th>Postgres</th>
+      <th>DuckDB</th>
+      <th>SQLite</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+<td colspan="4"><strong>String values</strong></td>
+</tr>
+<tr>
+<td><code>Schema.String</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>VarChar(255)</code></td>
+<td><code>VARCHAR(255)</code></td>
+<td><code>VARCHAR(255)</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Number types</strong></td>
+</tr>
+<tr>
+<td><code>Schema.Number</code></td>
+<td><code>FLOAT8</code></td>
+<td><code>FLOAT8</code></td>
+<td><code>REAL</code></td>
+</tr>
+<tr>
+<td><code>Schema.Number.check(Schema.isInt())</code></td>
+<td><code>INT4</code></td>
+<td><code>INT4</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>Float32</code></td>
+<td><code>FLOAT4</code></td>
+<td><code>FLOAT4</code></td>
+<td><code>REAL</code></td>
+</tr>
+<tr>
+<td><code>Float64</code></td>
+<td><code>FLOAT8</code></td>
+<td><code>FLOAT8</code></td>
+<td><code>REAL</code></td>
+</tr>
+<tr>
+<td><code>Int32</code></td>
+<td><code>INT4</code></td>
+<td><code>INT4</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>Int32.pipe(PrimaryKey(), AutoIncrement())</code></td>
+<td><code>SERIAL4 PRIMARY KEY</code></td>
+<td><code>INT4 PRIMARY KEY</code></td>
+<td><code>INTEGER PRIMARY KEY AUTOINCREMENT</code></td>
+</tr>
+<tr>
+<td><code>Int32</code></td>
+<td><code>INT4</code></td>
+<td><code>INT4</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>Int8</code></td>
+<td><em>Not Available</em></td>
+<td><code>INT1</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>Uint8</code></td>
+<td><em>Not Available</em></td>
+<td><code>UTINYINT</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>Int16</code></td>
+<td><code>INT2</code></td>
+<td><code>INT2</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>Uint16</code></td>
+<td><em>Not Available</em></td>
+<td><code>USMALLINT</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td><code>Uint32</code></td>
+<td><em>Not Available</em></td>
+<td><code>UINTEGER</code></td>
+<td><code>INTEGER</code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Bigint</strong></td>
+</tr>
+<tr>
+<td><code>Schema.BigInt</code></td>
+<td><code>INT8</code></td>
+<td><code>INT8</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>Int64</code></td>
+<td><code>INT8</code></td>
+<td><code>INT8</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>Int64.pipe(PrimaryKey(), AutoIncrement())</code></td>
+<td><code>SERIAL8 PRIMARY KEY</code></td>
+<td><code>INT8 PRIMARY KEY</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>Uint64</code></td>
+<td><em>Not Available</em></td>
+<td><code>UBIGINT</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>Int128</code></td>
+<td><em>Not Available</em></td>
+<td><code>HUGEINT</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>Uint128</code></td>
+<td><em>Not Available</em></td>
+<td><code>UHUGEINT</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Boolean</strong></td>
+</tr>
+<tr>
+<td><code>Schema.Boolean</code></td>
+<td><code>BOOLEAN</code></td>
+<td><code>BOOLEAN</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td colspan="4"><strong>JSON</strong></td>
+</tr>
+<tr>
+<td><code>Schema.Struct({ v: Schema.String })</code></td>
+<td><code>JSONB</code></td>
+<td><code>JSON</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Date/time types</strong></td>
+</tr>
+<tr>
+<td><code>Schema.Date</code></td>
+<td><code>TIMESTAMPTZ</code></td>
+<td><code>TIMESTAMPTZ</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>IsoTime</code></td>
+<td><em>Not Available</em></td>
+<td><em>Not Available</em></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>IsoTimeSecond</code></td>
+<td><code>TIME</code></td>
+<td><code>TIME</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>IsoDate</code></td>
+<td><code>DATE</code></td>
+<td><code>DATE</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>IsoDateTime</code></td>
+<td><em>Not Available</em></td>
+<td><em>Not Available</em></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>NaiveDatetime</code></td>
+<td><code>TIMESTAMP</code></td>
+<td><code>TIMESTAMP</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>UUID</strong></td>
+</tr>
+<tr>
+<td><code>UuidString</code></td>
+<td><code>UUID</code></td>
+<td><code>UUID</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Various string formats</strong></td>
+</tr>
+<tr>
+<td><code>UrlString</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>EmailString</code></td>
+<td><code>VARCHAR(320)</code></td>
+<td><code>VARCHAR(320)</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>Schema.String</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>VarChar(21)</code></td>
+<td><code>VARCHAR(21)</code></td>
+<td><code>VARCHAR(21)</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>Schema.String</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>VarChar(26)</code></td>
+<td><code>VARCHAR(26)</code></td>
+<td><code>VARCHAR(26)</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>Schema.String</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>Schema.String</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Network types</strong></td>
+</tr>
+<tr>
+<td><code>Ipv4String</code></td>
+<td><code>INET</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>Ipv6String</code></td>
+<td><code>INET</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>MacString</code></td>
+<td><code>MACADDR</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Array types</strong></td>
+</tr>
+<tr>
+<td><code>Schema.Array(Int32)</code></td>
+<td><code>INT4[]</code></td>
+<td><code>INT4[]</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>Schema.Array(Schema.String)</code></td>
+<td><code>TEXT[]</code></td>
+<td><code>TEXT[]</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>Schema.Array(Schema.Array(Int32))</code></td>
+<td><code>INT4[][]</code></td>
+<td><code>INT4[][]</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>Schema.NullOr(Schema.Array(Schema.String))</code></td>
+<td><code>TEXT[] NULL</code></td>
+<td><code>TEXT[] NULL</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Other</strong></td>
+</tr>
+<tr>
+<td><code>Schema.String</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+<td><code>TEXT</code></td>
+</tr>
+<tr>
+<td><code>Schema.NullOr(Schema.String)</code></td>
+<td><code>TEXT NULL</code></td>
+<td><code>TEXT NULL</code></td>
+<td><code>TEXT NULL</code></td>
+</tr>
+<tr>
+<td colspan="4"><strong>Container types</strong></td>
+</tr>
+<tr>
+<td><code>Schema.NullOr(Schema.String)</code></td>
+<td><code>TEXT NULL</code></td>
+<td><code>TEXT NULL</code></td>
+<td><code>TEXT NULL</code></td>
+</tr>
+<tr>
+<td><code>Schema.NullOr(Schema.String)</code></td>
+<td><code>TEXT NULL</code></td>
+<td><code>TEXT NULL</code></td>
+<td><code>TEXT NULL</code></td>
+</tr>
+<tr>
+<td><code>Schema.String.pipe(WithDefault("hello"))</code></td>
+<td><code>TEXT DEFAULT hello</code></td>
+<td><code>TEXT DEFAULT hello</code></td>
+<td><code>TEXT DEFAULT hello</code></td>
+</tr>
+<tr>
+<td><code>Schema.String.pipe(WithDefault("hello"))</code></td>
+<td><code>TEXT DEFAULT hello</code></td>
+<td><code>TEXT DEFAULT hello</code></td>
+<td><code>TEXT DEFAULT hello</code></td>
+</tr>
+<tr>
+<td><code>Schema.String.pipe(PrimaryKey())</code></td>
+<td><code>TEXT PRIMARY KEY</code></td>
+<td><code>TEXT PRIMARY KEY</code></td>
+<td><code>TEXT PRIMARY KEY</code></td>
+</tr>
+<tr>
+<td><code>Int64.pipe(ForeignKey({ table: "users", column: "id" }))</code></td>
+<td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
+<td><code>INT8 FOREIGN KEY REFERENCES users(id)</code></td>
+<td><em>Not Available</em></td>
+</tr>
+<tr>
+<td><code>Schema.NullOr(UrlString)</code></td>
+<td><code>TEXT NULL</code></td>
+<td><code>TEXT NULL</code></td>
+<td><code>TEXT NULL</code></td>
 </tr>
   </tbody>
 </table>
