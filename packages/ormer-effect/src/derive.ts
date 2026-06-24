@@ -86,7 +86,6 @@ export function deriveColumn<T extends Schema.Top>(
   const foreignKeyTable = annotations?.foreignKeyTable as string | undefined;
   const foreignKeyColumn = annotations?.foreignKeyColumn as string | undefined;
   const dbformat = annotations?.dbformat as string | undefined;
-  const checks = schema.ast.checks ?? [];
   const tag = schema.ast._tag;
   const defaultValue = annotations?.defaultValue as unknown | undefined;
   const hasDefault = defaultValue !== undefined;
