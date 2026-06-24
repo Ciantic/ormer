@@ -130,14 +130,6 @@ export function deriveColumn<T extends Schema.Top>(
   let defaultValue: unknown = undefined;
   let hasDefault = false;
 
-  if ("schema" in schema && !dbformat) {
-    // This is super sketchy! I noticed that Schema.refine() wraps a type to a
-    // schema, so that it doesn't preserve the annotations, this is a workaround
-    // to get Schema.refine()'d types to work.
-
-    return deriveColumn({ ast: (schema.schema as T).ast }, acc);
-  }
-
   if (SchemaAST.isUnion(schema.ast)) {
     let nullable = false;
     let optional = false;
