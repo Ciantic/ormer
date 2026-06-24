@@ -1,7 +1,7 @@
 // Align all example values:
-// gawk -i inplace '/effect: .*example:/ { line=$0; sub(/,[[:space:]]*example:[[:space:]]*/, ",\t", line); n=split(line, a, "\t"); if (n==2) { printf "%-64sexample: %s\n", a[1], a[2]; next } } { print }' packages/ormer-effect/tests/fields.ts
+// gawk -i inplace '/effect: .*example:/ { line=$0; sub(/,[[:space:]]*example:[[:space:]]*/, ",\t", line); n=split(line, a, "\t"); if (n==2) { printf "%-84sexample: %s\n", a[1], a[2]; next } } { print }' packages/ormer-effect/tests/fields.ts
 
-import { Schema } from "effect";
+import { Schema, Effect } from "effect";
 import { pg, duckdb, sqlite, type ColumnType } from "ormer";
 import {
   Int8,
@@ -24,6 +24,14 @@ import {
   UuidString,
   UrlString,
   EmailString,
+  Ipv4String,
+  Ipv6String,
+  MacString,
+  PrimaryKey,
+  AutoIncrement,
+  ForeignKey,
+  VarChar,
+  WithDefault,
 } from "../src/effect-ext.ts";
 
 // ---------------------------------------------------------------------------
@@ -39,81 +47,81 @@ const pkAutoInc = { primaryKey: true as true, autoIncrement: true as true };
 // prettier-ignore
 export const ALL_EFFECT_FIELDS = {
   // String values
-  c_str:              { effect: Schema.String,                               example: "hello world" },
-  c_str_max255:       { effect: Schema.String.check(Schema.isMaxLength(255)), example: "hello again!" },
+  c_str:              { effect: Schema.String,                                      example: "hello world" },
+  c_str_max255:       { effect: VarChar(255),                                       example: "hello again!" },
 
   // Number types
-  c_num:              { effect: Schema.Number,                               example: 3.14 },
-  c_num_int:          { effect: Schema.Number.check(Schema.isInt()),        example: 42 },
-  c_f32:              { effect: Float32,                                     example: 1.5 },
-  c_f64:              { effect: Float64,                                     example: 2.718281828 },
-  c_int:              { effect: Int32,                                       example: 100 },
-  c_int_pk:           { effect: Int32,                                       example: 1 },
-  c_int32:            { effect: Int32,                                       example: 200 },
-  c_int8:             { effect: Int8,                                        example: 50 },
-  c_uint8:            { effect: Uint8,                                       example: 200 },
-  c_int16:            { effect: Int16,                                       example: 15000 },
-  c_uint16:           { effect: Uint16,                                      example: 50000 },
-  c_uint32:           { effect: Uint32,                                      example: 300 },
+  c_num:              { effect: Schema.Number,                                      example: 3.14 },
+  c_num_int:          { effect: Schema.Number.check(Schema.isInt()),                example: 42 },
+  c_f32:              { effect: Float32,                                            example: 1.5 },
+  c_f64:              { effect: Float64,                                            example: 2.718281828 },
+  c_int:              { effect: Int32,                                              example: 100 },
+  c_int_pk:           { effect: Int32.pipe(PrimaryKey(), AutoIncrement()),          example: 1 },
+  c_int32:            { effect: Int32,                                              example: 200 },
+  c_int8:             { effect: Int8,                                               example: 50 },
+  c_uint8:            { effect: Uint8,                                              example: 200 },
+  c_int16:            { effect: Int16,                                              example: 15000 },
+  c_uint16:           { effect: Uint16,                                             example: 50000 },
+  c_uint32:           { effect: Uint32,                                             example: 300 },
 
   // Bigint
-  c_bigint:           { effect: Schema.BigInt,                               example: 9007199254740991n },
-  c_int64:            { effect: Int64,                                       example: 123456789n },
-  c_int64_pk:         { effect: Int64,                                       example: 1n },
-  c_uint64:           { effect: Uint64,                                      example: 18446744073709551615n },
-  c_int128:           { effect: Int128,                                      example: 170141183460469231731687303715884105727n },
-  c_uint128:          { effect: Uint128,                                     example: 340282366920938463463374607431768211455n },
+  c_bigint:           { effect: Schema.BigInt,                                      example: 9007199254740991n },
+  c_int64:            { effect: Int64,                                              example: 123456789n },
+  c_int64_pk:         { effect: Int64.pipe(PrimaryKey(), AutoIncrement()),          example: 1n },
+  c_uint64:           { effect: Uint64,                                             example: 18446744073709551615n },
+  c_int128:           { effect: Int128,                                             example: 170141183460469231731687303715884105727n },
+  c_uint128:          { effect: Uint128,                                            example: 340282366920938463463374607431768211455n },
 
   // Boolean
-  c_bool:             { effect: Schema.Boolean,                              example: true },
+  c_bool:             { effect: Schema.Boolean,                                     example: true },
 
   // JSON
-  c_json:             { effect: Schema.Struct({ v: Schema.String }),         example: { v: "value" } },
+  c_json:             { effect: Schema.Struct({ v: Schema.String }),                example: { v: "value" } },
 
   // Date/time types
-  c_date:             { effect: Schema.Date,                                 example: new Date("2024-01-15T10:30:00Z") },
-  c_time:             { effect: IsoTime,                                     example: "14:30:00" },
-  c_timeseconds:      { effect: IsoTimeSecond,                               example: "14:30:00" },
-  c_date_only:        { effect: IsoDate,                                     example: "2024-01-15" },
-  c_datetime:         { effect: IsoDateTime,                                 example: "2024-01-15T10:00Z" },
-  c_timestamp:        { effect: NaiveDatetime,                               example: "2024-01-15 10:30:00" },
+  c_date:             { effect: Schema.Date,                                        example: new Date("2024-01-15T10:30:00Z") },
+  c_time:             { effect: IsoTime,                                            example: "14:30:00" },
+  c_timeseconds:      { effect: IsoTimeSecond,                                      example: "14:30:00" },
+  c_date_only:        { effect: IsoDate,                                            example: "2024-01-15" },
+  c_datetime:         { effect: IsoDateTime,                                        example: "2024-01-15T10:00Z" },
+  c_timestamp:        { effect: NaiveDatetime,                                      example: "2024-01-15 10:30:00" },
 
   // UUID
-  c_uuid:             { effect: UuidString,                                      example: "550e8400-e29b-41d4-a716-446655440000" },
+  c_uuid:             { effect: UuidString,                                         example: "550e8400-e29b-41d4-a716-446655440000" },
 
   // Various string formats
-  c_url:              { effect: UrlString,                                   example: "https://example.com" },
-  c_email:            { effect: EmailString,                                 example: "user@example.com" },
-  c_emoji:            { effect: Schema.String,                               example: "😊" },
-  c_nanoid:           { effect: Schema.String,                               example: "V1StGXR8_Z5jdHi6B-myT" },
-  c_cuid2:            { effect: Schema.String,                               example: "tz4a98xxat96iws9zmbrgj3a" },
-  c_ulid:             { effect: Schema.String,                               example: "01ARZ3NDEKTSV4RRFFQ69G5FAV" },
-  c_base64:           { effect: Schema.String,                               example: "SGVsbG8gV29ybGQ=" },
-  c_isbn:             { effect: Schema.String,                               example: "978-3-16-148410-0" },
+  c_url:              { effect: UrlString,                                          example: "https://example.com" },
+  c_email:            { effect: EmailString,                                        example: "user@example.com" },
+  c_emoji:            { effect: Schema.String,                                      example: "😊" },
+  c_nanoid:           { effect: VarChar(21),                                        example: "V1StGXR8_Z5jdHi6B-myT" },
+  c_cuid2:            { effect: Schema.String,                                      example: "tz4a98xxat96iws9zmbrgj3a" },
+  c_ulid:             { effect: VarChar(26),                                        example: "01ARZ3NDEKTSV4RRFFQ69G5FAV" },
+  c_base64:           { effect: Schema.String,                                      example: "SGVsbG8gV29ybGQ=" },
+  c_isbn:             { effect: Schema.String,                                      example: "978-3-16-148410-0" },
 
   // Network types
-  c_ipv4:             { effect: Schema.String,                               example: "192.168.1.1" },
-  c_ipv6:             { effect: Schema.String,                               example: "::1" },
-  c_mac:              { effect: Schema.String,                               example: "00:1a:2b:3c:4d:5e" },
+  c_ipv4:             { effect: Ipv4String,                                         example: "192.168.1.1" },
+  c_ipv6:             { effect: Ipv6String,                                         example: "::1" },
+  c_mac:              { effect: MacString,                                          example: "00:1a:2b:3c:4d:5e" },
 
   // Array types
-  c_int_arr:          { effect: Schema.Array(Int32),                         example: [1, 2, 3] },
-  c_str_arr:          { effect: Schema.Array(Schema.String),                 example: ["a", "b", "c"] },
-  c_int_arr2:         { effect: Schema.Array(Schema.Array(Int32)),           example: [[1, 2], [3, 4]] },
-  c_str_arr_nullable: { effect: Schema.NullOr(Schema.Array(Schema.String)),  example: ["a", "b"] },
+  c_int_arr:          { effect: Schema.Array(Int32),                                example: [1, 2, 3] },
+  c_str_arr:          { effect: Schema.Array(Schema.String),                        example: ["a", "b", "c"] },
+  c_int_arr2:         { effect: Schema.Array(Schema.Array(Int32)),                  example: [[1, 2], [3, 4]] },
+  c_str_arr_nullable: { effect: Schema.NullOr(Schema.Array(Schema.String)),         example: ["a", "b"] },
 
   // Other
-  c_str_trimmed:      { effect: Schema.String,                               example: "hello" },
-  c_str_trim_nullish: { effect: Schema.NullOr(Schema.String),                example: "hello" },
+  c_str_trimmed:      { effect: Schema.String,                                      example: "hello" },
+  c_str_trim_nullish: { effect: Schema.NullOr(Schema.String),                       example: "hello" },
 
   // Container types
-  c_str_nullable:     { effect: Schema.NullOr(Schema.String),                example: null },
-  c_str_nullish:      { effect: Schema.NullOr(Schema.String),                example: null },
-  c_str_default:      { effect: Schema.optional(Schema.String),              example: "hello" },
-  c_str_prefault:     { effect: Schema.optional(Schema.String),              example: "hello" },
-  c_str_pk:           { effect: Schema.String,                               example: "pk_abc123" },
-  c_int64_fk:         { effect: Int64,                                       example: 1n },
-  c_pipe_with_nullish:{ effect: Schema.NullOr(UrlString),                    example: null },
+  c_str_nullable:     { effect: Schema.NullOr(Schema.String),                       example: null },
+  c_str_nullish:      { effect: Schema.NullOr(Schema.String),                       example: null },
+  c_str_default:      { effect: Schema.String.pipe(WithDefault("hello")),           example: "hello" },
+  c_str_prefault:     { effect: Schema.String.pipe(WithDefault("hello")),           example: "hello" },
+  c_str_pk:           { effect: Schema.String.pipe(PrimaryKey()),                   example: "pk_abc123" },
+  c_int64_fk:         { effect: Int64.pipe(ForeignKey({ table: "users", column: "id" })),  example: 1n },
+  c_pipe_with_nullish:{ effect: Schema.NullOr(UrlString),                           example: null },
 } as const;
 
 export const ALL_PG_FIELDS = {

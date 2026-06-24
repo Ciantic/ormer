@@ -202,6 +202,9 @@ export function deriveColumn<T extends Schema.Top>(
     if (dbformat === "isoTimeSecond") return ["isoTimeSecond", params];
     if (dbformat === "isoDate") return ["isoDate", params];
     if (dbformat === "isoDateTime") return ["isoDateTime", params];
+    if (dbformat === "ipv4") return ["ipv4", params];
+    if (dbformat === "ipv6") return ["ipv6", params];
+    if (dbformat === "mac") return ["mac", params];
 
     const maxLenCheck = checks.find(
       (c) => (c.annotations?.meta as any)?._tag === "isMaxLength",

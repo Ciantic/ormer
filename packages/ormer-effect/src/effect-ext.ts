@@ -1,5 +1,11 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { type Bottom, type Top } from "effect/Schema";
+
+export const VarChar = (maxLength: number) =>
+  Schema.String.pipe(Schema.check(Schema.isMaxLength(maxLength)));
+
+export const WithDefault = <T>(t: T) =>
+  Schema.withDecodingDefault(Effect.succeed(t));
 
 export const Int8 = Schema.Number.check(
   Schema.makeFilter(
@@ -160,6 +166,30 @@ export const EmailString = Schema.String.check(
     message: "Invalid email format",
   }),
 ).pipe(withDbformat("email"));
+
+const IPV4_REGEX = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+
+export const Ipv4String = Schema.String.check(
+  Schema.makeFilter((s): s is typeof s => IPV4_REGEX.test(s), {
+    message: "Invalid IPv4 address",
+  }),
+).pipe(withDbformat("ipv4"));
+
+const IPV6_REGEX = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
+
+export const Ipv6String = Schema.String.check(
+  Schema.makeFilter((s): s is typeof s => IPV6_REGEX.test(s), {
+    message: "Invalid IPv6 address",
+  }),
+).pipe(withDbformat("ipv6"));
+
+const MAC_REGEX = /^([0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}$/;
+
+export const MacString = Schema.String.check(
+  Schema.makeFilter((s): s is typeof s => MAC_REGEX.test(s), {
+    message: "Invalid MAC address",
+  }),
+).pipe(withDbformat("mac"));
 
 export const Table = <T extends string, S extends Schema.Struct<any>>(
   name: T,
