@@ -18,19 +18,19 @@ import type {
 // prettier-ignore
 export type DeriveBasePgColumn<T> =
   "string" extends DomainOfType<T> ? (
-        "uuid"          extends GetDbFormat<T> ? { type: "uuid" }
-      : "url"           extends GetDbFormat<T> ? { type: "text" }
-      : "email"         extends GetDbFormat<T> ? { type: "varchar"; maxLength: 320 }
-      : "isoTime"       extends GetDbFormat<T> ? { type: "ERROR" }
-      : "isoDateTime"   extends GetDbFormat<T> ? { type: "ERROR" }
-      : "isoTimeSecond" extends GetDbFormat<T> ? { type: "time" }
-      : "isoDate"       extends GetDbFormat<T> ? { type: "date" }
-      : "naiveDatetime" extends GetDbFormat<T> ? { type: "timestamp" }
-      : "ipv4"          extends GetDbFormat<T> ? { type: "inet" }
-      : "ipv6"          extends GetDbFormat<T> ? { type: "inet" }
-      : "mac"           extends GetDbFormat<T> ? { type: "macaddr" }
-      : GetMaxLength<T> extends number         ? { type: "varchar"; maxLength: GetMaxLength<T> }
-      : { type: "text" }
+      "uuid"          extends GetDbFormat<T> ? { type: "uuid" }
+    : "url"           extends GetDbFormat<T> ? { type: "text" }
+    : "email"         extends GetDbFormat<T> ? { type: "varchar"; maxLength: 320 }
+    : "isoTime"       extends GetDbFormat<T> ? { type: "ERROR" }
+    : "isoDateTime"   extends GetDbFormat<T> ? { type: "ERROR" }
+    : "isoTimeSecond" extends GetDbFormat<T> ? { type: "time" }
+    : "isoDate"       extends GetDbFormat<T> ? { type: "date" }
+    : "naiveDatetime" extends GetDbFormat<T> ? { type: "timestamp" }
+    : "ipv4"          extends GetDbFormat<T> ? { type: "inet" }
+    : "ipv6"          extends GetDbFormat<T> ? { type: "inet" }
+    : "mac"           extends GetDbFormat<T> ? { type: "macaddr" }
+    : GetMaxLength<T> extends number         ? { type: "varchar"; maxLength: GetMaxLength<T> }
+    : { type: "text" }
   )
   : "number" extends DomainOfType<T> ? (
       "int8"       extends GetDbFormat<T> ? { type: "ERROR" }
