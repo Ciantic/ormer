@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { Schema } from "effect";
 import { derivePgColumn } from "../src/derive-pg.ts";
 import { ALL_EFFECT_FIELDS, ALL_PG_FIELDS } from "./fields.ts";
 import {
@@ -81,8 +82,19 @@ describe("ALL_EFFECT_FIELDS pglite round-trip", () => {
     roundTripEntries.map(([key, { example }]) => [key, example]),
   );
 
-  it("validates example inputs, inserts into pglite, selects back, and compares", async () => {
-    // 1. Create PGlite instance and execute schema
+  // Build an Effect Schema.Struct from the round-trip entries
+  const roundTripSchema = Schema.Struct(
+    Object.fromEntries(
+      roundTripEntries.map(([key, { effect }]) => [key, effect]),
+    ),
+  );
+
+  it("validates example inputs via effect, inserts into pglite, selects back, and compares", async () => {
+    // 1. Validate the example row via Effect Schema
+    const decodedRow = Schema.decodeSync(roundTripSchema)(exampleRow);
+    expect(decodedRow).toEqual(exampleRow);
+
+    // 2. Create PGlite instance and execute schema
     const pglite = new PGlite({
       parsers: createPgliteParsers(),
     });
@@ -90,7 +102,7 @@ describe("ALL_EFFECT_FIELDS pglite round-trip", () => {
     const sql = createTableSql(PGCOLUMN_TO_SQLTYPE, roundTripDb, POSTGRES_OPTS);
     await pglite.exec(sql);
 
-    // 2. Create typed Kysely instance
+    // 3. Create typed Kysely instance
     type KyselyTypes = InferKyselyTypes<
       typeof roundTripDb,
       PgUnifiedTypeMapping
@@ -102,13 +114,10 @@ describe("ALL_EFFECT_FIELDS pglite round-trip", () => {
       }),
     });
 
-    // 3. Insert the example row
-    await kyselyDb
-      .insertInto("round_trip_test")
-      .values(exampleRow as any)
-      .execute();
+    // 4. Insert the example row
+    await kyselyDb.insertInto("round_trip_test").values(decodedRow).execute();
 
-    // 4. Select back and compare
+    // 5. Select back and compare
     const results = await kyselyDb
       .selectFrom("round_trip_test")
       .selectAll()
