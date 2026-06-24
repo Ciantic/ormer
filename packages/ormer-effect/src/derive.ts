@@ -1,7 +1,4 @@
-import type { ColumnType } from "ormer";
 import { Schema, SchemaAST, Effect, Option } from "effect";
-import type { Param } from "effect/unstable/ai/McpSchema";
-import type { Union } from "effect/Schema";
 
 // ---------------------------------------------------------------------------
 // Runtime helper types
@@ -95,12 +92,33 @@ export function extractDecodingDefaultValue<T extends Schema.Top>(schema: {
 }
 
 /**
+ * Recursively resolve annotations from the schema AST and its checks.
+ *
+ * Default implementation uses only last check:
+ * https://github.com/Effect-TS/effect-smol/blob/46b3836f2505c9de34c342994b9197204eefe082/packages/effect/src/internal/schema/annotations.ts#L6
+ */
+function resolveAnnotationsRecursively(
+  ast: SchemaAST.AST,
+): Record<string, unknown> {
+  let annotations = ast.annotations ?? {};
+  // Check annotations
+  for (const check of ast.checks ?? []) {
+    annotations = { ...annotations, ...(check.annotations ?? {}) };
+  }
+
+  return annotations;
+}
+
+/**
  * Derive column from Effect schema AST.
  */
-export function deriveColumn<T extends Schema.Top>(schema: {
-  ast: T["ast"];
-}): EffectSchemas {
-  const annotations = Schema.resolveAnnotations(schema as T);
+export function deriveColumn<T extends Schema.Top>(
+  schema: {
+    ast: T["ast"];
+  },
+  acc: ParamsDerived = {},
+): EffectSchemas {
+  const annotations = resolveAnnotationsRecursively(schema.ast);
   const primaryKey = annotations?.primaryKey as boolean | undefined;
   const autoIncrement = annotations?.autoIncrement as boolean | undefined;
   const foreignKeyTable = annotations?.foreignKeyTable as string | undefined;
@@ -108,8 +126,6 @@ export function deriveColumn<T extends Schema.Top>(schema: {
   const dbformat = annotations?.dbformat as string | undefined;
   const checks = schema.ast.checks ?? [];
   const tag = schema.ast._tag;
-  let nullable = false;
-  let optional = false;
   let arrayDimensions = "";
   let defaultValue: unknown = undefined;
   let hasDefault = false;
@@ -118,28 +134,32 @@ export function deriveColumn<T extends Schema.Top>(schema: {
     // This is super sketchy! I noticed that Schema.refine() wraps a type to a
     // schema, so that it doesn't preserve the annotations, this is a workaround
     // to get Schema.refine()'d types to work.
-    return deriveColumn({ ast: (schema.schema as T).ast });
+
+    return deriveColumn({ ast: (schema.schema as T).ast }, acc);
   }
 
   if (SchemaAST.isUnion(schema.ast)) {
-    let choice: EffectSchemas | undefined = undefined;
+    let nullable = false;
+    let optional = false;
+    let member: SchemaAST.AST | undefined = undefined;
     for (const t of schema.ast.types) {
       if (SchemaAST.isNull(t)) {
         nullable = true;
       } else if (SchemaAST.isUndefined(t)) {
         optional = true;
       } else {
-        choice = deriveColumn({ ast: t });
+        // choice = deriveColumn({ ast: t });
+        member = t;
       }
     }
-    if (choice) {
-      return [
-        choice[0],
+    if (member) {
+      return deriveColumn(
+        { ast: member },
         {
-          ...choice[1],
+          ...acc,
           ...(nullable || optional ? { nullable: true } : {}),
         },
-      ] as EffectSchemas;
+      );
     }
 
     throw new Error(
@@ -150,7 +170,7 @@ export function deriveColumn<T extends Schema.Top>(schema: {
   }
 
   if (schema.ast.context?.isOptional) {
-    optional = true;
+    throw new Error("What is this?");
   }
 
   // Try to extract decoding default from the encoding chain
@@ -159,19 +179,32 @@ export function deriveColumn<T extends Schema.Top>(schema: {
     hasDefault = true;
   }
 
-  if (SchemaAST.isArrays(schema.ast) && schema.ast.rest.length > 0) {
-    // TODO: Handle multi-dimensional arrays
-    arrayDimensions = "[]";
-  }
-
-  const params: ParamsDerived = {};
-  if (nullable || optional) params.nullable = true;
+  const params: ParamsDerived = { ...acc };
   if (hasDefault) params.default = defaultValue;
   if (primaryKey) params.primaryKey = true;
   if (autoIncrement) params.autoIncrement = true;
   if (foreignKeyTable) params.foreignKeyTable = foreignKeyTable;
   if (foreignKeyColumn) params.foreignKeyColumn = foreignKeyColumn;
   if (arrayDimensions) params.array = arrayDimensions;
+
+  if (SchemaAST.isArrays(schema.ast) && schema.ast.rest.length > 0) {
+    const inner = schema.ast.rest[0];
+    if (
+      typeof inner === "undefined" ||
+      schema.ast.rest.length > 1 ||
+      schema.ast.elements.length > 0
+    ) {
+      throw new Error(`Databases support only flat arrays, not tuples`);
+    }
+
+    return deriveColumn(
+      { ast: inner },
+      {
+        ...params,
+        array: acc.array ? `${acc.array}[]` : "[]",
+      },
+    );
+  }
 
   // --- String fields with dbformat/check refinements ---
   if (tag === "String") {

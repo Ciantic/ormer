@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { Schema, Effect } from "effect";
+import { Schema, Effect, Brand } from "effect";
 import {
   deriveColumn,
   type ParamsDerived,
@@ -28,6 +28,7 @@ import {
   EmailString,
   PrimaryKey,
   AutoIncrement,
+  ForeignKey,
 } from "./effect-ext.ts";
 import { pg } from "ormer";
 
@@ -296,6 +297,22 @@ describe("deriveColumn — array", () => {
       { nullable: true, array: "[]" },
     ]);
   });
+
+  it("derives refined array", () => {
+    const schema = Schema.Array(
+      Int32.pipe(
+        Schema.refine((n): n is number => n > 0, {
+          message: "positive",
+        }),
+      ),
+    );
+    expect(deriveColumn(schema)).toEqual([
+      "int32",
+      {
+        array: "[]",
+      },
+    ]);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -318,11 +335,16 @@ describe("deriveColumn — refines and constrained schemas", () => {
     expect(deriveColumn(Schema.NonEmptyString)).toEqual(["string", {}]);
   });
 
-  it("derives custom refine on string as plain string", () => {
-    const schema = Schema.String.pipe(
-      Schema.refine((s): s is string => s.length > 0, { message: "non-empty" }),
-    );
-    expect(deriveColumn(schema)).toEqual(["string", {}]);
+  it("derives checked and refined", () => {
+    const schema = UuidString.pipe(
+      Schema.brand("Horse"),
+      Schema.annotate({ foo: 1 }),
+      Schema.refine((s): s is string & Brand.Brand<"Horse"> => s.length > 0, {
+        message: "non-empty",
+      }),
+    ).check(Schema.isNonEmpty());
+
+    expect(deriveColumn(schema)).toEqual(["uuid", {}]);
   });
 
   it("derives custom refine on number as plain number", () => {
@@ -363,11 +385,6 @@ describe("deriveColumn — refines and constrained schemas", () => {
 // ---------------------------------------------------------------------------
 
 describe("deriveColumn — annotations", () => {
-  it("derives primaryKey", () => {
-    const schema = Int64.pipe(Schema.annotate({ primaryKey: true }));
-    expect(deriveColumn(schema)).toEqual(["int64", { primaryKey: true }]);
-  });
-
   it("derives primaryKey via PrimaryKey helper", () => {
     const schema = Int64.pipe(PrimaryKey());
     expect(deriveColumn(schema)).toEqual(["int64", { primaryKey: true }]);
@@ -379,9 +396,7 @@ describe("deriveColumn — annotations", () => {
   });
 
   it("derives primaryKey + autoIncrement", () => {
-    const schema = Int32.pipe(
-      Schema.annotate({ primaryKey: true, autoIncrement: true }),
-    );
+    const schema = Int32.pipe(PrimaryKey(), AutoIncrement());
     expect(deriveColumn(schema)).toEqual([
       "int32",
       { primaryKey: true, autoIncrement: true },
@@ -389,12 +404,7 @@ describe("deriveColumn — annotations", () => {
   });
 
   it("derives foreignKey", () => {
-    const schema = Int64.pipe(
-      Schema.annotate({
-        foreignKeyTable: "users",
-        foreignKeyColumn: "id",
-      }),
-    );
+    const schema = Int64.pipe(ForeignKey({ table: "users", column: "id" }));
     expect(deriveColumn(schema)).toEqual([
       "int64",
       {

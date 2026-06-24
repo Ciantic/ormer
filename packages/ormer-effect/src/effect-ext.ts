@@ -259,6 +259,51 @@ export function PrimaryKey() {
   };
 }
 
+export interface ForeignKey<
+  S extends Top,
+  Tbl extends string,
+  Col extends string,
+> extends Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  ForeignKey<S, Tbl, Col>,
+  S["~type.make.in"],
+  S["Type"],
+  S["~type.parameters"],
+  S["Type"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
+  readonly schema: S;
+  readonly foreignKeyTable: Tbl;
+  readonly foreignKeyColumn: Col;
+}
+
+export function ForeignKey<Tbl extends string, Col extends string>({
+  table,
+  column,
+}: {
+  table: Tbl;
+  column: Col;
+}) {
+  return <S extends Top>(schema: S): ForeignKey<S, Tbl, Col> => {
+    return Schema.make(schema.ast, {
+      schema,
+      foreignKeyTable: table,
+      foreignKeyColumn: column,
+    } as const).annotate({
+      foreignKeyTable: table,
+      foreignKeyColumn: column,
+    }) as ForeignKey<S, Tbl, Col>;
+  };
+}
+
 // export const UuidString2 = Schema.String.check(Schema.isUUID()).pipe(
 //   withDbformat("uuid"),
 // );
