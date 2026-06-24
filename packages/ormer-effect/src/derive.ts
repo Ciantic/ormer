@@ -61,35 +61,35 @@ export type EffectSchemas =
  * `Option.some(undefined)` to trigger the default value closure.
  * Returns `undefined` if no decoding default is configured.
  */
-export function extractDecodingDefaultValue<T extends Schema.Top>(schema: {
-  ast: T["ast"];
-}): unknown {
-  const encoding = (schema.ast as any).encoding as any[] | undefined;
-  if (!encoding || encoding.length === 0) return undefined;
+// function extractDecodingDefaultValue<T extends Schema.Top>(schema: {
+//   ast: T["ast"];
+// }): unknown {
+//   const encoding = (schema.ast as any).encoding as any[] | undefined;
+//   if (!encoding || encoding.length === 0) return undefined;
 
-  for (const link of encoding) {
-    const transformation = link.transformation;
-    if (!transformation) continue;
-    // The decode getter from SchemaGetter.withDefault runs the closure
-    // and falls back to the defaultValue when input is undefined.
-    const decodeGetter = transformation.decode;
-    if (!decodeGetter || typeof decodeGetter.run !== "function") continue;
+//   for (const link of encoding) {
+//     const transformation = link.transformation;
+//     if (!transformation) continue;
+//     // The decode getter from SchemaGetter.withDefault runs the closure
+//     // and falls back to the defaultValue when input is undefined.
+//     const decodeGetter = transformation.decode;
+//     if (!decodeGetter || typeof decodeGetter.run !== "function") continue;
 
-    try {
-      const effect = decodeGetter.run(Option.some(undefined), {});
-      const resultOption = Effect.runSync(effect) as Option.Option<unknown>;
-      if (Option.isSome(resultOption)) {
-        return resultOption.value;
-      }
-    } catch {
-      // Running the Effect may fail if the schema has complex requirements.
-      // In that case, we simply can't extract the default value.
-      return undefined;
-    }
-  }
+//     try {
+//       const effect = decodeGetter.run(Option.some(undefined), {});
+//       const resultOption = Effect.runSync(effect) as Option.Option<unknown>;
+//       if (Option.isSome(resultOption)) {
+//         return resultOption.value;
+//       }
+//     } catch {
+//       // Running the Effect may fail if the schema has complex requirements.
+//       // In that case, we simply can't extract the default value.
+//       return undefined;
+//     }
+//   }
 
-  return undefined;
-}
+//   return undefined;
+// }
 
 /**
  * Recursively resolve annotations from the schema AST and its checks.
@@ -126,8 +126,9 @@ export function deriveColumn<T extends Schema.Top>(
   const dbformat = annotations?.dbformat as string | undefined;
   const checks = schema.ast.checks ?? [];
   const tag = schema.ast._tag;
-  const defaultValue = extractDecodingDefaultValue(schema);
+  const defaultValue = annotations?.defaultValue as unknown | undefined;
   const hasDefault = defaultValue !== undefined;
+  const maxLength = annotations?.maxLength as number | undefined;
 
   if (SchemaAST.isUnion(schema.ast)) {
     let nullable = false;
@@ -206,13 +207,20 @@ export function deriveColumn<T extends Schema.Top>(
     if (dbformat === "ipv6") return ["ipv6", params];
     if (dbformat === "mac") return ["mac", params];
 
-    const maxLenCheck = checks.find(
-      (c) => (c.annotations?.meta as any)?._tag === "isMaxLength",
-    );
-    if (maxLenCheck) {
-      const maxLen = (maxLenCheck.annotations!.meta as any).maxLength as number;
-      return ["string", { ...params, maxLength: maxLen }];
+    if (maxLength) {
+      return ["string", { ...params, maxLength: maxLength }];
     }
+
+    // We can't use the following, because checks aren't preserved at type-level:
+    //
+    // const maxLenCheck = checks.find(
+    //   (c) => (c.annotations?.meta as any)?._tag === "isMaxLength",
+    // );
+    // if (maxLenCheck) {
+    //   const maxLen = (maxLenCheck.annotations!.meta as any).maxLength as number;
+    //   return ["string", { ...params, maxLength: maxLen }];
+    // }
+
     return ["string", params];
   }
 

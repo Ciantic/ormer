@@ -1,12 +1,6 @@
 import { Effect, Schema } from "effect";
 import { type Bottom, type Top } from "effect/Schema";
 
-export const VarChar = (maxLength: number) =>
-  Schema.String.pipe(Schema.check(Schema.isMaxLength(maxLength)));
-
-export const WithDefault = <T>(t: T) =>
-  Schema.withDecodingDefault(Effect.succeed(t));
-
 export const Int8 = Schema.Number.check(
   Schema.makeFilter(
     (n): n is typeof n => Number.isInteger(n) && n >= -128 && n <= 127,
@@ -331,6 +325,76 @@ export function ForeignKey<Tbl extends string, Col extends string>({
       foreignKeyTable: table,
       foreignKeyColumn: column,
     }) as ForeignKey<S, Tbl, Col>;
+  };
+}
+
+export interface VarCharWrapper<S extends Top, N extends number> extends Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  VarCharWrapper<S, N>,
+  S["~type.make.in"],
+  S["Type"],
+  S["~type.parameters"],
+  S["Type"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
+  readonly schema: S;
+  readonly maxLength: N;
+}
+
+export function VarChar<N extends number>(
+  maxLength: N,
+): VarCharWrapper<typeof Schema.String, N> {
+  const base = Schema.String.pipe(Schema.check(Schema.isMaxLength(maxLength)));
+  return Schema.make(base.ast, {
+    maxLength,
+  } as const).annotate({ maxLength }) as unknown as VarCharWrapper<
+    typeof Schema.String,
+    N
+  >;
+}
+
+export interface WithDefault<S extends Top, T> extends Bottom<
+  S["Type"],
+  S["Encoded"],
+  S["DecodingServices"],
+  S["EncodingServices"],
+  S["ast"],
+  WithDefault<S, T>,
+  S["~type.make.in"],
+  S["Type"],
+  S["~type.parameters"],
+  S["Type"],
+  S["~type.mutability"],
+  S["~type.optionality"],
+  S["~type.constructor.default"],
+  S["~encoded.mutability"],
+  S["~encoded.optionality"]
+> {
+  readonly schema: S;
+  readonly defaultValue: T;
+}
+
+export function WithDefault<T>(t: T) {
+  return <S extends Top>(
+    schema: S,
+  ): WithDefault<Schema.withDecodingDefault<S>, T> => {
+    return Schema.make(schema.ast, {
+      schema,
+      defaultValue: t,
+    } as const)
+      .pipe(Schema.withDecodingDefault(Effect.succeed(t)))
+      .annotate({ defaultValue: t }) as unknown as WithDefault<
+      Schema.withDecodingDefault<S>,
+      T
+    >;
   };
 }
 

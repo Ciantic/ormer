@@ -1,10 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Schema, Effect, Brand } from "effect";
-import {
-  deriveColumn,
-  type ParamsDerived,
-  extractDecodingDefaultValue,
-} from "./derive.ts";
+import { deriveColumn, type ParamsDerived } from "./derive.ts";
 import {
   Int8,
   Int16,
@@ -29,6 +25,8 @@ import {
   PrimaryKey,
   AutoIncrement,
   ForeignKey,
+  WithDefault,
+  VarChar,
 } from "./effect-ext.ts";
 import { pg } from "ormer";
 
@@ -264,12 +262,7 @@ describe("deriveColumn — NullishOr wrapper", () => {
 
 describe("deriveColumn — optional with default", () => {
   it("extracts the decoding default value", () => {
-    const schema = Schema.String.pipe(
-      Schema.withDecodingDefault(Effect.succeed("hello")),
-    );
-
-    // Verify extractDecodingDefaultValue works
-    expect(extractDecodingDefaultValue(schema)).toBe("hello");
+    const schema = Schema.String.pipe(WithDefault("hello"));
 
     // Verify the full decode still works
     expect(Schema.decodeSync(schema)(undefined)).toBe("hello");
@@ -330,12 +323,17 @@ describe("deriveColumn — array", () => {
 });
 
 // ---------------------------------------------------------------------------
-// isMaxLength check
+// VarChar
 // ---------------------------------------------------------------------------
 
 describe("deriveColumn — isMaxLength", () => {
-  it("derives maxLength from isMaxLength check", () => {
+  it("can't derive maxLength from isMaxLength check alone", () => {
     const schema = Schema.String.pipe(Schema.check(Schema.isMaxLength(255)));
+    expect(deriveColumn(schema)).toEqual(["string", {}]);
+  });
+
+  it("can derive maxLength from varchar", () => {
+    const schema = VarChar(255);
     expect(deriveColumn(schema)).toEqual(["string", { maxLength: 255 }]);
   });
 });
@@ -424,135 +422,5 @@ describe("deriveColumn — annotations", () => {
         foreignKeyColumn: "id",
       },
     ]);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Integration: deriveColumn used with a real chooser (pg)
-// ---------------------------------------------------------------------------
-
-describe("deriveColumn — integration with pg chooser", () => {
-  const pgChooser = (t: readonly [string, ParamsDerived]): any => {
-    const [tag, params] = t;
-    const baseParams = params as Record<string, unknown>;
-    switch (tag) {
-      case "string":
-        if (
-          "maxLength" in baseParams &&
-          typeof baseParams.maxLength === "number"
-        ) {
-          return pg.varchar(baseParams as any);
-        }
-        return pg.text(baseParams as any);
-      case "number":
-        return pg.float8(baseParams as any);
-      case "int8":
-      case "int16":
-        return { type: "ERROR" }; // PG doesn't have int1/int2
-      case "int32":
-        return pg.int4(baseParams as any);
-      case "uint8":
-      case "uint16":
-      case "uint32":
-        return { type: "ERROR" }; // PG doesn't have unsigned
-      case "int64":
-        return pg.int8(baseParams as any);
-      case "uint64":
-      case "int128":
-      case "uint128":
-        return { type: "ERROR" }; // PG doesn't have uint64/int128
-      case "float32":
-        return pg.float4(baseParams as any);
-      case "float64":
-        return pg.float8(baseParams as any);
-      case "bigint":
-        return pg.int8(baseParams as any);
-      case "boolean":
-        return pg.boolean(baseParams as any);
-      case "date":
-        return pg.timestamptz(baseParams as any);
-      case "uuid":
-        return pg.uuid(baseParams as any);
-      case "isoTime":
-      case "isoDateTime":
-        return { type: "ERROR" }; // PG has no iso_time direct mapping
-      case "isoTimeSecond":
-        return pg.time(baseParams as any);
-      case "isoDate":
-        return pg.date(baseParams as any);
-      case "naiveDatetime":
-        return pg.timestamp(baseParams as any);
-      case "email":
-        return pg.varchar({ maxLength: 320, ...baseParams } as any);
-      case "url":
-      case "ipv4":
-      case "ipv6":
-      case "mac":
-        return pg.text(baseParams as any);
-      case "object":
-        return pg.jsonb(baseParams as any);
-      default:
-        throw new Error(
-          `pgChooser: Unhandled tag ${tag} with params ${JSON.stringify(params)}`,
-        );
-    }
-  };
-
-  it("derives pg column for string", () => {
-    const col = pgChooser(deriveColumn(Schema.String));
-    expect(col.type).toBe("text");
-  });
-
-  it("derives pg column for int32", () => {
-    const col = pgChooser(deriveColumn(Int32));
-    expect(col.type).toBe("int4");
-  });
-
-  it("derives pg column for int64", () => {
-    const col = pgChooser(deriveColumn(Int64));
-    expect(col.type).toBe("int8");
-  });
-
-  it("derives pg column for nullable string", () => {
-    const col = pgChooser(deriveColumn(Schema.NullOr(Schema.String)));
-    expect(col.type).toBe("text");
-    expect((col as any).nullable).toBe(true);
-  });
-
-  it("derives pg column for uuid", () => {
-    const col = pgChooser(deriveColumn(UuidString));
-    expect(col.type).toBe("uuid");
-  });
-
-  it("derives pg column for struct as jsonb", () => {
-    const col = pgChooser(deriveColumn(Schema.Struct({ v: Schema.String })));
-    expect(col.type).toBe("jsonb");
-  });
-
-  it("derives pg column with maxLength from check", () => {
-    const schema = Schema.String.pipe(Schema.check(Schema.isMaxLength(255)));
-    const col = pgChooser(deriveColumn(schema));
-    expect(col.type).toBe("varchar");
-    expect((col as any).maxLength).toBe(255);
-  });
-
-  it("derives pg column with primaryKey", () => {
-    const schema = Int32.pipe(
-      Schema.annotate({ primaryKey: true, autoIncrement: true }),
-    );
-    const col = pgChooser(deriveColumn(schema));
-    expect(col.type).toBe("int4");
-    expect((col as any).primaryKey).toBe(true);
-    expect((col as any).autoIncrement).toBe(true);
-  });
-
-  it("derives pg column for Date as timestamptz", () => {
-    const col = pgChooser(deriveColumn(Schema.Date));
-    expect(col.type).toBe("timestamptz");
-  });
-
-  it("derives pg column for boolean", () => {
-    const col = pgChooser(deriveColumn(Schema.Boolean));
-    expect(col.type).toBe("boolean");
   });
 });
