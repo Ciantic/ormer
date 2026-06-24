@@ -126,9 +126,8 @@ export function deriveColumn<T extends Schema.Top>(
   const dbformat = annotations?.dbformat as string | undefined;
   const checks = schema.ast.checks ?? [];
   const tag = schema.ast._tag;
-  let arrayDimensions = "";
-  let defaultValue: unknown = undefined;
-  let hasDefault = false;
+  const defaultValue = extractDecodingDefaultValue(schema);
+  const hasDefault = defaultValue !== undefined;
 
   if (SchemaAST.isUnion(schema.ast)) {
     let nullable = false;
@@ -165,19 +164,12 @@ export function deriveColumn<T extends Schema.Top>(
     throw new Error("What is this?");
   }
 
-  // Try to extract decoding default from the encoding chain
-  defaultValue = extractDecodingDefaultValue(schema as any);
-  if (defaultValue !== undefined) {
-    hasDefault = true;
-  }
-
   const params: ParamsDerived = { ...acc };
   if (hasDefault) params.default = defaultValue;
   if (primaryKey) params.primaryKey = true;
   if (autoIncrement) params.autoIncrement = true;
   if (foreignKeyTable) params.foreignKeyTable = foreignKeyTable;
   if (foreignKeyColumn) params.foreignKeyColumn = foreignKeyColumn;
-  if (arrayDimensions) params.array = arrayDimensions;
 
   if (SchemaAST.isArrays(schema.ast) && schema.ast.rest.length > 0) {
     const inner = schema.ast.rest[0];
