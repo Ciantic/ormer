@@ -234,12 +234,6 @@ export function deriveColumn<T extends Schema.Top>(
     if (dbformat === "uint32") return ["uint32", params];
     if (dbformat === "float32") return ["float32", params];
     if (dbformat === "float64") return ["float64", params];
-    if (checks.some((c) => (c.annotations?.meta as any)?._tag === "isInt32")) {
-      return ["int32", params];
-    }
-    if (checks.some((c) => (c.annotations?.meta as any)?._tag === "isInt")) {
-      return ["int32", params];
-    }
     return ["number", params];
   }
 

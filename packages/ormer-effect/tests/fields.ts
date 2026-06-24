@@ -55,14 +55,13 @@ export const ALL_EFFECT_FIELDS = {
   c_num_int:          { effect: Schema.Number.check(Schema.isInt()),                example: 42 },
   c_f32:              { effect: Float32,                                            example: 1.5 },
   c_f64:              { effect: Float64,                                            example: 2.718281828 },
-  c_int:              { effect: Int32,                                              example: 100 },
-  c_int_pk:           { effect: Int32.pipe(PrimaryKey(), AutoIncrement()),          example: 1 },
-  c_int32:            { effect: Int32,                                              example: 200 },
   c_int8:             { effect: Int8,                                               example: 50 },
-  c_uint8:            { effect: Uint8,                                              example: 200 },
   c_int16:            { effect: Int16,                                              example: 15000 },
+  c_int32:            { effect: Int32,                                              example: 200 },
+  c_uint8:            { effect: Uint8,                                              example: 200 },
   c_uint16:           { effect: Uint16,                                             example: 50000 },
   c_uint32:           { effect: Uint32,                                             example: 300 },
+  c_int_pk:           { effect: Int32.pipe(PrimaryKey(), AutoIncrement()),          example: 1 },
 
   // Bigint
   c_bigint:           { effect: Schema.BigInt,                                      example: 9007199254740991n },
@@ -131,17 +130,16 @@ export const ALL_PG_FIELDS = {
 
   // Number types
   c_num: pg.float8(),
-  c_num_int: pg.int4(),
+  c_num_int: pg.float8(),
   c_f32: pg.float4(),
   c_f64: pg.float8(),
-  c_int: pg.int4(),
-  c_int_pk: pg.int4(pkAutoInc),
-  c_int32: pg.int4(),
   c_int8: "ERROR" as const,
-  c_uint8: "ERROR" as const,
   c_int16: pg.int2(),
+  c_int32: pg.int4(),
+  c_uint8: "ERROR" as const,
   c_uint16: "ERROR" as const,
   c_uint32: "ERROR" as const,
+  c_int_pk: pg.int4(pkAutoInc),
 
   // Bigint
   c_bigint: pg.int8(),
@@ -212,17 +210,16 @@ export const ALL_DUCKDB_FIELDS = {
 
   // Number types
   c_num: duckdb.float8(),
-  c_num_int: duckdb.int4(),
+  c_num_int: duckdb.float8(),
   c_f32: duckdb.float4(),
   c_f64: duckdb.float8(),
-  c_int: duckdb.int4(),
-  c_int_pk: duckdb.int4(pkAutoInc),
-  c_int32: duckdb.int4(),
   c_int8: duckdb.int1(),
-  c_uint8: duckdb.utinyint(),
   c_int16: duckdb.int2(),
+  c_int32: duckdb.int4(),
+  c_uint8: duckdb.utinyint(),
   c_uint16: duckdb.usmallint(),
   c_uint32: duckdb.uinteger(),
+  c_int_pk: duckdb.int4(pkAutoInc),
 
   // Bigint
   c_bigint: duckdb.int8(),
@@ -295,17 +292,16 @@ export const ALL_SQLITE_FIELDS = {
 
   // Number types
   c_num: sqlite.real(),
-  c_num_int: sqlite.integer(),
+  c_num_int: sqlite.real(),
   c_f32: sqlite.real(),
   c_f64: sqlite.real(),
-  c_int: sqlite.integer(),
-  c_int_pk: sqlite.integer(pkAutoInc),
-  c_int32: sqlite.integer(),
   c_int8: sqlite.integer(),
-  c_uint8: sqlite.integer(),
   c_int16: sqlite.integer(),
+  c_int32: sqlite.integer(),
+  c_uint8: sqlite.integer(),
   c_uint16: sqlite.integer(),
   c_uint32: sqlite.integer(),
+  c_int_pk: sqlite.integer(pkAutoInc),
 
   // Bigint — SQLite INTEGER is always number, can't round-trip bigint
   c_bigint: "ERROR" as const,
